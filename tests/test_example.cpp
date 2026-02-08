@@ -1,7 +1,7 @@
 #include "../lib/asap/t.hpp"
+#include "../lib/asap/util.hpp"
 #include "../src/preprocessor/preprocessor_tokenize.hpp"
 #include "../src/symbol.hpp"
-#include <sstream>
 
 using namespace std;
 namespace {
@@ -107,17 +107,19 @@ void test_example(T *t) {
       "if ( #true ) { + - == let x = 0} "
       "fn(1,2,3) fn:name_1(_aaa_0_AZ) try expect -define -endif -assert(x)");
 
-  stringstream ss;
+  vector<string> strs;
+  strs.reserve(tokens.size());
   for (auto t : tokens) {
-    ss << pptoken_to_string(t) << " ";
+    strs.push_back(pptoken_to_string(t));
   }
-  t->assert_str_eq(ss.str(),
-                   "1 1.100000 1.100000 O-. ID-print K-( K-) ID-true S-#true "
-                   "S-#false S-#none S-#1 S-#_1 \"hello "
-                   "\n world\" K-if K-( S-#true K-) K-{ O-+ O-- O-== K-let ID-x "
-                   "K-= 0 K-} ID-fn K-( 1 K-, 2 K-, 3 K-) ID-fn:name_1 "
-                   "K-( ID-_aaa_0_AZ K-) K-try K-expect M-define M-endif "
-                   "M-assert K-( ID-x K-) ");
+  t->assert_str_eq(
+      join(strs, " "),
+      "1 1.100000 1.100000 O-. ID-print K-( K-) ID-true S-#true "
+      "S-#false S-#none S-#1 S-#_1 \"hello "
+      "\n world\" K-if K-( S-#true K-) K-{ O-+ O-- O-== K-let ID-x "
+      "K-= 0 K-} ID-fn K-( 1 K-, 2 K-, 3 K-) ID-fn:name_1 "
+      "K-( ID-_aaa_0_AZ K-) K-try K-expect M-define M-endif "
+      "M-assert K-( ID-x K-)");
 }
 
 int main() {
