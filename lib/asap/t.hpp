@@ -62,9 +62,9 @@ public:
       throw TestCaseFailure("test on condition failed");
     }
   }
-  void assert_str_eq(const std::string &a, const std::string &b) {
-    if (a != b) {
-      throw TestCaseFailure("'" + a + "'is not equal to expected '" + b + "'");
+  void assert_str_eq(const std::string &actual, const std::string &expected) {
+    if (actual != expected) {
+      throw TestCaseFailure("'" + actual + "'is not equal to expected '" + expected + "'");
     }
   }
   void fail(const std::string &msg) { throw TestCaseFailure(msg); }

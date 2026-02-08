@@ -1,21 +1,24 @@
 #pragma once
-#include "interned_string.hpp"
-#include "location.hpp"
-#include "symbol.hpp"
+#include "../interned_string.hpp"
+#include "../location.hpp"
+#include "../symbol.hpp"
 
-enum class PreprocessorTokenTag : uint8_t {
+#define __PREPROCESSOR_TOKEN_NONE_VAL {.INT = 0}
+
+enum class PpTokenTag : uint8_t {
   INT,
   FLOAT,
-  BOOL,
   SYMBOL,
   STRING,
-  NONE,
   LET,
   SET,
+  AT,
   IF,
   ELIF,
   ELSE,
   FUNCTION,
+  TRY,
+  EXPECT,
   ASSIGN,
   BROPEN,
   BRCLOSE,
@@ -24,42 +27,41 @@ enum class PreprocessorTokenTag : uint8_t {
   COMMA,
   DOT,
   BAR,
-  OPERATOR_ADD,
-  OPERATOR_SUB,
-  OPERATOR_MUL,
-  OPERATOR_DIV,
-  OPERATOR_MOD,
-  OPERATOR_EQ,
-  OPERATOR_NEQ,
+  OP_ADD,
+  OP_SUB,
+  OP_MUL,
+  OP_DIV,
+  OP_MOD,
+  OP_EQ,
+  OP_NEQ,
+  OP_NOT,
+  OP_OR,
+  OP_AND,
   OPERATOR_LT,
   OPERATOR_LTE,
   OPERATOR_GT,
   OPERATOR_GTE,
   OPERATOR_STRCONCAT,
   IDENTIFIER,
-  TRY,
-  EXPECT,
   INCLUDE_MACRO,
   ASSERT_MACRO,
   DEFINE_MACRO,
   UNDEFINE_MACRO,
-  INFDEF_MACRO,
-  INFNDEF_MACRO,
+  IFDEF_MACRO,
+  IFNOTDEF_MACRO,
   ENDIF_MACRO,
 };
 
-#define NONE {.INT = 0}
 struct PreprocessorToken {
   LocationRef location;
   union {
     int64_t INT;
     double FLOAT;
     InternedString STR;
-    bool BOOL;
     Symbol SYMBOL;
     InternedString IDENTIFIER;
   } as;
-  PreprocessorTokenTag tag;
+  PpTokenTag tag;
 };
 
 inline PreprocessorToken build_pptoken_int(const LocationRef &location,
@@ -67,7 +69,7 @@ inline PreprocessorToken build_pptoken_int(const LocationRef &location,
   return PreprocessorToken{
       .location = location,
       .as = {.INT = value},
-      .tag = PreprocessorTokenTag::INT,
+      .tag = PpTokenTag::INT,
   };
 }
 
@@ -76,7 +78,7 @@ inline PreprocessorToken build_pptoken_float(const LocationRef &location,
   return PreprocessorToken{
       .location = location,
       .as = {.FLOAT = value},
-      .tag = PreprocessorTokenTag::FLOAT,
+      .tag = PpTokenTag::FLOAT,
   };
 }
 
@@ -85,16 +87,7 @@ inline PreprocessorToken build_pptoken_string(const LocationRef &location,
   return PreprocessorToken{
       .location = location,
       .as = {.STR = value},
-      .tag = PreprocessorTokenTag::STRING,
-  };
-}
-
-inline PreprocessorToken build_pptoken_bool(const LocationRef &location,
-                                            bool value) {
-  return PreprocessorToken{
-      .location = location,
-      .as = {.BOOL = value},
-      .tag = PreprocessorTokenTag::BOOL,
+      .tag = PpTokenTag::STRING,
   };
 }
 
@@ -103,7 +96,7 @@ inline PreprocessorToken build_pptoken_symbol(const LocationRef &location,
   return PreprocessorToken{
       .location = location,
       .as = {.SYMBOL = value},
-      .tag = PreprocessorTokenTag::SYMBOL,
+      .tag = PpTokenTag::SYMBOL,
   };
 }
 
@@ -112,15 +105,15 @@ inline PreprocessorToken build_pptoken_identifier(const LocationRef &location,
   return PreprocessorToken{
       .location = location,
       .as = {.IDENTIFIER = value},
-      .tag = PreprocessorTokenTag::IDENTIFIER,
+      .tag = PpTokenTag::IDENTIFIER,
   };
 }
 
 inline PreprocessorToken build_pptoken(const LocationRef &location,
-                                       PreprocessorTokenTag tag) {
+                                       PpTokenTag tag) {
   return PreprocessorToken{
       .location = location,
-      .as = NONE,
+      .as = __PREPROCESSOR_TOKEN_NONE_VAL,
       .tag = tag,
   };
 }
