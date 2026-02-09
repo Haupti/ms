@@ -29,9 +29,11 @@ set my_tab at "hello" = "World"
 1.add(2) // left apply operator -> add(1,2)
 1 | add(2) // right apply operator -> add(2,1)
 
--define HEAD 1
--infdef HEAD
+-define HEAD
+-define HEAD
+-infdef HEAD 
 ...
+
 -endif
 
 // errors as values:
