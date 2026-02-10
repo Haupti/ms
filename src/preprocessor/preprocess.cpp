@@ -11,102 +11,354 @@ using namespace std;
 namespace {
 struct PpParser {
   vector<PreprocessorToken> tokens;
-  unordered_map<uint64_t, PreprocessorToken> defines; // interned strings as key
-  unordered_set<uint64_t> defines_no_value;           // interned strings as key
+  unordered_map<uint64_t, Token> defines; // interned strings as key
+  unordered_set<uint64_t> flags;          // interned strings as key
   uint64_t pos;
   uint64_t len;
 };
-PpParser build_PpParser(const vector<PreprocessorToken> &tokens) {
+PpParser build_PpParser(vector<PreprocessorToken> tokens) {
   PpParser p;
-  p.tokens = tokens;
+  p.tokens = std::move(tokens);
   p.pos = 0;
   p.len = p.tokens.size();
   return p;
 }
 bool ppparser_eof(PpParser *p) { return p->pos >= p->len; }
-void ppparser_adv(PpParser *p) { p->pos++; }
+void ppparser_adv(PpParser *p) { p->pos += 1; }
 PreprocessorToken ppparser_peek(PpParser *p) {
   if (ppparser_eof(p)) {
     throw runtime_error("unexpected EOF\n");
   }
   return p->tokens.at(p->pos);
 }
-bool ppparser_peek_next_is_assign_and_not_eof(PpParser *p) {
-  return p->pos + 1 < p->len &&
-         p->tokens.at(p->pos + 1).tag == PpTokenTag::IDENTIFIER;
-}
-void ppparser_def(PpParser *p, const InternedString &definition) {
-  if (p->defines.count(definition.index) > 0 ||
-      p->defines_no_value.count(definition.index) > 0) {
-    throw runtime_error("macro '" + resolve_interned_string(definition) +
-                        "' is already defined\n");
+
+// token utils
+Token pptoken_to_token(const PreprocessorToken &pptoken) {
+  Token token;
+  token.location = pptoken.location;
+  switch (pptoken.tag) {
+  case PpTokenTag::INT:
+    token.as.INT = pptoken.as.INT;
+    token.tag = TokenTag::INT;
+    return token;
+  case PpTokenTag::FLOAT:
+    token.as.FLOAT = pptoken.as.FLOAT;
+    token.tag = TokenTag::FLOAT;
+    return token;
+  case PpTokenTag::SYMBOL:
+    token.as.SYMBOL = pptoken.as.SYMBOL;
+    token.tag = TokenTag::SYMBOL;
+    return token;
+  case PpTokenTag::STRING:
+    token.as.STR = pptoken.as.STR;
+    token.tag = TokenTag::STRING;
+    return token;
+  case PpTokenTag::LET:
+    token.tag = TokenTag::LET;
+    return token;
+  case PpTokenTag::SET:
+    token.tag = TokenTag::SET;
+    return token;
+  case PpTokenTag::AT:
+    token.tag = TokenTag::AT;
+    return token;
+  case PpTokenTag::IF:
+    token.tag = TokenTag::IF;
+    return token;
+  case PpTokenTag::ELIF:
+    token.tag = TokenTag::ELIF;
+    return token;
+  case PpTokenTag::ELSE:
+    token.tag = TokenTag::ELSE;
+    return token;
+  case PpTokenTag::FUNCTION:
+    token.tag = TokenTag::FUNCTION;
+    return token;
+  case PpTokenTag::TRY:
+    token.tag = TokenTag::TRY;
+    return token;
+  case PpTokenTag::EXPECT:
+    token.tag = TokenTag::EXPECT;
+    return token;
+  case PpTokenTag::ASSIGN:
+    token.tag = TokenTag::ASSIGN;
+    return token;
+  case PpTokenTag::BROPEN:
+    token.tag = TokenTag::BROPEN;
+    return token;
+  case PpTokenTag::BRCLOSE:
+    token.tag = TokenTag::BRCLOSE;
+    return token;
+  case PpTokenTag::CURLOPEN:
+    token.tag = TokenTag::CURLOPEN;
+    return token;
+  case PpTokenTag::CURLCLOSE:
+    token.tag = TokenTag::CURLCLOSE;
+    return token;
+  case PpTokenTag::COMMA:
+    token.tag = TokenTag::COMMA;
+    return token;
+  case PpTokenTag::DOT:
+    token.tag = TokenTag::DOT;
+    return token;
+  case PpTokenTag::BAR:
+    token.tag = TokenTag::BAR;
+    return token;
+  case PpTokenTag::OP_ADD:
+    token.tag = TokenTag::OP_ADD;
+    return token;
+  case PpTokenTag::OP_SUB:
+    token.tag = TokenTag::OP_SUB;
+    return token;
+  case PpTokenTag::OP_MUL:
+    token.tag = TokenTag::OP_MUL;
+    return token;
+  case PpTokenTag::OP_DIV:
+    token.tag = TokenTag::OP_DIV;
+    return token;
+  case PpTokenTag::OP_MOD:
+    token.tag = TokenTag::OP_MOD;
+    return token;
+  case PpTokenTag::OP_EQ:
+    token.tag = TokenTag::OP_EQ;
+    return token;
+  case PpTokenTag::OP_NEQ:
+    token.tag = TokenTag::OP_NEQ;
+    return token;
+  case PpTokenTag::OP_NOT:
+    token.tag = TokenTag::OP_NOT;
+    return token;
+  case PpTokenTag::OP_OR:
+    token.tag = TokenTag::OP_OR;
+    return token;
+  case PpTokenTag::OP_AND:
+    token.tag = TokenTag::OP_AND;
+    return token;
+  case PpTokenTag::OPERATOR_LT:
+    token.tag = TokenTag::OPERATOR_LT;
+    return token;
+  case PpTokenTag::OPERATOR_LTE:
+    token.tag = TokenTag::OPERATOR_LTE;
+    return token;
+  case PpTokenTag::OPERATOR_GT:
+    token.tag = TokenTag::OPERATOR_GT;
+    return token;
+  case PpTokenTag::OPERATOR_GTE:
+    token.tag = TokenTag::OPERATOR_GTE;
+    return token;
+  case PpTokenTag::OPERATOR_STRCONCAT:
+    token.tag = TokenTag::OPERATOR_STRCONCAT;
+    return token;
+  case PpTokenTag::IDENTIFIER:
+    token.as.IDENTIFIER = pptoken.as.IDENTIFIER;
+    token.tag = TokenTag::IDENTIFIER;
+    return token;
+  case PpTokenTag::INCLUDE_MACRO:
+  case PpTokenTag::ASSERT_MACRO:
+  case PpTokenTag::DEFINE_MACRO:
+  case PpTokenTag::FSET_MACRO:
+  case PpTokenTag::FUNSET_MACRO:
+  case PpTokenTag::IFFSET_MACRO:
+  case PpTokenTag::IFNFSET_MACRO:
+  case PpTokenTag::ENDIF_MACRO:
+    throw runtime_error("invalid use of preprocessor directive\n");
   }
-  p->defines_no_value.insert(definition.index);
+}
+
+// flags
+bool ppparser_has_flag(PpParser *p, const InternedString &name) {
+  return p->flags.count(name.index) > 0;
+}
+void ppparser_set_flag(PpParser *p, const InternedString &definition) {
+  if (p->flags.count(definition.index) > 0) {
+    throw runtime_error("flag '" + resolve_interned_string(definition) +
+                        "' is already set\n");
+  }
+  p->flags.insert(definition.index);
+}
+void ppparser_unset_flag(PpParser *p, const InternedString &definition) {
+  if (p->flags.count(definition.index) == 0) {
+    throw runtime_error("flag '" + resolve_interned_string(definition) +
+                        "' is not set\n");
+  }
+  p->flags.erase(definition.index);
+}
+
+// definitions
+bool ppparser_has_def(PpParser *p, const InternedString &name) {
+  return p->defines.count(name.index) > 0;
 }
 void ppparser_def(PpParser *p, const InternedString &definition,
                   const PreprocessorToken &token) {
-  if (p->defines.count(definition.index) > 0 ||
-      p->defines_no_value.count(definition.index) > 0) {
+  if (p->defines.count(definition.index) > 0) {
     throw runtime_error("macro '" + resolve_interned_string(definition) +
                         "' is already defined\n");
   }
-  p->defines[definition.index] = token;
+  p->defines[definition.index] = pptoken_to_token(token);
 }
-void ppparser_undef(PpParser *p, const InternedString &definition) {
-  if (p->defines.count(definition.index) == 0 &&
-      p->defines_no_value.count(definition.index) == 0) {
-    throw runtime_error("macro '" + resolve_interned_string(definition) +
-                        "' is not defined\n");
-  }
-  p->defines.erase(definition.index);
+Token ppparser_get_def(PpParser *p, const InternedString &name) {
+  return p->defines.at(name.index);
 }
 
+// assertions
 void assert_identifier(const PreprocessorToken &token) {
   if (token.tag != PpTokenTag::IDENTIFIER) {
     throw runtime_error("expected an identifier\n");
   }
 }
-void assert_literal(const PreprocessorToken &token) {
-  PpTokenTag tag = token.tag;
-  if (tag != PpTokenTag::STRING || tag != PpTokenTag::INT ||
-      tag != PpTokenTag::FLOAT || tag != PpTokenTag::SYMBOL) {
-    throw runtime_error("expected a constant value\n");
+void assert_literal_value(const PreprocessorToken &token) {
+  switch (token.tag) {
+  case PpTokenTag::INT:
+    break;
+  case PpTokenTag::FLOAT:
+    break;
+  case PpTokenTag::SYMBOL:
+    break;
+  case PpTokenTag::STRING:
+    break;
+  default:
+    throw runtime_error("expected a value\n");
+  }
+}
+
+void assert_isat_assign(PpParser *p) {
+  if (ppparser_peek(p).tag != PpTokenTag::ASSIGN) {
+    throw runtime_error("expected an '='\n");
   }
 }
 } // namespace
 
-std::vector<Token> preprocess(const std::string &entrypoint) {
-  string content = read_file(entrypoint);
+namespace {
+vector<Token> parse_token(PpParser *p, const PreprocessorToken &token);
 
-  PpParser p = build_PpParser(preprocessor_tokenize(entrypoint, content));
+void parse_define(PpParser *p) {
+  ppparser_adv(p); // to definition name
+
+  PreprocessorToken identifier = ppparser_peek(p);
+  assert_identifier(identifier);
+  ppparser_adv(p); // to '='
+
+  assert_isat_assign(p);
+  ppparser_adv(p); // to value
+
+  PreprocessorToken value = ppparser_peek(p);
+  assert_literal_value(value);
+  ppparser_def(p, identifier.as.IDENTIFIER, value);
+  ppparser_adv(p); // to next
+}
+
+void parse_fset(PpParser *p) {
+  ppparser_adv(p); // to flag
+  PreprocessorToken identifier = ppparser_peek(p);
+  assert_identifier(identifier);
+  ppparser_set_flag(p, identifier.as.IDENTIFIER);
+  ppparser_adv(p); // to next
+}
+void parse_funset(PpParser *p) {
+  ppparser_adv(p); // to flag
+  PreprocessorToken identifier = ppparser_peek(p);
+  assert_identifier(identifier);
+  if (ppparser_has_flag(p, identifier.as.IDENTIFIER)) {
+    ppparser_unset_flag(p, identifier.as.IDENTIFIER);
+  } else {
+    throw runtime_error("flag '" +
+                        resolve_interned_string(identifier.as.IDENTIFIER) +
+                        "' not set\n");
+  }
+  ppparser_adv(p); // to next
+}
+
+vector<Token> parse_iffset(PpParser *p, bool mod) {
+  ppparser_adv(p); // to identifier
+  PreprocessorToken identifier = ppparser_peek(p);
+  assert_identifier(identifier);
+  ppparser_adv(p); // to first conditional token
+
+  vector<Token> result;
+  if (ppparser_has_flag(p, identifier.as.IDENTIFIER)) {
+    while (ppparser_peek(p).tag != PpTokenTag::ENDIF_MACRO) {
+      if (mod) {
+        auto next = ppparser_peek(p);
+        auto inner = parse_token(p, next);
+        result.insert(result.end(), inner.begin(), inner.end());
+      }
+      ppparser_adv(p);
+    }
+  } else {
+    while (ppparser_peek(p).tag != PpTokenTag::ENDIF_MACRO) {
+      if (!mod) {
+        auto next = ppparser_peek(p);
+        auto inner = parse_token(p, next);
+        result.insert(result.end(), inner.begin(), inner.end());
+      }
+      ppparser_adv(p);
+    }
+  }
+  ppparser_adv(p); // to next (past endif)
+  return result;
+}
+Token parse_identifier(PpParser *p, const PreprocessorToken &identifier) {
+  if (ppparser_has_def(p, identifier.as.IDENTIFIER)) {
+    Token t = ppparser_get_def(p, identifier.as.IDENTIFIER);
+    ppparser_adv(p);
+    return t;
+  } else {
+    ppparser_adv(p);
+    return pptoken_to_token(identifier);
+  }
+}
+
+vector<Token> parse_token(PpParser *p, const PreprocessorToken &token) {
+  vector<Token> result;
+  if (token.tag == PpTokenTag::DEFINE_MACRO) {
+    warn("DEFINE");
+    parse_define(p);
+  } else if (token.tag == PpTokenTag::FSET_MACRO) {
+    warn("FSET");
+    parse_fset(p);
+  } else if (token.tag == PpTokenTag::FUNSET_MACRO) {
+    warn("FUNSET");
+    parse_funset(p);
+  } else if (token.tag == PpTokenTag::IFFSET_MACRO) {
+    warn("IFFSET");
+    auto body = parse_iffset(p, true);
+    result.insert(result.end(), body.begin(), body.end());
+  } else if (token.tag == PpTokenTag::IFNFSET_MACRO) {
+    warn("IFNFSET");
+    auto body = parse_iffset(p, false);
+    result.insert(result.end(), body.begin(), body.end());
+  } else if (token.tag == PpTokenTag::ENDIF_MACRO) {
+    throw runtime_error(
+        "invalid use of preprocessor directive: no condition to close\n");
+  } else if (token.tag == PpTokenTag::IDENTIFIER) {
+    warn("IDENTIFIER");
+    result.push_back(parse_identifier(p, token));
+  } else {
+    warn("ELSE");
+    result.push_back(pptoken_to_token(token));
+    ppparser_adv(p);
+  }
+  return result;
+}
+} // namespace
+
+std::vector<Token>
+preprocess_pptokens(const std::vector<PreprocessorToken> &tokens) {
+  PpParser p = build_PpParser(tokens);
   vector<Token> result;
 
   PreprocessorToken curr;
   while (!ppparser_eof(&p)) {
     curr = ppparser_peek(&p);
-    if (curr.tag == PpTokenTag::DEFINE_MACRO) {
-      ppparser_adv(&p);
-      PreprocessorToken identifier = ppparser_peek(&p);
-      assert_identifier(identifier);
-      if (ppparser_peek_next_is_assign_and_not_eof(&p)) {
-        ppparser_adv(&p); // move to assign
-        ppparser_adv(&p); // move to value
-        PreprocessorToken value = ppparser_peek(&p);
-        assert_literal(value);
-        ppparser_def(&p, identifier.as.IDENTIFIER, value);
-        ppparser_adv(&p); // move to next
-      } else {
-        ppparser_def(&p, identifier.as.IDENTIFIER);
-        ppparser_adv(&p); // move to next
-      }
-    } else if (curr.tag == PpTokenTag::IDENTIFIER) {
-      // TODO check if no-value define -> error
-      // TODO check if value define -> replace
-      // TODO else, just add to output vector
-    }
-    // TODO parse other macro options
-    // TODO other tokens are just added to output vector
+    auto parsed = parse_token(&p, curr);
+    result.insert(result.end(), parsed.begin(), parsed.end());
   }
 
   return result;
+}
+
+std::vector<Token> preprocess(const std::string &entrypoint) {
+  string content = read_file(entrypoint);
+  auto pptokens = preprocessor_tokenize(entrypoint, content);
+  return preprocess_pptokens(pptokens);
 }

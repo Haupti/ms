@@ -1,6 +1,5 @@
 #include "preprocessor_token.hpp"
 #include <cstdint>
-#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -161,16 +160,18 @@ PreprocessorToken tokenize_macro_or_subtractin_operator(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::ASSERT_MACRO);
   } else if (value == "-define") {
     return build_pptoken(get_location(t, start), PpTokenTag::DEFINE_MACRO);
-  } else if (value == "-undefine") {
-    return build_pptoken(get_location(t, start), PpTokenTag::UNDEFINE_MACRO);
+  } else if (value == "-fset") {
+    return build_pptoken(get_location(t, start), PpTokenTag::FSET_MACRO);
+  } else if (value == "-funset") {
+    return build_pptoken(get_location(t, start), PpTokenTag::FUNSET_MACRO);
   } else if (value == "-endif") {
     return build_pptoken(get_location(t, start), PpTokenTag::ENDIF_MACRO);
   } else if (value == "-include") {
     return build_pptoken(get_location(t, start), PpTokenTag::INCLUDE_MACRO);
-  } else if (value == "-ifdef") {
-    return build_pptoken(get_location(t, start), PpTokenTag::IFDEF_MACRO);
-  } else if (value == "-ifnotdef") {
-    return build_pptoken(get_location(t, start), PpTokenTag::IFNOTDEF_MACRO);
+  } else if (value == "-iffset") {
+    return build_pptoken(get_location(t, start), PpTokenTag::IFFSET_MACRO);
+  } else if (value == "-ifnfset") {
+    return build_pptoken(get_location(t, start), PpTokenTag::IFNFSET_MACRO);
   } else if (value == "-") {
     return build_pptoken(get_location(t, start), PpTokenTag::OP_SUB);
   } else {

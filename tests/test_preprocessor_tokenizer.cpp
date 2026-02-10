@@ -12,100 +12,101 @@ string pptoken_to_string(const PreprocessorToken &token) {
   case PpTokenTag::FLOAT:
     return to_string(token.as.FLOAT);
   case PpTokenTag::SYMBOL:
-    return "S-" + resolve_symbol(token.as.SYMBOL);
+    return resolve_symbol(token.as.SYMBOL);
   case PpTokenTag::STRING:
     return "\"" + resolve_interned_string(token.as.STR) + "\"";
   case PpTokenTag::LET:
-    return "K-let";
+    return "let";
   case PpTokenTag::SET:
-    return "K-set";
+    return "set";
   case PpTokenTag::AT:
-    return "K-at";
+    return "at";
   case PpTokenTag::IF:
-    return "K-if";
+    return "if";
   case PpTokenTag::ELIF:
-    return "K-elif";
+    return "elif";
   case PpTokenTag::ELSE:
-    return "K-else";
+    return "else";
   case PpTokenTag::FUNCTION:
-    return "K-function";
+    return "function";
   case PpTokenTag::TRY:
-    return "K-try";
+    return "try";
   case PpTokenTag::EXPECT:
-    return "K-expect";
+    return "expect";
   case PpTokenTag::ASSIGN:
-    return "K-=";
+    return "=";
   case PpTokenTag::BROPEN:
-    return "K-(";
+    return "(";
   case PpTokenTag::BRCLOSE:
-    return "K-)";
+    return ")";
   case PpTokenTag::CURLOPEN:
-    return "K-{";
+    return "{";
   case PpTokenTag::CURLCLOSE:
-    return "K-}";
+    return "}";
   case PpTokenTag::COMMA:
-    return "K-,";
+    return ",";
   case PpTokenTag::DOT:
-    return "O-.";
+    return ".";
   case PpTokenTag::BAR:
-    return "O-|";
+    return "|";
   case PpTokenTag::OP_ADD:
-    return "O-+";
+    return "+";
   case PpTokenTag::OP_SUB:
-    return "O--";
+    return "-";
   case PpTokenTag::OP_MUL:
-    return "O-*";
+    return "*";
   case PpTokenTag::OP_DIV:
-    return "O-/";
+    return "/";
   case PpTokenTag::OP_MOD:
-    return "O-mod";
+    return "mod";
   case PpTokenTag::OP_EQ:
-    return "O-==";
+    return "==";
   case PpTokenTag::OP_NEQ:
-    return "O-!=";
+    return "!=";
   case PpTokenTag::OP_NOT:
-    return "O-not";
+    return "not";
   case PpTokenTag::OP_OR:
-    return "O-or";
+    return "or";
   case PpTokenTag::OP_AND:
-    return "O-and";
+    return "and";
   case PpTokenTag::OPERATOR_LT:
-    return "O-<";
+    return "<";
   case PpTokenTag::OPERATOR_LTE:
-    return "O-<=";
+    return "<=";
   case PpTokenTag::OPERATOR_GT:
-    return "O->";
+    return ">";
   case PpTokenTag::OPERATOR_GTE:
-    return "O->=";
+    return ">=";
   case PpTokenTag::OPERATOR_STRCONCAT:
-    return "O-<>";
+    return "<>";
   case PpTokenTag::IDENTIFIER:
-    return "ID-" + resolve_interned_string(token.as.IDENTIFIER);
+    return resolve_interned_string(token.as.IDENTIFIER);
   case PpTokenTag::INCLUDE_MACRO:
-    return "M-include";
+    return "MACRO(-include)";
   case PpTokenTag::ASSERT_MACRO:
-    return "M-assert";
+    return "MACRO(-assert)";
   case PpTokenTag::DEFINE_MACRO:
-    return "M-define";
-  case PpTokenTag::UNDEFINE_MACRO:
-    return "M-undefine";
-  case PpTokenTag::IFDEF_MACRO:
-    return "M-ifdef";
-  case PpTokenTag::IFNOTDEF_MACRO:
-    return "M-ifnotdef";
+    return "MACRO(-define)";
+  case PpTokenTag::FSET_MACRO:
+    return "MACRO(-fset)";
+  case PpTokenTag::FUNSET_MACRO:
+    return "MACRO(-funset)";
+  case PpTokenTag::IFFSET_MACRO:
+    return "MACRO(-iffset)";
+  case PpTokenTag::IFNFSET_MACRO:
+    return "MACRO(-ifnfset)";
   case PpTokenTag::ENDIF_MACRO:
-    return "M-endif";
+    return "MACRO(-endif)";
   }
 }
-} // namespace
 
-void test_example(T *t) {
+void test_stuff(T *t) {
   vector<PreprocessorToken> tokens = preprocessor_tokenize(
       "test.msl",
       "1 1.1 1.1.print() true #true #false #none #1 #_1 "
       "\"hello \n world\""
       "if ( #true ) { + - == let x = 0} "
-      "fn(1,2,3) fn:name_1(_aaa_0_AZ) try expect -define -endif -assert(x)");
+      "fn(1,2,3) fn:name_1(_aaa_0_AZ) try expect");
 
   vector<string> strs;
   strs.reserve(tokens.size());
@@ -114,16 +115,31 @@ void test_example(T *t) {
   }
   t->assert_str_eq(
       join(strs, " "),
-      "1 1.100000 1.100000 O-. ID-print K-( K-) ID-true S-#true "
-      "S-#false S-#none S-#1 S-#_1 \"hello "
-      "\n world\" K-if K-( S-#true K-) K-{ O-+ O-- O-== K-let ID-x "
-      "K-= 0 K-} ID-fn K-( 1 K-, 2 K-, 3 K-) ID-fn:name_1 "
-      "K-( ID-_aaa_0_AZ K-) K-try K-expect M-define M-endif "
-      "M-assert K-( ID-x K-)");
+      "1 1.100000 1.100000 . print ( ) true #true #false #none #1 #_1 \"hello "
+      "\n"
+      " world\" if ( #true ) { + - == let x = 0 } fn ( 1 , 2 , 3 ) fn:name_1 ( "
+      "_aaa_0_AZ ) try expect");
 }
+
+void test_fset_and_such(T *t) {
+  vector<PreprocessorToken> tokens = preprocessor_tokenize(
+      "test.msl", "-fset TESTRUN -funset TESTRUN -iffset TESTRUN print(x) -endif");
+
+  vector<string> strs;
+  strs.reserve(tokens.size());
+  for (auto t : tokens) {
+    strs.push_back(pptoken_to_string(t));
+  }
+  t->assert_str_eq(
+      join(strs, " "),
+      "MACRO(-fset) TESTRUN MACRO(-funset) TESTRUN MACRO(-iffset) TESTRUN print ( x ) MACRO(-endif)");
+}
+
+} // namespace
 
 int main() {
   T t("Preprocessor tokenization");
-  t.test("stuff", test_example);
+  t.test("stuff", test_stuff);
+  t.test("macros", test_fset_and_such);
   return 0;
 }
