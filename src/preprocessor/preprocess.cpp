@@ -275,23 +275,34 @@ vector<Token> parse_iffset(PpParser *p, bool mod) {
   ppparser_adv(p); // to first conditional token
 
   vector<Token> result;
-  if (ppparser_has_flag(p, identifier.as.IDENTIFIER)) {
-    while (ppparser_peek(p).tag != PpTokenTag::ENDIF_MACRO) {
-      if (mod) {
-        auto next = ppparser_peek(p);
-        auto inner = parse_token(p, next);
-        result.insert(result.end(), inner.begin(), inner.end());
+  bool condition_met = (ppparser_has_flag(p, identifier.as.IDENTIFIER) == mod);
+  while (ppparser_peek(p).tag != PpTokenTag::ENDIF_MACRO) {
+    auto next = ppparser_peek(p);
+    if (condition_met) {
+      auto inner = parse_token(p, next);
+      result.insert(result.end(), inner.begin(), inner.end());
+    } else if (next.tag == PpTokenTag::IFFSET_MACRO ||
+               next.tag == PpTokenTag::IFNFSET_MACRO) {
+      // Skip identifier and inner tokens
+      ppparser_adv(p);            // skip the macro
+      auto id = ppparser_peek(p); //
+      assert_identifier(id);      // ensure identifier exists
+      ppparser_adv(p);            // skip the identifier
+
+      // skip the contents counting depth
+      int depth = 1;
+      while (depth > 0) {
+        auto t = ppparser_peek(p);
+        if (t.tag == PpTokenTag::IFFSET_MACRO ||
+            t.tag == PpTokenTag::IFNFSET_MACRO) {
+          depth++;
+        } else if (t.tag == PpTokenTag::ENDIF_MACRO) {
+          depth--;
+        }
+        ppparser_adv(p); // skip -endif
       }
-      ppparser_adv(p);
-    }
-  } else {
-    while (ppparser_peek(p).tag != PpTokenTag::ENDIF_MACRO) {
-      if (!mod) {
-        auto next = ppparser_peek(p);
-        auto inner = parse_token(p, next);
-        result.insert(result.end(), inner.begin(), inner.end());
-      }
-      ppparser_adv(p);
+    } else {
+      ppparser_adv(p); // just skip any token
     }
   }
   ppparser_adv(p); // to next (past endif)
@@ -311,30 +322,23 @@ Token parse_identifier(PpParser *p, const PreprocessorToken &identifier) {
 vector<Token> parse_token(PpParser *p, const PreprocessorToken &token) {
   vector<Token> result;
   if (token.tag == PpTokenTag::DEFINE_MACRO) {
-    warn("DEFINE");
     parse_define(p);
   } else if (token.tag == PpTokenTag::FSET_MACRO) {
-    warn("FSET");
     parse_fset(p);
   } else if (token.tag == PpTokenTag::FUNSET_MACRO) {
-    warn("FUNSET");
     parse_funset(p);
   } else if (token.tag == PpTokenTag::IFFSET_MACRO) {
-    warn("IFFSET");
     auto body = parse_iffset(p, true);
     result.insert(result.end(), body.begin(), body.end());
   } else if (token.tag == PpTokenTag::IFNFSET_MACRO) {
-    warn("IFNFSET");
     auto body = parse_iffset(p, false);
     result.insert(result.end(), body.begin(), body.end());
   } else if (token.tag == PpTokenTag::ENDIF_MACRO) {
     throw runtime_error(
         "invalid use of preprocessor directive: no condition to close\n");
   } else if (token.tag == PpTokenTag::IDENTIFIER) {
-    warn("IDENTIFIER");
     result.push_back(parse_identifier(p, token));
   } else {
-    warn("ELSE");
     result.push_back(pptoken_to_token(token));
     ppparser_adv(p);
   }

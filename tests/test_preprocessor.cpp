@@ -115,11 +115,37 @@ void test_flag(T *t) {
   }
   t->assert_str_eq(join(strs, " "), "#nope print ( \"testrun\" ) print ( x )");
 }
+void test_nested_if(T *t) {
+  vector<PreprocessorToken> pptokens =
+      preprocessor_tokenize("test.msl", "-fset A "
+                                        "-iffset A "
+                                        "  something"
+                                        "  -ifnfset B "
+                                        "    inner "
+                                        "    inner2 "
+                                        "  -endif "
+                                        "-endif "
+                                        "-iffset B "
+                                        "  -iffset A "
+                                        "    nope "
+                                        "  -endif "
+                                        "-endif "
+                                        "outer");
+  vector<Token> tokens = preprocess_pptokens(pptokens);
+
+  vector<string> strs;
+  strs.reserve(tokens.size());
+  for (auto t : tokens) {
+    strs.push_back(token_to_string(t));
+  }
+  t->assert_str_eq(join(strs, " "), "something inner inner2 outer");
+}
 } // namespace
 
 int main() {
   T t("Preprocessor");
   t.test("skip stuff", test_no_flag);
   t.test("put in stuff", test_flag);
+  t.test("nested if", test_nested_if);
   return 0;
 }
