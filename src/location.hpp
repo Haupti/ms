@@ -1,16 +1,16 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
+#include <filesystem>
 struct LocationRef {
   uint64_t index;
 };
 struct Location {
-  std::string filename;
+  std::filesystem::path filename;
   uint64_t row;
   uint64_t col;
 };
 
-LocationRef create_location(const std::string &filename, uint64_t row,
+LocationRef create_location(const std::filesystem::path &filename, uint64_t row,
                             uint64_t col);
 Location resolve_location(const LocationRef &ref);

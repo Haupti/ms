@@ -7,6 +7,8 @@
 
 using namespace std;
 namespace {
+static filesystem::path test_filename = "test.msl";
+static IncludedModules includes;
 string token_to_string(const Token &token) {
   switch (token.tag) {
   case TokenTag::INT:
@@ -93,7 +95,7 @@ void test_no_flag(T *t) {
                                         "-iffset TESTRUN"
                                         "print(\"testrun\") "
                                         "-endif x");
-  vector<Token> tokens = preprocess_pptokens(pptokens);
+  vector<Token> tokens = preprocess_pptokens(test_filename, &includes, pptokens);
 
   vector<string> strs;
   strs.reserve(tokens.size());
@@ -106,7 +108,7 @@ void test_flag(T *t) {
   vector<PreprocessorToken> pptokens = preprocessor_tokenize(
       "test.msl", "-ifnfset TESTRUN "
                   "#nope print(\"testrun\") -endif print(x)");
-  vector<Token> tokens = preprocess_pptokens(pptokens);
+  vector<Token> tokens = preprocess_pptokens(test_filename, &includes, pptokens);
 
   vector<string> strs;
   strs.reserve(tokens.size());
@@ -131,7 +133,7 @@ void test_nested_if(T *t) {
                                         "  -endif "
                                         "-endif "
                                         "outer");
-  vector<Token> tokens = preprocess_pptokens(pptokens);
+  vector<Token> tokens = preprocess_pptokens(test_filename, &includes, pptokens);
 
   vector<string> strs;
   strs.reserve(tokens.size());

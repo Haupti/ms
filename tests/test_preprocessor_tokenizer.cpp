@@ -83,8 +83,6 @@ string pptoken_to_string(const PreprocessorToken &token) {
     return resolve_interned_string(token.as.IDENTIFIER);
   case PpTokenTag::INCLUDE_MACRO:
     return "MACRO(-include)";
-  case PpTokenTag::ASSERT_MACRO:
-    return "MACRO(-assert)";
   case PpTokenTag::DEFINE_MACRO:
     return "MACRO(-define)";
   case PpTokenTag::FSET_MACRO:

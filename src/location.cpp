@@ -1,4 +1,5 @@
 #include "location.hpp"
+#include <filesystem>
 #include <vector>
 
 namespace {
@@ -8,7 +9,7 @@ std::vector<Location> *_location_cache() {
 }
 }; // namespace
 
-LocationRef create_location(const std::string &filename, uint64_t row,
+LocationRef create_location(const std::filesystem::path &filename, uint64_t row,
                             uint64_t col) {
   auto cache = _location_cache();
   for (uint64_t i = 0; i < cache->size(); i++) {

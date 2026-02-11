@@ -1,7 +1,10 @@
+#include "preprocess.hpp"
 #include "../../lib/asap/util.hpp"
 #include "preprocessor_token.hpp"
 #include "preprocessor_tokenize.hpp"
 #include "token.hpp"
+#include <cassert>
+#include <filesystem>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -9,15 +12,22 @@
 
 using namespace std;
 namespace {
+
 struct PpParser {
+  filesystem::path absolute_filepath;
   vector<PreprocessorToken> tokens;
   unordered_map<uint64_t, Token> defines; // interned strings as key
   unordered_set<uint64_t> flags;          // interned strings as key
+  IncludedModules *includes;
   uint64_t pos;
   uint64_t len;
 };
-PpParser build_PpParser(vector<PreprocessorToken> tokens) {
+PpParser build_PpParser(const string &absolute_current_path,
+                        IncludedModules *includes,
+                        vector<PreprocessorToken> tokens) {
   PpParser p;
+  p.includes = includes;
+  p.absolute_filepath = absolute_current_path;
   p.tokens = std::move(tokens);
   p.pos = 0;
   p.len = p.tokens.size();
@@ -154,7 +164,6 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
     token.tag = TokenTag::IDENTIFIER;
     return token;
   case PpTokenTag::INCLUDE_MACRO:
-  case PpTokenTag::ASSERT_MACRO:
   case PpTokenTag::DEFINE_MACRO:
   case PpTokenTag::FSET_MACRO:
   case PpTokenTag::FUNSET_MACRO:
@@ -206,6 +215,11 @@ void assert_identifier(const PreprocessorToken &token) {
     throw runtime_error("expected an identifier\n");
   }
 }
+void assert_literal_string(const PreprocessorToken &token) {
+  if (token.tag != PpTokenTag::STRING) {
+    throw runtime_error("expected a literal string\n");
+  }
+}
 void assert_literal_value(const PreprocessorToken &token) {
   switch (token.tag) {
   case PpTokenTag::INT:
@@ -228,9 +242,13 @@ void assert_isat_assign(PpParser *p) {
 }
 } // namespace
 
+std::vector<Token>
+preprocess_pptokens(const filesystem::path &absolute_current_path,
+                    IncludedModules *includes,
+                    const std::vector<PreprocessorToken> &tokens);
+
 namespace {
 vector<Token> parse_token(PpParser *p, const PreprocessorToken &token);
-
 void parse_define(PpParser *p) {
   ppparser_adv(p); // to definition name
 
@@ -311,11 +329,32 @@ vector<Token> parse_iffset(PpParser *p, bool mod) {
 Token parse_identifier(PpParser *p, const PreprocessorToken &identifier) {
   if (ppparser_has_def(p, identifier.as.IDENTIFIER)) {
     Token t = ppparser_get_def(p, identifier.as.IDENTIFIER);
+    // overwrite location
+    t.location = identifier.location;
     ppparser_adv(p);
     return t;
   } else {
     ppparser_adv(p);
     return pptoken_to_token(identifier);
+  }
+}
+
+vector<Token> run_include(PpParser *p) {
+  ppparser_adv(p); // skip to match
+
+  PreprocessorToken rel_path = ppparser_peek(p);
+  assert_literal_string(rel_path);
+
+  filesystem::path absolute_filepath =
+      filesystem::canonical(p->absolute_filepath.parent_path() /
+                            resolve_interned_string(rel_path.as.STR));
+  if (p->includes->absolute_filepaths.count(absolute_filepath) > 0) {
+    return vector<Token>({});
+  } else {
+    string content = read_file(absolute_filepath);
+    return preprocess_pptokens(
+        absolute_filepath, p->includes,
+        preprocessor_tokenize(absolute_filepath, content));
   }
 }
 
@@ -338,6 +377,9 @@ vector<Token> parse_token(PpParser *p, const PreprocessorToken &token) {
         "invalid use of preprocessor directive: no condition to close\n");
   } else if (token.tag == PpTokenTag::IDENTIFIER) {
     result.push_back(parse_identifier(p, token));
+  } else if (token.tag == PpTokenTag::INCLUDE_MACRO) {
+    auto include_result = run_include(p);
+    result.insert(result.end(), include_result.begin(), include_result.end());
   } else {
     result.push_back(pptoken_to_token(token));
     ppparser_adv(p);
@@ -347,8 +389,12 @@ vector<Token> parse_token(PpParser *p, const PreprocessorToken &token) {
 } // namespace
 
 std::vector<Token>
-preprocess_pptokens(const std::vector<PreprocessorToken> &tokens) {
-  PpParser p = build_PpParser(tokens);
+preprocess_pptokens(const filesystem::path &absolute_current_path,
+                    IncludedModules *includes,
+                    const std::vector<PreprocessorToken> &tokens) {
+  assert(includes != NULL);
+
+  PpParser p = build_PpParser(absolute_current_path, includes, tokens);
   vector<Token> result;
 
   PreprocessorToken curr;
@@ -363,6 +409,8 @@ preprocess_pptokens(const std::vector<PreprocessorToken> &tokens) {
 
 std::vector<Token> preprocess(const std::string &entrypoint) {
   string content = read_file(entrypoint);
-  auto pptokens = preprocessor_tokenize(entrypoint, content);
-  return preprocess_pptokens(pptokens);
+  IncludedModules included_modules;
+  filesystem::path absolute_path = filesystem::canonical(entrypoint);
+  auto pptokens = preprocessor_tokenize(absolute_path, content);
+  return preprocess_pptokens(absolute_path, &included_modules, pptokens);
 }

@@ -1,5 +1,6 @@
 #include "preprocessor_token.hpp"
 #include <cstdint>
+#include <filesystem>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -8,7 +9,7 @@ using namespace std;
 
 namespace {
 struct Tokenizer {
-  string filename;
+  filesystem::path filename;
   string code;
   uint64_t pos;
   uint64_t len;
@@ -156,9 +157,7 @@ PreprocessorToken tokenize_macro_or_subtractin_operator(Tokenizer *t) {
     }
   }
   string value = t->code.substr(start, t->pos - start);
-  if (value == "-assert") {
-    return build_pptoken(get_location(t, start), PpTokenTag::ASSERT_MACRO);
-  } else if (value == "-define") {
+  if (value == "-define") {
     return build_pptoken(get_location(t, start), PpTokenTag::DEFINE_MACRO);
   } else if (value == "-fset") {
     return build_pptoken(get_location(t, start), PpTokenTag::FSET_MACRO);
@@ -222,7 +221,8 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
 } // namespace
 
 std::vector<PreprocessorToken>
-preprocessor_tokenize(const std::string &filename, const std::string &code) {
+preprocessor_tokenize(const filesystem::path &filename,
+                      const std::string &code) {
   Tokenizer t = tok_build(filename, code);
 
   vector<PreprocessorToken> tokens;
