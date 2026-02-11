@@ -1,0 +1,12 @@
+print(hello)
+-include "lib.msl"
+print("!")
+
+-fset TEST
+-iffset TEST
+print(penis)
+-endif
+
+
+-define HUNDESOHN = 1
+print(HUNDESOHN)

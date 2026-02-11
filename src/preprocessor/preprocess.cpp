@@ -344,6 +344,7 @@ vector<Token> run_include(PpParser *p) {
 
   PreprocessorToken rel_path = ppparser_peek(p);
   assert_literal_string(rel_path);
+  ppparser_adv(p);
 
   filesystem::path absolute_filepath =
       filesystem::canonical(p->absolute_filepath.parent_path() /

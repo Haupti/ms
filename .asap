@@ -1,4 +1,4 @@
-target.name=exe
+target.name=msl
 compiler.name=clang++
 compiler.flags.default=-Wall -Wextra -Werror -std=c++17 -fsanitize=address -fsanitize=undefined -g3
 compiler.flags.production=-Wall -Wextra -Werror -std=c++17 -O2

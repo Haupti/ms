@@ -65,7 +65,7 @@ inline void println(const std::string &msg) { std::cout << msg << "\n"; }
 
 inline void print(const std::string &msg) { std::cout << msg; }
 inline void warn(const std::string &msg) {
-  println(ANSI::BRIGHT_YELLOW + msg + ANSI::RESET);
+  println(ANSI::YELLOW + msg + ANSI::RESET);
 }
 inline void info(const std::string &msg) {
   println(ANSI::BRIGHT_GRAY + msg + ANSI::RESET);
