@@ -3,4 +3,4 @@
 #include <cassert>
 #include <vector>
 
-std::vector<bool> maked_mask(nodes *n) ;
+std::vector<bool> create_mask(nodes *n) ;

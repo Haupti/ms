@@ -1,5 +1,6 @@
 #include "../lib/asap/t.hpp"
 #include "../src/parser/node.hpp"
+#include "../src/parser/nodes_intrusive_list_util.hpp"
 #include "../src/parser/parser.hpp"
 #include "../src/preprocessor/preprocess.hpp"
 #include "../src/preprocessor/preprocessor_tokenize.hpp"
@@ -12,17 +13,28 @@ string parse_and_show(string code) {
   IncludedModules mods;
   auto tokens = preprocess_pptokens(filename, &mods, pptokens);
   auto n = parse(tokens);
-  string out = "";
+  string out = "First Item = " + to_string(n.first_elem) + "\n\n";
   for (auto node : n.elements) {
     out += show_node(node);
     out += "-----------------------\n";
   }
+  auto masking = create_mask(&n);
+  out += "MASK: ";
+  for (bool m : masking) {
+    if (m) {
+      out += "$ ";
+    } else {
+      out += "_ ";
+    }
+  }
+  out += "\n";
   return out;
 }
 void test_literal(T *t) {
   string code = "4 \"hello\" #to #mom 3.5";
   string out = parse_and_show(code);
-  t->assert_str_eq(out, "Node  NIL:\n"
+  t->assert_str_eq(out, "First Item = 1\n\n"
+                        "Node  NIL:\n"
                         "    Start = NIL\n"
                         "    First_Child = 0\n"
                         "    Next_Child = 0\n"
@@ -64,13 +76,15 @@ void test_literal(T *t) {
                         "    Next_Sibling = 0\n"
                         "}\n"
                         "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ \n"
 
   );
 }
 void test_var_def(T *t) {
   string code = "let x = 1 5";
   string out = parse_and_show(code);
-  t->assert_str_eq(out, "Node  NIL:\n"
+  t->assert_str_eq(out, "First Item = 1\n\n"
+                        "Node  NIL:\n"
                         "    Start = NIL\n"
                         "    First_Child = 0\n"
                         "    Next_Child = 0\n"
@@ -97,7 +111,9 @@ void test_var_def(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "}\n"
-                        "-----------------------\n");
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ \n"
+                        );
 }
 } // namespace
 int main() {

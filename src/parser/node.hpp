@@ -156,20 +156,10 @@ struct nodes {
     elements.push_back(node);
     return node_idx(elements.size() - 1);
   }
-  uint64_t len() {
-    uint64_t l = 0;
-
-    if (first_elem == 0) {
-      return 0;
+  Node at(node_idx idx) {
+    if (elements.size() <= idx.idx) {
+      return elements.at(0);
     }
-
-    l++;
-    Node curr = elements.at(first_elem);
-    while (curr.next_sibling.idx != 0) {
-      l++;
-      curr = elements.at(curr.next_sibling.idx);
-    }
-    return l;
+    return elements.at(idx.idx);
   }
-  Node at(node_idx idx) { return elements.at(idx.idx); }
 };

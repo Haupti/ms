@@ -4,34 +4,33 @@
 using namespace std;
 namespace {
 void mask_children(std::vector<bool> *mask, nodes *n, node_idx first_child) {
-  mask->at(first_child.idx) = true;
-  Node curr = n->at(first_child);
-  if (!curr.first_child.is_null()) {
+  if (first_child.is_null()) {
+    return;
+  }
+  node_idx curr_idx = first_child;
+  Node curr = n->at(curr_idx);
+  do {
+    mask->at(curr_idx.idx) = true;
     mask_children(mask, n, curr.first_child);
-  }
-  while (!curr.next_child.is_null()) {
-    if (!curr.first_child.is_null()) {
-      mask_children(mask, n, curr.first_child);
-    }
-    mask->at(curr.next_child.idx) = true;
+    curr_idx = curr.next_child;
     curr = n->at(curr.next_child);
-  }
+  } while (!curr_idx.is_null());
 }
 } // namespace
 
-std::vector<bool> maked_mask(nodes *n) {
-  std::vector<bool> mask = std::vector<bool>(n->len(), false);
+std::vector<bool> create_mask(nodes *n) {
+  std::vector<bool> mask = std::vector<bool>(n->elements.size(), false);
+  mask.at(0) = true;
   if (n->first_elem == 0) {
     return mask;
   }
-  mask.at(n->first_elem) = true;
+  node_idx curr_idx = node_idx(n->first_elem);
   Node curr = n->at(n->first_elem);
-  while (curr.next_sibling.idx != 0) {
-    if (curr.first_child.idx != 0) {
-      mask_children(&mask, n, curr.first_child);
-    }
-    mask.at(curr.next_sibling.idx) = true;
-    curr = n->at(curr.next_sibling);
-  }
+  do {
+    mask_children(&mask, n, curr.first_child);
+    mask.at(curr_idx.idx) = true;
+    curr_idx = curr.next_sibling;
+    curr = n->at(curr_idx);
+  } while (!curr_idx.is_null());
   return mask;
 }
