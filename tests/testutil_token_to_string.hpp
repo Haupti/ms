@@ -1,3 +1,4 @@
+#pragma once
 #include "../src/preprocessor/preprocessor_token.hpp"
 #include "../src/preprocessor/token.hpp"
 #include <string>
