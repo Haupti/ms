@@ -1,4 +1,5 @@
 #include "../../lib/asap/util.hpp"
+#include "../../tests/testutil_token_to_string.hpp"
 #include "../compile_error.hpp"
 #include "../preprocessor/token.hpp"
 #include "node.hpp"
@@ -17,28 +18,73 @@ struct Parser {
   void adv() { pos++; }
   Token peek() {
     if (pos >= len) {
-      throw runtime_error("unexpected EOF\n");
+      throw compile_error(tokens.back().location, "unexpected EOF");
     }
     return tokens.at(pos);
   }
 };
 
+#ifdef PRODUCTION
 void assert_identifier(Token t) {
   if (t.tag != TokenTag::IDENTIFIER) {
-    throw runtime_error("expected an identifier\n");
+    throw compile_error(t.location, "expected an identifier");
   }
 }
 void assert_assign(Token t) {
   if (t.tag != TokenTag::ASSIGN) {
-    throw runtime_error("expected '='\n");
+    throw compile_error(t.location, "expected '='");
   }
 }
 void assert_close_br(Token t) {
   if (t.tag != TokenTag::BRCLOSE) {
-    throw runtime_error("expected ')'\n");
+    throw compile_error(t.location, "expected ')'");
   }
 }
+void assert_open_br(Token t) {
+  if (t.tag != TokenTag::BROPEN) {
+    throw compile_error(t.location, "expected '('");
+  }
+}
+void assert_open_cur(Token t) {
+  if (t.tag != TokenTag::BROPEN) {
+    throw compile_error(t.location, "expected '{'");
+  }
+}
+#else
+#define assert_identifier(token) __assert_identifier(token, __FILE__, __LINE__)
+void __assert_identifier(Token t, string file, int line) {
+  if (t.tag != TokenTag::IDENTIFIER) {
+    throw __compile_error_debug(t.location, "expected an identifier", line,
+                                file);
+  }
+}
+#define assert_assign(token) __assert_assign(token, __FILE__, __LINE__)
+void __assert_assign(Token t, string file, int line) {
+  if (t.tag != TokenTag::ASSIGN) {
+    throw __compile_error_debug(t.location, "expected '='", line, file);
+  }
+}
+#define assert_close_br(token) __assert_close_br(token, __FILE__, __LINE__)
+void __assert_close_br(Token t, string file, int line) {
+  if (t.tag != TokenTag::BRCLOSE) {
+    throw __compile_error_debug(t.location, "expected ')'", line, file);
+  }
+}
+#define assert_open_br(token) __assert_open_br(token, __FILE__, __LINE__)
+void __assert_open_br(Token t, string file, int line) {
+  if (t.tag != TokenTag::BROPEN) {
+    throw __compile_error_debug(t.location, "expected '('", line, file);
+  }
+}
+#define assert_open_cur(token) __assert_open_cur(token, __FILE__, __LINE__)
+void __assert_open_cur(Token t, string file, int line) {
+  if (t.tag != TokenTag::CURLOPEN) {
+    throw __compile_error_debug(t.location, "expected '{'", line, file);
+  }
+}
+#endif
 
+node_idx parse_one(Parser *p);
 node_idx parse_consecutive_expression(Parser *p, node_idx left,
                                       NodeTag left_tag,
                                       LocationRef left_location);
@@ -310,6 +356,199 @@ node_idx parse_let(Parser *p) {
   p->nodes.add_child(myself, first_child);
   return myself;
 }
+node_idx parse_set(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv();
+  Token identifier = p->peek();
+  assert_identifier(identifier);
+  p->adv();
+  assert_assign(p->peek());
+  p->adv(); // move to expression body
+
+  // add myself
+  Node var_def = Node();
+  var_def.as.IDENTIFIER = identifier.as.IDENTIFIER;
+  var_def.start = start;
+  var_def.tag = NodeTag::VAR_SET;
+  node_idx myself = p->nodes.add_dangling(var_def);
+  // hook up child
+  node_idx first_child = parse_expression_lazy(p);
+  p->nodes.add_child(myself, first_child);
+  return myself;
+}
+
+node_idx parse_block(Parser *p) {
+  Token curbropen = p->peek();
+  assert_open_cur(curbropen);
+  p->adv();
+  if (p->peek().tag == TokenTag::CURLCLOSE) {
+    p->adv();
+    return node_idx(0);
+  }
+  node_idx dangling_first_elem_idx = parse_one(p);
+  if (p->peek().tag == TokenTag::CURLCLOSE) {
+    p->adv();
+    return dangling_first_elem_idx;
+  }
+  while (true) {
+    if (p->peek().tag == TokenTag::CURLCLOSE) {
+      p->adv();
+      return dangling_first_elem_idx;
+    }
+    node_idx next_child = parse_one(p);
+    p->nodes.add_next_child(dangling_first_elem_idx, next_child);
+  }
+}
+
+node_idx parse_if(Parser *p) {
+  Node myself = Node();
+  myself.start = p->peek().location;
+  myself.tag = NodeTag::IF;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  // parsing 'if' condition
+  {
+    Node if_cond = Node();
+    if_cond.start = myself.start;
+    if_cond.tag = NodeTag::PARTIAL_CONDITION;
+    node_idx if_cond_idx = p->nodes.add_dangling(if_cond);
+    p->nodes.add_child(myself_idx, if_cond_idx);
+    p->adv();
+
+    Token bropen = p->peek();
+    assert_open_br(bropen);
+    p->adv();
+    node_idx condition_idx = parse_expression_eager(p);
+    p->nodes.add_child(if_cond_idx, condition_idx);
+    Token brclose = p->peek();
+    assert_close_br(brclose);
+    p->adv();
+    node_idx body_idx = parse_block(p);
+    if (!body_idx.is_null()) {
+      p->nodes.add_child(if_cond_idx, body_idx);
+    }
+  }
+
+  // parsing 'elif' conditions
+  while (!p->eof() && p->peek().tag == TokenTag::ELIF) {
+    Node elif_cond = Node();
+    elif_cond.start = p->peek().location;
+    elif_cond.tag = NodeTag::PARTIAL_CONDITION;
+    node_idx elif_cond_idx = p->nodes.add_dangling(elif_cond);
+    p->nodes.add_child(myself_idx, elif_cond_idx);
+    p->adv();
+
+    Token bropen = p->peek();
+    assert_open_br(bropen);
+    p->adv();
+    node_idx condition_idx = parse_expression_eager(p);
+    p->nodes.add_child(elif_cond_idx, condition_idx);
+    Token brclose = p->peek();
+    assert_close_br(brclose);
+    p->adv();
+    node_idx body_idx = parse_block(p);
+    if (!body_idx.is_null()) {
+      p->nodes.add_child(elif_cond_idx, body_idx);
+    }
+  }
+
+  // parsing 'else' condition
+  if (!p->eof() && p->peek().tag == TokenTag::ELSE) {
+    Node else_cond = Node();
+    else_cond.start = p->peek().location;
+    else_cond.tag = NodeTag::PARTIAL_DEFAULT_CONDITION;
+    node_idx else_cond_idx = p->nodes.add_dangling(else_cond);
+    p->nodes.add_child(myself_idx, else_cond_idx);
+    p->adv();
+
+    node_idx body_idx = parse_block(p);
+    if (!body_idx.is_null()) {
+      p->nodes.add_child(else_cond_idx, body_idx);
+    }
+  }
+
+  return myself_idx;
+}
+
+node_idx parse_one(Parser *p) {
+  Token token = p->peek();
+  switch (token.tag) {
+  case TokenTag::INT:
+    return parse_expression_eager(p);
+  case TokenTag::FLOAT:
+    return parse_expression_eager(p);
+  case TokenTag::SYMBOL:
+    return parse_expression_eager(p);
+  case TokenTag::STRING:
+    return parse_expression_eager(p);
+  case TokenTag::LET:
+    return parse_let(p);
+  case TokenTag::SET:
+    return parse_set(p);
+  case TokenTag::AT:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::IF:
+    return parse_if(p);
+  case TokenTag::ELIF:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::ELSE:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::FUNCTION:
+    throw runtime_error("NOT YET IMPLEMENTED");
+  case TokenTag::TRY:
+    throw runtime_error("NOT YET IMPLEMENTED");
+  case TokenTag::EXPECT:
+    throw runtime_error("NOT YET IMPLEMENTED");
+  case TokenTag::ASSIGN:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::BROPEN:
+    return parse_expression_eager(p);
+  case TokenTag::BRCLOSE:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::CURLOPEN:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::CURLCLOSE:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::COMMA:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::DOT:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::BAR:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_ADD:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_SUB:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_MUL:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_DIV:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_MOD:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_EQ:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_NEQ:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_NOT:
+    return parse_expression_lazy(p);
+  case TokenTag::OP_OR:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OP_AND:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OPERATOR_LT:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OPERATOR_LTE:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OPERATOR_GT:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OPERATOR_GTE:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::OPERATOR_STRCONCAT:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::IDENTIFIER:
+    return parse_expression_eager(p);
+  }
+}
 }; // namespace
 
 nodes parse(const std::vector<Token> program) {
@@ -324,95 +563,8 @@ nodes parse(const std::vector<Token> program) {
   p.len = p.tokens.size();
   p.nodes = nodes();
   // parsing
-  Token token;
   while (!p.eof()) {
-    token = p.peek();
-    switch (token.tag) {
-    case TokenTag::INT: {
-      p.nodes.add_sibling(parse_expression_eager(&p));
-    } break;
-    case TokenTag::FLOAT: {
-      p.nodes.add_sibling(parse_expression_eager(&p));
-    } break;
-    case TokenTag::SYMBOL: {
-      p.nodes.add_sibling(parse_expression_eager(&p));
-    } break;
-    case TokenTag::STRING: {
-      p.nodes.add_sibling(parse_expression_eager(&p));
-    } break;
-    case TokenTag::LET:
-      p.nodes.add_sibling(parse_let(&p));
-      break;
-    case TokenTag::SET:
-      throw runtime_error("NOT YET IMPLEMENTED");
-    case TokenTag::AT:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::IF:
-      throw runtime_error("NOT YET IMPLEMENTED");
-    case TokenTag::ELIF:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::ELSE:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::FUNCTION:
-      throw runtime_error("NOT YET IMPLEMENTED");
-    case TokenTag::TRY:
-      throw runtime_error("NOT YET IMPLEMENTED");
-    case TokenTag::EXPECT:
-      throw runtime_error("NOT YET IMPLEMENTED");
-    case TokenTag::ASSIGN:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::BROPEN:
-      p.nodes.add_sibling(parse_expression_eager(&p));
-      break;
-    case TokenTag::BRCLOSE:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::CURLOPEN:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::CURLCLOSE:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::COMMA:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::DOT:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::BAR:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_ADD:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_SUB:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_MUL:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_DIV:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_MOD:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_EQ:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_NEQ:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_NOT:
-      p.nodes.add_sibling(parse_expression_lazy(&p));
-      break;
-    case TokenTag::OP_OR:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OP_AND:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OPERATOR_LT:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OPERATOR_LTE:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OPERATOR_GT:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OPERATOR_GTE:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::OPERATOR_STRCONCAT:
-      throw compile_error(token.location, "unexpected token");
-    case TokenTag::IDENTIFIER: {
-      p.nodes.add_sibling(make_node_identifier(
-          token.location, NodeTag::LITERAL_STRING, token.as.IDENTIFIER));
-      p.adv();
-    } break;
-    }
+    p.nodes.add_sibling(parse_one(&p));
   }
   return p.nodes;
 }

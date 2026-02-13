@@ -45,6 +45,15 @@ inline std::string show_node(const Node &node) {
   case NodeTag::INFIX_ADD:
     s += " INFIX(+)";
     break;
+  case NodeTag::IF:
+    s += " IF";
+    break;
+  case NodeTag::PARTIAL_CONDITION:
+    s += " PARTIAL_CONDITION";
+    break;
+  case NodeTag::PARTIAL_DEFAULT_CONDITION:
+    s += " PARTIAL_DEFAULT_CONDITION";
+    break;
   }
   s += ":\n";
   if (node.tag != NodeTag::NIL) {
@@ -59,6 +68,5 @@ inline std::string show_node(const Node &node) {
   s += "    Next_Child = " + std::to_string(node.next_child.idx) + "\n";
   s += "    Next_Sibling = " + std::to_string(node.next_sibling.idx) + "\n";
 
-  s += "}\n";
   return s;
 }

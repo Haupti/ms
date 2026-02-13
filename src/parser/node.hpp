@@ -24,8 +24,11 @@ enum class NodeTag : uint8_t {
   LITERAL_FLOAT,
   LITERAL_SYMBOL,
   PREFIX_NOT,
-  PREFIX_INVERS, 
+  PREFIX_INVERS,
   INFIX_ADD,
+  IF,
+  PARTIAL_CONDITION,
+  PARTIAL_DEFAULT_CONDITION,
   //...
 };
 
@@ -127,6 +130,7 @@ struct nodes {
     }
   }
   node_idx add_sibling(node_idx elem) {
+    assert(elem.idx != 0);
     if (last_sibling == 0) {
       last_sibling = elem.idx;
       first_elem = elem.idx;
@@ -154,6 +158,17 @@ struct nodes {
     }
     elements.at(curr_idx.idx).next_child = child;
     return child;
+  }
+  void add_next_child(node_idx first_child, node_idx child) {
+    assert(first_child.idx != 0);
+    assert(child.idx != 0);
+    node_idx curr_idx = first_child;
+    Node curr = elements.at(first_child.idx);
+    while (curr.next_child.idx != 0) {
+      curr_idx = curr.next_child;
+      curr = elements.at(curr.next_child.idx);
+    }
+    elements.at(curr_idx.idx).next_child = child;
   }
   node_idx add_dangling(Node node) {
     elements.push_back(node);
