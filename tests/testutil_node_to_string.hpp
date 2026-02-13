@@ -10,7 +10,7 @@ inline std::string show_node(const Node &node) {
     s += " NIL";
     break;
   case NodeTag::FN_CALL:
-    s += " FN_CALL = " + resolve_interned_string(node.as.IDENTIFIER);
+    s += " FN_CALL";
     break;
   case NodeTag::FN_DEF:
     s += " FN_DEF = " + resolve_interned_string(node.as.IDENTIFIER);
@@ -36,8 +36,14 @@ inline std::string show_node(const Node &node) {
   case NodeTag::LITERAL_SYMBOL:
     s += " LITERAL_SYMBOL = " + resolve_symbol(node.as.SYMBOL);
     break;
-  case NodeTag::NOT:
+  case NodeTag::PREFIX_NOT:
     s += " NOT";
+    break;
+  case NodeTag::PREFIX_INVERS:
+    s += " PREFIX(-)";
+    break;
+  case NodeTag::INFIX_ADD:
+    s += " INFIX(+)";
     break;
   }
   s += ":\n";

@@ -144,11 +144,49 @@ void test_group_and_prefix_operator(T *t) {
 
   );
 }
+void test_add(T *t) {
+  string code = "1 + b";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 2\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "}\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 3\n"
+                        "    Next_Sibling = 0\n"
+                        "}\n"
+                        "-----------------------\n"
+                        "Node  INFIX(+):\n"
+                        "    Start = test.msl/0/4\n"
+                        "    First_Child = 1\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "}\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = b:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "}\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ \n"
+
+  );
+}
 } // namespace
 int main() {
   T t("Parser");
   t.test("literal values", test_literal);
   t.test("var def", test_var_def);
   t.test("group and prefix operator", test_group_and_prefix_operator);
+  t.test("add", test_add);
   return 0;
 }
