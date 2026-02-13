@@ -112,13 +112,43 @@ void test_var_def(T *t) {
                         "    Next_Sibling = 0\n"
                         "}\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ \n"
-                        );
+                        "MASK: $ $ $ $ \n");
+}
+void test_group_and_prefix_operator(T *t) {
+  string code = "not ( 5 )";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "}\n"
+                        "-----------------------\n"
+                        "Node  NOT:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "}\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 5:\n"
+                        "    Start = test.msl/0/8\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "}\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ \n"
+
+  );
 }
 } // namespace
 int main() {
   T t("Parser");
   t.test("literal values", test_literal);
   t.test("var def", test_var_def);
+  t.test("group and prefix operator", test_group_and_prefix_operator);
   return 0;
 }

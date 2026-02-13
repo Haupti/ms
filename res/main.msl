@@ -1,12 +1,11 @@
-print(hello)
 -include "lib.msl"
-print("!")
+let hello = "mama"
 
--fset TEST
 -iffset TEST
-print(penis)
+print("this is a test run")
 -endif
 
+print("hello")
+print(hello)
 
--define HUNDESOHN = 1
-print(HUNDESOHN)
+

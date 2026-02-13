@@ -31,6 +31,18 @@ void assert_assign(Token t) {
     throw runtime_error("expected '='\n");
   }
 }
+void assert_close_br(Token t) {
+  if (t.tag != TokenTag::BRCLOSE) {
+    throw runtime_error("expected ')'\n");
+  }
+}
+
+// TODO expression parsing with infix stuff
+// 1. parse lazy
+// 2. pass result to eager parsing step
+// 3. that step checks if the next token is an infix operator
+// 4a. if so -> parse the next expression lazy , build the final node and pass that to the eager parsing
+// 4b. if not -> just return the previous lazy result
 
 node_idx parse_expression(Parser *p) {
   Token t = p->peek();
@@ -62,38 +74,84 @@ node_idx parse_expression(Parser *p) {
     return p->nodes.add_dangling(node);
   }
   case TokenTag::LET:
+    throw runtime_error("unexpected token 'let' is not an expression");
   case TokenTag::SET:
+    throw runtime_error("unexpected token 'set' is not an expression");
   case TokenTag::AT:
+    throw runtime_error("unexpected token 'at'");
   case TokenTag::IF:
-  case TokenTag::ELIF:
-  case TokenTag::ELSE:
-  case TokenTag::FUNCTION:
-  case TokenTag::TRY:
-  case TokenTag::EXPECT:
-  case TokenTag::ASSIGN:
-  case TokenTag::BROPEN:
-  case TokenTag::BRCLOSE:
-  case TokenTag::CURLOPEN:
-  case TokenTag::CURLCLOSE:
-  case TokenTag::COMMA:
-  case TokenTag::DOT:
-  case TokenTag::BAR:
-  case TokenTag::OP_ADD:
-  case TokenTag::OP_SUB:
-  case TokenTag::OP_MUL:
-  case TokenTag::OP_DIV:
-  case TokenTag::OP_MOD:
-  case TokenTag::OP_EQ:
-  case TokenTag::OP_NEQ:
-  case TokenTag::OP_NOT:
-  case TokenTag::OP_OR:
-  case TokenTag::OP_AND:
-  case TokenTag::OPERATOR_LT:
-  case TokenTag::OPERATOR_LTE:
-  case TokenTag::OPERATOR_GT:
-  case TokenTag::OPERATOR_GTE:
-  case TokenTag::OPERATOR_STRCONCAT:
     throw runtime_error("NOT YET IMPLEMENTED");
+  case TokenTag::ELIF:
+    throw runtime_error("unexpected token 'elif'");
+  case TokenTag::ELSE:
+    throw runtime_error("unexpected token 'else'");
+  case TokenTag::FUNCTION:
+    throw runtime_error("unexpected token 'function'");
+  case TokenTag::TRY:
+    throw runtime_error("NOT YET IMPLEMENTED");
+  case TokenTag::EXPECT:
+    throw runtime_error("NOT YET IMPLEMENTED");
+  case TokenTag::ASSIGN:
+    throw runtime_error("unexpected token '='");
+  case TokenTag::BROPEN: {
+    p->adv();
+    node_idx expr_idx = parse_expression(p);
+    Token close = p->peek();
+    assert_close_br(close);
+    p->adv();
+    return expr_idx;
+  }
+  case TokenTag::BRCLOSE:
+    throw runtime_error("unexpected token ')'");
+  case TokenTag::CURLOPEN:
+    throw runtime_error("unexpected token '{'");
+  case TokenTag::CURLCLOSE:
+    throw runtime_error("unexpected token '}'");
+  case TokenTag::COMMA:
+    throw runtime_error("unexpected token ','");
+  case TokenTag::DOT:
+    throw runtime_error("unexpected token '.'");
+  case TokenTag::BAR:
+    throw runtime_error("unexpected token '|'");
+  case TokenTag::OP_ADD:
+    throw runtime_error("unexpected token '+'");
+  case TokenTag::OP_SUB:
+    throw runtime_error("unexpected token '-'");
+  case TokenTag::OP_MUL:
+    throw runtime_error("unexpected token '*'");
+  case TokenTag::OP_DIV:
+    throw runtime_error("unexpected token '/'");
+  case TokenTag::OP_MOD:
+    throw runtime_error("unexpected token 'mod'");
+  case TokenTag::OP_EQ:
+    throw runtime_error("unexpected token '=='");
+  case TokenTag::OP_NEQ:
+    throw runtime_error("unexpected token '!='");
+  case TokenTag::OP_NOT: {
+    LocationRef start = p->peek().location;
+    p->adv();
+    Node not_node;
+    not_node.start = start;
+    not_node.tag = NodeTag::NOT;
+    node_idx myself_idx = p->nodes.add_dangling(not_node);
+    node_idx value_idx = parse_expression(p);
+    p->nodes.add_child(myself_idx, value_idx);
+    return myself_idx;
+  }
+  case TokenTag::OP_OR:
+    throw runtime_error("unexpected token 'or'");
+  case TokenTag::OP_AND:
+    throw runtime_error("unexpected token 'and'");
+  case TokenTag::OPERATOR_LT:
+    throw runtime_error("unexpected token '<'");
+  case TokenTag::OPERATOR_LTE:
+    throw runtime_error("unexpected token '<='");
+  case TokenTag::OPERATOR_GT:
+    throw runtime_error("unexpected token '>'");
+  case TokenTag::OPERATOR_GTE:
+    throw runtime_error("unexpected token '>='");
+  case TokenTag::OPERATOR_STRCONCAT:
+    throw runtime_error("unexpected token '<>'");
     break;
   }
 }
@@ -172,16 +230,19 @@ nodes parse(const std::vector<Token> program) {
     case TokenTag::FUNCTION:
       throw runtime_error("NOT YET IMPLEMENTED");
     case TokenTag::TRY:
-      throw runtime_error("unexpected token");
+      p.nodes.add_sibling(parse_expression(&p));
+      break;
     case TokenTag::EXPECT:
       throw runtime_error("unexpected token");
     case TokenTag::ASSIGN:
       throw runtime_error("unexpected token");
     case TokenTag::BROPEN:
+      p.nodes.add_sibling(parse_expression(&p));
+      break;
     case TokenTag::BRCLOSE:
       throw runtime_error("unexpected token");
     case TokenTag::CURLOPEN:
-      throw runtime_error("NOT YET IMPLEMENTED");
+      throw runtime_error("unexpected token");
     case TokenTag::CURLCLOSE:
       throw runtime_error("unexpected token");
     case TokenTag::COMMA:
@@ -205,7 +266,8 @@ nodes parse(const std::vector<Token> program) {
     case TokenTag::OP_NEQ:
       throw runtime_error("unexpected token");
     case TokenTag::OP_NOT:
-      throw runtime_error("NOT YET IMPLEMENTED");
+      p.nodes.add_sibling(parse_expression(&p));
+      break;
     case TokenTag::OP_OR:
       throw runtime_error("unexpected token");
     case TokenTag::OP_AND:

@@ -145,7 +145,7 @@ PreprocessorToken tokenize_operator(Tokenizer *t) {
     throw runtime_error("unknown operator '" + value + "'\n");
   }
 }
-PreprocessorToken tokenize_macro_or_subtractin_operator(Tokenizer *t) {
+PreprocessorToken tokenize_macro_or_subtraction_operator(Tokenizer *t) {
   uint64_t start = t->pos;
   tok_adv(t);
   while (!tok_eof(t)) {
@@ -213,6 +213,8 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::ELIF);
   } else if (value == "else") {
     return build_pptoken(get_location(t, start), PpTokenTag::ELSE);
+  } else if (value == "mod") {
+    return build_pptoken(get_location(t, start), PpTokenTag::OP_MOD);
   } else {
     return build_pptoken_identifier(get_location(t, start),
                                     create_interned_string(value));
@@ -235,7 +237,7 @@ preprocessor_tokenize(const filesystem::path &filename,
     } else if (c == '#') {
       tokens.push_back(tokenize_symbol(&t));
     } else if (c == '-') {
-      tokens.push_back(tokenize_macro_or_subtractin_operator(&t));
+      tokens.push_back(tokenize_macro_or_subtraction_operator(&t));
     } else if (is_operator_char(c)) {
       tokens.push_back(tokenize_operator(&t));
     } else if (is_letter(c) or c == '_') {

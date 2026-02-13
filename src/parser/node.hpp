@@ -23,6 +23,7 @@ enum class NodeTag : uint8_t {
   LITERAL_STRING,
   LITERAL_FLOAT,
   LITERAL_SYMBOL,
+  NOT,
   //...
 };
 
