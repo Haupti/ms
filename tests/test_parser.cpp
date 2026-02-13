@@ -336,6 +336,92 @@ void test_if_elif_elif_else(T *t) {
 
   );
 }
+void test_function(T *t) {
+  string code = "function add(a,b){\n"
+                "a + b\n"
+                "}";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  FUNCTION = add:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LIST:\n"
+                        "    Start = test.msl/0/14\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 6\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = a:\n"
+                        "    Start = test.msl/0/15\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = b:\n"
+                        "    Start = test.msl/0/17\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = a:\n"
+                        "    Start = test.msl/1/2\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 7\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  INFIX(+):\n"
+                        "    Start = test.msl/1/4\n"
+                        "    First_Child = 5\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = b:\n"
+                        "    Start = test.msl/1/6\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ $ $ \n"
+
+  );
+}
+void test_function_no_args(T *t) {
+  string code = "function void(){ }";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  FUNCTION = void:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LIST:\n"
+                        "    Start = test.msl/0/15\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ \n"
+
+  );
+}
 } // namespace
 int main() {
   T t("Parser");
@@ -346,5 +432,7 @@ int main() {
   t.test("fn-call", test_fn_call);
   t.test("if", test_if);
   t.test("if-elif-elif-else", test_if_elif_elif_else);
+  t.test("function", test_function);
+  t.test("function no args", test_function_no_args);
   return 0;
 }

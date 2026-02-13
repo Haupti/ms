@@ -399,6 +399,30 @@ node_idx parse_block(Parser *p) {
     p->nodes.add_next_child(dangling_first_elem_idx, next_child);
   }
 }
+node_idx parse_list(Parser *p) {
+  Token bropen = p->peek();
+  assert_open_br(bropen);
+  p->adv();
+  Node list_node = Node();
+  list_node.start = bropen.location;
+  list_node.tag = NodeTag::LIST;
+  node_idx list_idx = p->nodes.add_dangling(list_node);
+
+  if (p->peek().tag == TokenTag::BRCLOSE) {
+    p->adv();
+    return list_idx;
+  }
+  while (true) {
+    if (p->peek().tag == TokenTag::COMMA) {
+      p->adv();
+    } else if (p->peek().tag == TokenTag::BRCLOSE) {
+      p->adv();
+      return list_idx;
+    }
+    node_idx next_child = parse_expression_eager(p);
+    p->nodes.add_child(list_idx, next_child);
+  }
+}
 
 node_idx parse_if(Parser *p) {
   Node myself = Node();
@@ -470,6 +494,28 @@ node_idx parse_if(Parser *p) {
   return myself_idx;
 }
 
+node_idx parse_function(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv();
+  Token identifier = p->peek();
+  assert_identifier(identifier);
+  p->adv();
+  Node myself = Node();
+  myself.start = start;
+  myself.as.IDENTIFIER = identifier.as.IDENTIFIER;
+  myself.tag = NodeTag::FUNCTION;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  // arguments
+  node_idx arg_list_idx = parse_list(p);
+  p->nodes.add_child(myself_idx, arg_list_idx);
+  node_idx body_idx = parse_block(p);
+  if (!body_idx.is_null()) {
+    p->nodes.add_child(myself_idx, body_idx);
+  }
+  return myself_idx;
+}
+
 node_idx parse_one(Parser *p) {
   Token token = p->peek();
   switch (token.tag) {
@@ -494,7 +540,7 @@ node_idx parse_one(Parser *p) {
   case TokenTag::ELSE:
     throw compile_error(token.location, "unexpected token");
   case TokenTag::FUNCTION:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_function(p);
   case TokenTag::TRY:
     throw runtime_error("NOT YET IMPLEMENTED");
   case TokenTag::EXPECT:

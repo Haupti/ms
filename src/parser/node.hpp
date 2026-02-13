@@ -29,6 +29,8 @@ enum class NodeTag : uint8_t {
   IF,
   PARTIAL_CONDITION,
   PARTIAL_DEFAULT_CONDITION,
+  FUNCTION,
+  LIST,
   //...
 };
 

@@ -54,6 +54,12 @@ inline std::string show_node(const Node &node) {
   case NodeTag::PARTIAL_DEFAULT_CONDITION:
     s += " PARTIAL_DEFAULT_CONDITION";
     break;
+  case NodeTag::FUNCTION:
+    s += " FUNCTION = "+ resolve_interned_string(node.as.IDENTIFIER);
+    break;
+  case NodeTag::LIST:
+    s += " LIST";
+    break;
   }
   s += ":\n";
   if (node.tag != NodeTag::NIL) {
