@@ -81,6 +81,8 @@ inline string token_to_string(const Token &token) {
     return resolve_interned_string(token.as.IDENTIFIER);
   case TokenTag::RETURN:
     return "return";
+  case TokenTag::LIST:
+    return "list";
   }
 }
 inline string pptoken_to_string(const PreprocessorToken &token) {
@@ -161,6 +163,8 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return resolve_interned_string(token.as.IDENTIFIER);
   case PpTokenTag::RETURN:
     return "return";
+  case PpTokenTag::LIST:
+    return "list";
   case PpTokenTag::INCLUDE_MACRO:
     return "MACRO(-include)";
   case PpTokenTag::DEFINE_MACRO:

@@ -166,6 +166,9 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
   case PpTokenTag::RETURN:
     token.tag = TokenTag::RETURN;
     return token;
+  case PpTokenTag::LIST:
+    token.tag = TokenTag::LIST;
+    return token;
   case PpTokenTag::INCLUDE_MACRO:
   case PpTokenTag::DEFINE_MACRO:
   case PpTokenTag::FSET_MACRO:

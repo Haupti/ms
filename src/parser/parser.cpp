@@ -213,6 +213,36 @@ node_idx parse_regular_infix_operator(Parser *p, node_idx left,
   return myself_idx;
 }
 
+node_idx parse_list(Parser *p) {
+  Token bropen = p->peek();
+  assert_open_br(bropen);
+  p->adv();
+  Node list_node = Node();
+  list_node.start = bropen.location;
+  list_node.tag = NodeTag::LIST;
+  node_idx list_idx = p->nodes.add_dangling(list_node);
+
+  if (p->peek().tag == TokenTag::BRCLOSE) {
+    p->adv();
+    return list_idx;
+  }
+  while (true) {
+    if (p->peek().tag == TokenTag::COMMA) {
+      p->adv();
+    } else if (p->peek().tag == TokenTag::BRCLOSE) {
+      p->adv();
+      return list_idx;
+    }
+    node_idx next_child = parse_expression_eager(p);
+    p->nodes.add_child(list_idx, next_child);
+  }
+}
+
+node_idx parse_list_constructor(Parser *p) {
+  p->adv();
+  return parse_list(p);
+}
+
 node_idx parse_consecutive_expression(Parser *p, node_idx left,
                                       NodeTag left_tag,
                                       LocationRef left_location) {
@@ -284,6 +314,7 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::STRING:
   case TokenTag::IDENTIFIER:
   case TokenTag::RETURN:
+  case TokenTag::LIST:
     return left;
   }
 }
@@ -315,7 +346,15 @@ node_idx parse_expression_lazy(Parser *p) {
     Node node =
         make_node_identifier(t.location, NodeTag::VAR_REF, t.as.IDENTIFIER);
     p->adv();
-    return p->nodes.add_dangling(node);
+    node_idx var_ref = p->nodes.add_dangling(node);
+    if (!p->eof() && p->peek().tag == TokenTag::BROPEN) {
+      return parse_function_call(p, var_ref, node.start);
+    } else {
+      return var_ref;
+    }
+  }
+  case TokenTag::LIST: {
+    return parse_list_constructor(p);
   }
   case TokenTag::LET:
     throw compile_error(t.location,
@@ -473,30 +512,6 @@ node_idx parse_block(Parser *p) {
     }
     node_idx next_child = parse_one(p);
     p->nodes.add_next_child(dangling_first_elem_idx, next_child);
-  }
-}
-node_idx parse_list(Parser *p) {
-  Token bropen = p->peek();
-  assert_open_br(bropen);
-  p->adv();
-  Node list_node = Node();
-  list_node.start = bropen.location;
-  list_node.tag = NodeTag::LIST;
-  node_idx list_idx = p->nodes.add_dangling(list_node);
-
-  if (p->peek().tag == TokenTag::BRCLOSE) {
-    p->adv();
-    return list_idx;
-  }
-  while (true) {
-    if (p->peek().tag == TokenTag::COMMA) {
-      p->adv();
-    } else if (p->peek().tag == TokenTag::BRCLOSE) {
-      p->adv();
-      return list_idx;
-    }
-    node_idx next_child = parse_expression_eager(p);
-    p->nodes.add_child(list_idx, next_child);
   }
 }
 
@@ -685,6 +700,8 @@ node_idx parse_one(Parser *p) {
     throw compile_error(token.location, "unexpected token");
   case TokenTag::IDENTIFIER:
     return parse_expression_eager(p);
+  case TokenTag::LIST:
+    return parse_list_constructor(p);
   }
 }
 }; // namespace

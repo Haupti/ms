@@ -197,6 +197,57 @@ void test_fn_call(T *t) {
                         "-----------------------\n"
                         "MASK: $ $ $ $ $ \n");
 }
+void test_fn_call_2(T *t) {
+  string code = "a + do_stuff(1, b)";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 2\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = a:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  INFIX(+):\n"
+                        "    Start = test.msl/0/4\n"
+                        "    First_Child = 1\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = do_stuff:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 5\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  FN_CALL:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/15\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 6\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = b:\n"
+                        "    Start = test.msl/0/18\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ $ \n"
+
+  );
+}
 void test_if(T *t) {
   string code = "if(#true) { print(\"hello\") }";
   string out = parse_and_show(code);
@@ -560,5 +611,6 @@ int main() {
   t.test("function with return", test_function_returns);
   t.test("function left apply", test_function_left_apply);
   t.test("function right apply", test_function_right_apply);
+  t.test("function call after operator?", test_fn_call_2);
   return 0;
 }
