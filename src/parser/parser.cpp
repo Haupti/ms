@@ -122,11 +122,12 @@ node_idx parse_function_call(Parser *p, node_idx left,
   return myself_idx;
 }
 
-node_idx parse_add_operator(Parser *p, node_idx left) {
+node_idx parse_regular_infix_operator(Parser *p, node_idx left,
+                                      NodeTag operator_tag) {
   LocationRef start = p->peek().location;
   p->adv();
   Node myself = Node();
-  myself.tag = NodeTag::INFIX_ADD;
+  myself.tag = operator_tag;
   myself.start = start;
   node_idx myself_idx = p->nodes.add_dangling(myself);
   p->nodes.add_child(myself_idx, left);
@@ -135,12 +136,6 @@ node_idx parse_add_operator(Parser *p, node_idx left) {
   return myself_idx;
 }
 
-// TODO expression parsing with infix stuff
-// 1. parse lazy
-// 2. pass result to eager parsing step
-// 3. that step checks if the next token is an infix operator
-// 4a. if so -> parse the next expression lazy , build the final node and pass
-// that to the eager parsing 4b. if not -> just return the previous lazy result
 node_idx parse_consecutive_expression(Parser *p, node_idx left,
                                       NodeTag left_tag,
                                       LocationRef left_location) {
@@ -161,39 +156,35 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::BAR:
     throw runtime_error("NOT YET IMPLEMENTED");
   case TokenTag::OP_ADD:
-    return parse_add_operator(p, left);
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_ADD);
   case TokenTag::OP_SUB:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_SUB);
   case TokenTag::OP_MUL:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_MUL);
   case TokenTag::OP_DIV:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_DIV);
   case TokenTag::OP_MOD:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_MOD);
   case TokenTag::OP_EQ:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_EQ);
   case TokenTag::OP_NEQ:
-    throw runtime_error("NOT YET IMPLEMENTED");
-  case TokenTag::OP_NOT:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_NEQ);
   case TokenTag::OP_OR:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_OR);
   case TokenTag::OP_AND:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_AND);
   case TokenTag::OPERATOR_LT:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_LT);
   case TokenTag::OPERATOR_LTE:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_LTE);
   case TokenTag::OPERATOR_GT:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_GT);
   case TokenTag::OPERATOR_GTE:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_GTE);
   case TokenTag::OPERATOR_STRCONCAT:
-    throw runtime_error("NOT YET IMPLEMENTED");
-  case TokenTag::INT:
-  case TokenTag::FLOAT:
-  case TokenTag::SYMBOL:
-  case TokenTag::STRING:
+    return parse_regular_infix_operator(p, left, NodeTag::INFIX_STR_CONCAT);
+  case TokenTag::OP_NOT:
+    return left;
   case TokenTag::BRCLOSE:
   case TokenTag::CURLOPEN:
   case TokenTag::CURLCLOSE:
@@ -208,6 +199,10 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::TRY:
   case TokenTag::EXPECT:
   case TokenTag::ASSIGN:
+  case TokenTag::INT:
+  case TokenTag::FLOAT:
+  case TokenTag::SYMBOL:
+  case TokenTag::STRING:
   case TokenTag::IDENTIFIER:
     return left;
   }

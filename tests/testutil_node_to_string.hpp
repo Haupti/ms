@@ -42,9 +42,6 @@ inline std::string show_node(const Node &node) {
   case NodeTag::PREFIX_INVERS:
     s += " PREFIX(-)";
     break;
-  case NodeTag::INFIX_ADD:
-    s += " INFIX(+)";
-    break;
   case NodeTag::IF:
     s += " IF";
     break;
@@ -59,6 +56,48 @@ inline std::string show_node(const Node &node) {
     break;
   case NodeTag::LIST:
     s += " LIST";
+    break;
+  case NodeTag::INFIX_ADD:
+    s += " INFIX(+)";
+    break;
+  case NodeTag::INFIX_SUB:
+    s += " INFIX(-)";
+    break;
+  case NodeTag::INFIX_MUL:
+    s += " INFIX(*)";
+    break;
+  case NodeTag::INFIX_DIV:
+    s += " INFIX(/)";
+    break;
+  case NodeTag::INFIX_MOD:
+    s += " INFIX(mod)";
+    break;
+  case NodeTag::INFIX_AND:
+    s += " INFIX(and)";
+    break;
+  case NodeTag::INFIX_OR:
+    s += " INFIX(or)";
+    break;
+  case NodeTag::INFIX_LT:
+    s += " INFIX(<)";
+    break;
+  case NodeTag::INFIX_LTE:
+    s += " INFIX(<=)";
+    break;
+  case NodeTag::INFIX_GT:
+    s += " INFIX(>)";
+    break;
+  case NodeTag::INFIX_GTE:
+    s += " INFIX(>=)";
+    break;
+  case NodeTag::INFIX_EQ:
+    s += " INFIX(==)";
+    break;
+  case NodeTag::INFIX_NEQ:
+    s += " INFIX(!=)";
+    break;
+  case NodeTag::INFIX_STR_CONCAT:
+    s += " INFIX(<>)";
     break;
   }
   s += ":\n";
