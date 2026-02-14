@@ -40,6 +40,8 @@ enum class NodeTag : uint8_t {
   INFIX_NEQ,
   INFIX_STR_CONCAT,
   IF,
+  AT,
+  PUT,
   PARTIAL_CONDITION,
   PARTIAL_DEFAULT_CONDITION,
   FUNCTION,

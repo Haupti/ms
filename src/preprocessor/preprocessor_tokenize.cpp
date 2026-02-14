@@ -207,6 +207,8 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::SET);
   } else if (value == "at") {
     return build_pptoken(get_location(t, start), PpTokenTag::AT);
+  } else if (value == "put") {
+    return build_pptoken(get_location(t, start), PpTokenTag::PUT);
   } else if (value == "if") {
     return build_pptoken(get_location(t, start), PpTokenTag::IF);
   } else if (value == "elif") {

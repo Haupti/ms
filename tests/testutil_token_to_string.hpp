@@ -19,6 +19,8 @@ inline string token_to_string(const Token &token) {
     return "set";
   case TokenTag::AT:
     return "at";
+  case TokenTag::PUT:
+    return "put";
   case TokenTag::IF:
     return "if";
   case TokenTag::ELIF:
@@ -101,6 +103,8 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return "set";
   case PpTokenTag::AT:
     return "at";
+  case PpTokenTag::PUT:
+    return "put";
   case PpTokenTag::IF:
     return "if";
   case PpTokenTag::ELIF:

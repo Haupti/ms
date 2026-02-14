@@ -653,6 +653,90 @@ void test_list(T *t) {
 
   );
 }
+void test_list_get(T *t) {
+  string code = "at(mylist,0)";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  AT:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LIST:\n"
+                        "    Start = test.msl/0/4\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = mylist:\n"
+                        "    Start = test.msl/0/5\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 0:\n"
+                        "    Start = test.msl/0/12\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ \n"
+
+  );
+}
+void test_list_set(T *t) {
+  string code = "put(mylist,0,1)";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  PUT:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LIST:\n"
+                        "    Start = test.msl/0/5\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = mylist:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 0:\n"
+                        "    Start = test.msl/0/13\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 5\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/15\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ \n"
+
+  );
+}
 } // namespace
 int main() {
   T t("Parser");
@@ -670,5 +754,7 @@ int main() {
   t.test("function right apply", test_function_right_apply);
   t.test("function call after operator?", test_fn_call_2);
   t.test("list", test_list);
+  t.test("get list element", test_list_get);
+  t.test("set list element", test_list_set);
   return 0;
 }

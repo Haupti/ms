@@ -72,6 +72,9 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
   case PpTokenTag::AT:
     token.tag = TokenTag::AT;
     return token;
+  case PpTokenTag::PUT:
+    token.tag = TokenTag::PUT;
+    return token;
   case PpTokenTag::IF:
     token.tag = TokenTag::IF;
     return token;

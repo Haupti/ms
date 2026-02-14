@@ -13,6 +13,7 @@ enum class PpTokenTag : uint8_t {
   LET,
   SET,
   AT,
+  PUT,
   IF,
   ELIF,
   ELSE,

@@ -52,7 +52,7 @@ inline std::string show_node(const Node &node) {
     s += " PARTIAL_DEFAULT_CONDITION";
     break;
   case NodeTag::FUNCTION:
-    s += " FUNCTION = "+ resolve_interned_string(node.as.IDENTIFIER);
+    s += " FUNCTION = " + resolve_interned_string(node.as.IDENTIFIER);
     break;
   case NodeTag::LIST:
     s += " LIST";
@@ -101,6 +101,12 @@ inline std::string show_node(const Node &node) {
     break;
   case NodeTag::RETURN:
     s += " RETURN";
+    break;
+  case NodeTag::AT:
+    s += " AT";
+    break;
+  case NodeTag::PUT:
+    s += " PUT";
     break;
   }
   s += ":\n";

@@ -242,6 +242,28 @@ node_idx parse_list_constructor(Parser *p) {
   p->adv();
   return parse_list(p);
 }
+node_idx parse_collection_at(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv();
+  Node myself = Node();
+  myself.start = start;
+  myself.tag = NodeTag::AT;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+  node_idx args_idx = parse_list(p);
+  p->nodes.add_child(myself_idx, args_idx);
+  return myself_idx;
+}
+node_idx parse_collection_put(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv();
+  Node myself = Node();
+  myself.start = start;
+  myself.tag = NodeTag::PUT;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+  node_idx args_idx = parse_list(p);
+  p->nodes.add_child(myself_idx, args_idx);
+  return myself_idx;
+}
 
 node_idx parse_consecutive_expression(Parser *p, node_idx left,
                                       NodeTag left_tag,
@@ -301,6 +323,7 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::LET:
   case TokenTag::SET:
   case TokenTag::AT:
+  case TokenTag::PUT:
   case TokenTag::IF:
   case TokenTag::ELIF:
   case TokenTag::ELSE:
@@ -363,7 +386,9 @@ node_idx parse_expression_lazy(Parser *p) {
     throw compile_error(t.location,
                         "unexpected token 'set' is not an expression");
   case TokenTag::AT:
-    throw compile_error(t.location, "unexpected token 'at'");
+    return parse_collection_at(p);
+  case TokenTag::PUT:
+    return parse_collection_put(p);
   case TokenTag::IF:
     throw compile_error(t.location, "unexpected token 'if'");
   case TokenTag::ELIF:
@@ -637,7 +662,9 @@ node_idx parse_one(Parser *p) {
   case TokenTag::SET:
     return parse_set(p);
   case TokenTag::AT:
-    throw compile_error(token.location, "unexpected token");
+    return parse_collection_at(p);
+  case TokenTag::PUT:
+    return parse_collection_put(p);
   case TokenTag::IF:
     return parse_if(p);
   case TokenTag::ELIF:
