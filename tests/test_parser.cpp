@@ -596,6 +596,63 @@ void test_function_right_apply(T *t) {
 
   );
 }
+void test_list(T *t) {
+  string code = "list() list(1,2,3) list(1)";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LIST:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 2\n"
+                        "-----------------------\n"
+                        "Node  LIST:\n"
+                        "    Start = test.msl/0/13\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 6\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/14\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 2:\n"
+                        "    Start = test.msl/0/16\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 5\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 3:\n"
+                        "    Start = test.msl/0/18\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LIST:\n"
+                        "    Start = test.msl/0/25\n"
+                        "    First_Child = 7\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/26\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ $ $ \n"
+
+  );
+}
 } // namespace
 int main() {
   T t("Parser");
@@ -612,5 +669,6 @@ int main() {
   t.test("function left apply", test_function_left_apply);
   t.test("function right apply", test_function_right_apply);
   t.test("function call after operator?", test_fn_call_2);
+  t.test("list", test_list);
   return 0;
 }
