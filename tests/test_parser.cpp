@@ -422,6 +422,129 @@ void test_function_no_args(T *t) {
 
   );
 }
+void test_function_returns(T *t) {
+  string code = "function does_return(){ return not #true }";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  FUNCTION = does_return:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LIST:\n"
+                        "    Start = test.msl/0/22\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 3\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  RETURN:\n"
+                        "    Start = test.msl/0/26\n"
+                        "    First_Child = 4\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  NOT:\n"
+                        "    Start = test.msl/0/33\n"
+                        "    First_Child = 5\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_SYMBOL = #true:\n"
+                        "    Start = test.msl/0/37\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ \n"
+
+  );
+}
+void test_function_left_apply(T *t) {
+  string code = "a . add(1)";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 2\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = a:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  FN_CALL:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = add:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 1\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/10\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ \n"
+
+  );
+}
+void test_function_right_apply(T *t) {
+  string code = "a | add(1)";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 2\n"
+                        "\n"
+                        "Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = a:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  FN_CALL:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  VAR_REF = add:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/10\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 1\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ \n"
+
+  );
+}
 } // namespace
 int main() {
   T t("Parser");
@@ -434,5 +557,8 @@ int main() {
   t.test("if-elif-elif-else", test_if_elif_elif_else);
   t.test("function", test_function);
   t.test("function no args", test_function_no_args);
+  t.test("function with return", test_function_returns);
+  t.test("function left apply", test_function_left_apply);
+  t.test("function right apply", test_function_right_apply);
   return 0;
 }

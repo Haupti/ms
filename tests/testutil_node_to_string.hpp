@@ -99,6 +99,9 @@ inline std::string show_node(const Node &node) {
   case NodeTag::INFIX_STR_CONCAT:
     s += " INFIX(<>)";
     break;
+  case NodeTag::RETURN:
+    s += " RETURN";
+    break;
   }
   s += ":\n";
   if (node.tag != NodeTag::NIL) {

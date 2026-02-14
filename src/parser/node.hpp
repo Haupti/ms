@@ -44,6 +44,7 @@ enum class NodeTag : uint8_t {
   PARTIAL_DEFAULT_CONDITION,
   FUNCTION,
   LIST,
+  RETURN,
   //...
 };
 

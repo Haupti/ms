@@ -98,15 +98,14 @@ node_idx parse_expression_eager(Parser *p) {
 node_idx parse_function_call(Parser *p, node_idx left,
                              LocationRef left_location) {
   p->adv(); // past '('
-  Node fn_call_node = Node();
-  fn_call_node.start = left_location;
-  fn_call_node.tag = NodeTag::FN_CALL;
-  node_idx myself_idx = p->nodes.add_dangling(fn_call_node);
+  Node myself = Node();
+  myself.start = left_location;
+  myself.tag = NodeTag::FN_CALL;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
   p->nodes.add_child(myself_idx, left);
-  if (p->peek().tag == TokenTag::BRCLOSE) {
-    return myself_idx;
-  }
-  while (true) {
+
+  while (p->peek().tag != TokenTag::BRCLOSE) {
     node_idx arg_idx = parse_expression_eager(p);
     p->nodes.add_child(myself_idx, arg_idx);
     Token next = p->peek();
@@ -116,9 +115,87 @@ node_idx parse_function_call(Parser *p, node_idx left,
       p->adv();
       break;
     } else {
-      throw runtime_error("unexpected token, expected ',' or ')'");
+      throw compile_error(next.location,
+                          "unexpected token, expected ',' or ')'");
     }
   }
+  return myself_idx;
+}
+
+node_idx parse_left_apply_function(Parser *p, node_idx left) {
+  Token identifier = p->peek();
+  assert_identifier(identifier);
+  p->adv();
+
+  Node myself = Node();
+  myself.start = identifier.location;
+  myself.tag = NodeTag::FN_CALL;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  Node fn_name = Node();
+  fn_name.start = identifier.location;
+  fn_name.tag = NodeTag::VAR_REF;
+  fn_name.as.IDENTIFIER = identifier.as.IDENTIFIER;
+  node_idx fn_name_idx = p->nodes.add_dangling(fn_name);
+
+  p->nodes.add_child(myself_idx, fn_name_idx); // identifier
+  p->nodes.add_child(myself_idx, left);        // first argument
+
+  assert_open_br(p->peek());
+  p->adv();
+
+  while (p->peek().tag != TokenTag::BRCLOSE) {
+    node_idx arg_idx = parse_expression_eager(p);
+    p->nodes.add_child(myself_idx, arg_idx);
+    Token next = p->peek();
+    if (next.tag == TokenTag::COMMA) {
+      p->adv();
+    } else if (next.tag == TokenTag::BRCLOSE) {
+      p->adv();
+      break;
+    } else {
+      throw compile_error(next.location,
+                          "unexpected token, expected ',' or ')'");
+    }
+  }
+  return myself_idx;
+}
+node_idx parse_right_apply_function(Parser *p, node_idx left) {
+  Token identifier = p->peek();
+  assert_identifier(identifier);
+  p->adv();
+
+  Node myself = Node();
+  myself.start = identifier.location;
+  myself.tag = NodeTag::FN_CALL;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  Node fn_name = Node();
+  fn_name.start = identifier.location;
+  fn_name.tag = NodeTag::VAR_REF;
+  fn_name.as.IDENTIFIER = identifier.as.IDENTIFIER;
+  node_idx fn_name_idx = p->nodes.add_dangling(fn_name);
+
+  p->nodes.add_child(myself_idx, fn_name_idx); // identifier
+
+  assert_open_br(p->peek());
+  p->adv();
+
+  while (p->peek().tag != TokenTag::BRCLOSE) {
+    node_idx arg_idx = parse_expression_eager(p);
+    p->nodes.add_child(myself_idx, arg_idx);
+    Token next = p->peek();
+    if (next.tag == TokenTag::COMMA) {
+      p->adv();
+    } else if (next.tag == TokenTag::BRCLOSE) {
+      p->adv();
+      break;
+    } else {
+      throw compile_error(next.location,
+                          "unexpected token, expected ',' or ')'");
+    }
+  }
+  p->nodes.add_child(myself_idx, left); // last argument
   return myself_idx;
 }
 
@@ -152,9 +229,11 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
     }
   }
   case TokenTag::DOT:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    p->adv();
+    return parse_left_apply_function(p, left);
   case TokenTag::BAR:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    p->adv();
+    return parse_right_apply_function(p, left);
   case TokenTag::OP_ADD:
     return parse_regular_infix_operator(p, left, NodeTag::INFIX_ADD);
   case TokenTag::OP_SUB:
@@ -204,6 +283,7 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::SYMBOL:
   case TokenTag::STRING:
   case TokenTag::IDENTIFIER:
+  case TokenTag::RETURN:
     return left;
   }
 }
@@ -327,7 +407,8 @@ node_idx parse_expression_lazy(Parser *p) {
     throw compile_error(t.location, "unexpected token '>='");
   case TokenTag::OPERATOR_STRCONCAT:
     throw compile_error(t.location, "unexpected token '<>'");
-    break;
+  case TokenTag::RETURN:
+    throw compile_error(t.location, "unexpected token 'return'");
   }
 }
 
@@ -511,6 +592,20 @@ node_idx parse_function(Parser *p) {
   return myself_idx;
 }
 
+node_idx parse_return(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv();
+  Node myself = Node();
+  myself.start = start;
+  myself.tag = NodeTag::RETURN;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  // argument
+  node_idx value_idx = parse_expression_eager(p);
+  p->nodes.add_child(myself_idx, value_idx);
+  return myself_idx;
+}
+
 node_idx parse_one(Parser *p) {
   Token token = p->peek();
   switch (token.tag) {
@@ -540,6 +635,8 @@ node_idx parse_one(Parser *p) {
     throw runtime_error("NOT YET IMPLEMENTED");
   case TokenTag::EXPECT:
     throw runtime_error("NOT YET IMPLEMENTED");
+  case TokenTag::RETURN:
+    return parse_return(p);
   case TokenTag::ASSIGN:
     throw compile_error(token.location, "unexpected token");
   case TokenTag::BROPEN:

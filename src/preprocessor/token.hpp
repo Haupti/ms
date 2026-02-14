@@ -19,6 +19,7 @@ enum class TokenTag : uint8_t {
   FUNCTION,
   TRY,
   EXPECT,
+  RETURN,
   ASSIGN,
   BROPEN,
   BRCLOSE,

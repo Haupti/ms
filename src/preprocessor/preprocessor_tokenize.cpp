@@ -215,6 +215,8 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::ELSE);
   } else if (value == "mod") {
     return build_pptoken(get_location(t, start), PpTokenTag::OP_MOD);
+  } else if (value == "return") {
+    return build_pptoken(get_location(t, start), PpTokenTag::RETURN);
   } else {
     return build_pptoken_identifier(get_location(t, start),
                                     create_interned_string(value));
