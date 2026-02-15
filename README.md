@@ -21,10 +21,12 @@ if ( x == 1) {
 
 
 let my_list = list(1,2,3)
-set my_list at (0+1) = 1 + 2
+put(my_list,0+1,1+2)
+my_list.put(1,3);
+my_list.at(1);
 
 let my_tab = table("hello", "world", 0, 1)
-set my_tab at "hello" = "World"
+put(my_tab,"hello","World")
 
 1.add(2) // left apply operator -> add(1,2)
 1 | add(2) // right apply operator -> add(2,1)

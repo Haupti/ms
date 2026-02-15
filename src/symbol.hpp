@@ -4,6 +4,7 @@
 #include <string>
 struct Symbol {
   uint16_t index;
+  Symbol() {}
 };
 
 Symbol create_symbol(const std::string &value);

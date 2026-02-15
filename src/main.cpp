@@ -1,5 +1,6 @@
 #include "../lib/asap/util.hpp"
-#include "../tests/testutil_token_to_string.hpp"
+#include "interpret/interpret.hpp"
+#include "parser/parser.hpp"
 #include "preprocessor/preprocess.hpp"
 #include <filesystem>
 
@@ -10,8 +11,6 @@ int main(int args, char **argv) {
   }
   filesystem::path path = string(argv[1]);
   auto tokens = preprocess(path);
-  for (auto token : tokens) {
-    println(token_to_string(token));
-  }
-  exit(0);
+  auto nodes = parse(tokens);
+  return interpret(nodes);
 }
