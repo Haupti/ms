@@ -8,7 +8,6 @@
 
 struct node_idx {
   uint64_t idx;
-  node_idx(uint64_t idx) : idx(idx) {}
   bool is_null() { return idx == 0; }
 };
 
@@ -66,15 +65,15 @@ struct Node {
   node_idx next_child;
 
   Node()
-      : tag(NodeTag::NIL), next_sibling(node_idx(0)), first_child(node_idx(0)),
-        next_child(node_idx(0)) {
+      : tag(NodeTag::NIL), next_sibling(node_idx{0}), first_child(node_idx{0}),
+        next_child(node_idx{0}) {
     as.INT = 0;
     start = LocationRef{0};
   }
   Node(LocationRef start, NodeTag tag, uint64_t next_sibling,
        uint64_t first_child, uint64_t next_child)
-      : start(start), tag(tag), next_sibling(node_idx(next_sibling)),
-        first_child(node_idx(first_child)), next_child(node_idx(next_child)) {
+      : start(start), tag(tag), next_sibling(node_idx{next_sibling}),
+        first_child(node_idx{first_child}), next_child(node_idx{next_child}) {
     as.INT = 0;
   }
 };
@@ -138,13 +137,13 @@ struct nodes {
       elements.push_back(elem);
       last_sibling = 1;
       first_elem = 1;
-      return 1;
+      return node_idx{1};
     } else {
       elements.push_back(elem);
       uint64_t sib_pos = elements.size() - 1;
-      elements.at(last_sibling).next_sibling = node_idx(sib_pos);
+      elements.at(last_sibling).next_sibling = node_idx{sib_pos};
       last_sibling = sib_pos;
-      return sib_pos;
+      return node_idx{sib_pos};
     }
   }
   node_idx add_sibling(node_idx elem) {
@@ -190,7 +189,7 @@ struct nodes {
   }
   node_idx add_dangling(Node node) {
     elements.push_back(node);
-    return node_idx(elements.size() - 1);
+    return node_idx{elements.size() - 1};
   }
   Node at(node_idx idx) {
     if (elements.size() <= idx.idx) {

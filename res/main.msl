@@ -1,11 +1,2 @@
--include "lib.msl"
-let hello = "mama"
 
--iffset TEST
-print("this is a test run")
--endif
-
-print("hello")
-print(hello)
-
-
+print("hallo")

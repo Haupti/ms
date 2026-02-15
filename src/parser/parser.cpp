@@ -521,7 +521,7 @@ node_idx parse_block(Parser *p) {
   p->adv();
   if (p->peek().tag == TokenTag::CURLCLOSE) {
     p->adv();
-    return node_idx(0);
+    return node_idx{0};
   }
   node_idx dangling_first_elem_idx = parse_one(p);
   if (p->peek().tag == TokenTag::CURLCLOSE) {

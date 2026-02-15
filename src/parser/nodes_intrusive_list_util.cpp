@@ -24,8 +24,8 @@ std::vector<bool> create_mask(nodes *n) {
   if (n->first_elem == 0) {
     return mask;
   }
-  node_idx curr_idx = node_idx(n->first_elem);
-  Node curr = n->at(n->first_elem);
+  node_idx curr_idx = node_idx{n->first_elem};
+  Node curr = n->at(node_idx{n->first_elem});
   do {
     mask_children(&mask, n, curr.first_child);
     mask.at(curr_idx.idx) = true;

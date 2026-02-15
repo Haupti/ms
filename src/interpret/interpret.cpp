@@ -1,3 +1,4 @@
+#include "../../lib/asap/util.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
 #include <unordered_map>
@@ -139,11 +140,12 @@ struct Heap {
     Value value;
     value.as.STRING = new_string_idx;
     value.tag = ValueTag::STRING;
-    static_strings.at(str.index) = new_string_idx;
+    static_strings[str.index] = new_string_idx;
     return value;
   }
   string heap_string(HeapNodeIdx idx) {
-    return *elements.at(idx.idx).as.STRING;
+    string aaa = *elements.at(idx.idx).as.STRING;
+    return aaa;
   }
   Heap() { elements.reserve(10000); }
 
@@ -238,10 +240,11 @@ static GlobalContext _GLOBAL;
 static Heap _HEAP;
 static Symbol _SYM_TRUE = create_symbol("#true");
 static Symbol _SYM_FALSE = create_symbol("#false");
+static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
 
 void interpret_one(Scope *scope, node_idx node);
 Value interpret_expression(Scope *scope, node_idx node) {
-  if (scope->is_returning) {
+  if (scope && scope->is_returning) {
     return Value::None();
   }
   Node curr = _PROG.get(node);
@@ -250,10 +253,35 @@ Value interpret_expression(Scope *scope, node_idx node) {
     throw msl_runtime_error(curr.start,
                             "this is a bug: encountered null node of AST tree");
   case NodeTag::FN_CALL: {
+    InternedString fn_name = _PROG.get(curr.first_child).as.IDENTIFIER;
+    if (fn_name.index == _BUILDIN_FN_PRINT.index) {
+      Value arg =
+          interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+      switch (arg.tag) {
+      case ValueTag::INT:
+        println(to_string(arg.as.INT));
+        break;
+      case ValueTag::STRING:
+        println(_HEAP.heap_string(arg.as.STRING));
+        break;
+      case ValueTag::FLOAT:
+        println(to_string(arg.as.FLOAT));
+        break;
+      case ValueTag::SYMBOL:
+        println(resolve_symbol(arg.as.SYMBOL));
+        break;
+      case ValueTag::LIST:
+        throw runtime_error("NOT YET IMPLEMENTED");
+        break;
+      case ValueTag::NONE:
+        println("none");
+        break;
+      }
+      return Value::None();
+    }
     Scope fn_scope;
     fn_scope.parent = scope;
-    node_idx function =
-        _GLOBAL.functions.at(_PROG.get(curr.first_child).as.IDENTIFIER.index);
+    node_idx function = _GLOBAL.functions.at(fn_name.index);
     Node fn = _PROG.get(function);
     node_idx arg_name = _PROG.get(fn.first_child).first_child;
     node_idx arg = _PROG.get(curr.first_child).next_child;
@@ -296,8 +324,12 @@ Value interpret_expression(Scope *scope, node_idx node) {
     }
   case NodeTag::LITERAL_INT:
     return Value::Int(curr.as.INT);
-  case NodeTag::LITERAL_STRING:
-    return _HEAP.alloc_new_string(curr.as.STRING);
+  case NodeTag::LITERAL_STRING: {
+    println("LITERAL_STRING");
+    auto str = _HEAP.alloc_new_string(curr.as.STRING);
+    println("NOPE");
+    return str;
+  }
   case NodeTag::LITERAL_FLOAT:
     return Value::Float(curr.as.INT);
   case NodeTag::LITERAL_SYMBOL:
@@ -490,8 +522,8 @@ Value interpret_expression(Scope *scope, node_idx node) {
     }
     Value rightval =
         interpret_expression(scope, _PROG.get(curr.first_child).next_child);
-    if (leftval.tag == ValueTag::SYMBOL &&
-        leftval.as.SYMBOL.index == _SYM_TRUE.index) {
+    if (rightval.tag == ValueTag::SYMBOL &&
+        rightval.as.SYMBOL.index == _SYM_TRUE.index) {
       return Value::Symbol(_SYM_TRUE);
     } else {
       return Value::Symbol(_SYM_FALSE);
@@ -505,8 +537,8 @@ Value interpret_expression(Scope *scope, node_idx node) {
     }
     Value rightval =
         interpret_expression(scope, _PROG.get(curr.first_child).next_child);
-    if (leftval.tag == ValueTag::SYMBOL &&
-        leftval.as.SYMBOL.index == _SYM_TRUE.index) {
+    if (rightval.tag == ValueTag::SYMBOL &&
+        rightval.as.SYMBOL.index == _SYM_TRUE.index) {
       return Value::Symbol(_SYM_TRUE);
     } else {
       return Value::Symbol(_SYM_FALSE);
@@ -805,6 +837,8 @@ Value interpret_expression(Scope *scope, node_idx node) {
                                   _HEAP.heap_string(rightval.as.STRING));
   } break;
   case NodeTag::IF:
+    throw runtime_error("NOT YET IMPLEMENTED");
+    break;
   case NodeTag::AT:
   case NodeTag::PUT:
   case NodeTag::PARTIAL_CONDITION:
@@ -820,7 +854,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
 }
 
 void interpret_one(Scope *scope, node_idx node) {
-  if (scope->is_returning) {
+  if (scope && scope->is_returning) {
     return;
   }
   Node curr = _PROG.get(node);
@@ -943,6 +977,14 @@ void interpret_one(Scope *scope, node_idx node) {
     throw runtime_error("NOT YET IMPLEMENTED");
   }
 }
+
+void free_heap() {
+  for (size_t i = 0; i < _HEAP.elements.size(); i++) {
+    if (_HEAP.elements.at(i).tag == ValueTag::STRING) {
+      delete _HEAP.elements.at(i).as.STRING;
+    }
+  }
+}
 }; // namespace
 
 int interpret(nodes ns) {
@@ -951,10 +993,11 @@ int interpret(nodes ns) {
   _GLOBAL = global;
   _PROG = ns;
   _HEAP = Heap();
-  node_idx curr = node_idx(_PROG.first_elem);
+  node_idx curr = node_idx{_PROG.first_elem};
   while (!curr.is_null()) {
-    interpret_one(NULL, node_idx(_PROG.first_elem));
+    interpret_one(NULL, node_idx{_PROG.first_elem});
     curr = _PROG.get(curr).next_sibling;
   }
+  free_heap();
   return 0;
 }
