@@ -1,4 +1,5 @@
 #include "../../lib/asap/util.hpp"
+#include "../../tests/testutil_node_to_string.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
 #include <unordered_map>
@@ -249,9 +250,6 @@ Value interpret_expression(Scope *scope, node_idx node) {
   }
   Node curr = _PROG.get(node);
   switch (curr.tag) {
-  case NodeTag::NIL:
-    throw msl_runtime_error(curr.start,
-                            "this is a bug: encountered null node of AST tree");
   case NodeTag::FN_CALL: {
     InternedString fn_name = _PROG.get(curr.first_child).as.IDENTIFIER;
     if (fn_name.index == _BUILDIN_FN_PRINT.index) {
@@ -306,7 +304,9 @@ Value interpret_expression(Scope *scope, node_idx node) {
     }
     return fn_scope.return_value;
   } break;
-
+  case NodeTag::NIL:
+    throw msl_runtime_error(curr.start,
+                            "this is a bug: encountered null node of AST tree");
   case NodeTag::FN_DEF:
     throw msl_runtime_error(
         curr.start, "this is a bug: encountered statement as expression");
@@ -325,9 +325,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::LITERAL_INT:
     return Value::Int(curr.as.INT);
   case NodeTag::LITERAL_STRING: {
-    println("LITERAL_STRING");
     auto str = _HEAP.alloc_new_string(curr.as.STRING);
-    println("NOPE");
     return str;
   }
   case NodeTag::LITERAL_FLOAT:
@@ -995,7 +993,7 @@ int interpret(nodes ns) {
   _HEAP = Heap();
   node_idx curr = node_idx{_PROG.first_elem};
   while (!curr.is_null()) {
-    interpret_one(NULL, node_idx{_PROG.first_elem});
+    interpret_one(NULL, curr);
     curr = _PROG.get(curr).next_sibling;
   }
   free_heap();
