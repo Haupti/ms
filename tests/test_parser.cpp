@@ -1,10 +1,10 @@
 #include "../lib/asap/t.hpp"
 #include "../src/parser/node.hpp"
-#include "../src/parser/nodes_intrusive_list_util.hpp"
 #include "../src/parser/parser.hpp"
 #include "../src/preprocessor/preprocess.hpp"
 #include "../src/preprocessor/preprocessor_tokenize.hpp"
 #include "testutil_node_to_string.hpp"
+#include "testutil_mask_nodes.hpp"
 using namespace std;
 namespace {
 static string filename = "test.msl";

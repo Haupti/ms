@@ -6,7 +6,6 @@
 using namespace std;
 
 namespace {
-
 struct Parser {
   vector<Token> tokens;
   nodes nodes;

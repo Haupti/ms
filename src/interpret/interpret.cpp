@@ -1,11 +1,13 @@
 #include "../../lib/asap/util.hpp"
-#include "../../tests/testutil_node_to_string.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
 #include <unordered_map>
 
 using namespace std;
 namespace {
+// ------- TYPES -------
+// ------- TYPES -------
+// ------- TYPES -------
 
 enum class ValueTag : uint8_t {
   INT,
@@ -236,6 +238,10 @@ struct Scope {
   }
 };
 
+// ------- GLOBALS -------
+// ------- GLOBALS -------
+// ------- GLOBALS -------
+
 static nodes _PROG;
 static GlobalContext _GLOBAL;
 static Heap _HEAP;
@@ -243,6 +249,41 @@ static Symbol _SYM_TRUE = create_symbol("#true");
 static Symbol _SYM_FALSE = create_symbol("#false");
 static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
 
+// ------- LOGIC -------
+// ------- LOGIC -------
+// ------- LOGIC -------
+
+Value interpret_expression(Scope *scope, node_idx node);
+Value msl_buildin_println(Scope *scope, Node node) {
+  Value arg =
+      interpret_expression(scope, _PROG.get(node.first_child).next_child);
+  switch (arg.tag) {
+  case ValueTag::INT:
+    println(to_string(arg.as.INT));
+    break;
+  case ValueTag::STRING:
+    println(_HEAP.heap_string(arg.as.STRING));
+    break;
+  case ValueTag::FLOAT:
+    println(to_string(arg.as.FLOAT));
+    break;
+  case ValueTag::SYMBOL:
+    println(resolve_symbol(arg.as.SYMBOL));
+    break;
+  case ValueTag::LIST: {
+    node_idx list_elem_idx = node.first_child;
+    while (!list_elem_idx.is_null()) {
+      auto list_elem = _PROG.get(list_elem_idx);
+      msl_buildin_println(scope, list_elem);
+      list_elem_idx = list_elem.next_child;
+    }
+  } break;
+  case ValueTag::NONE:
+    println("none");
+    break;
+  }
+  return Value::None();
+}
 void interpret_one(Scope *scope, node_idx node);
 Value interpret_expression(Scope *scope, node_idx node) {
   if (scope && scope->is_returning) {
@@ -253,29 +294,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::FN_CALL: {
     InternedString fn_name = _PROG.get(curr.first_child).as.IDENTIFIER;
     if (fn_name.index == _BUILDIN_FN_PRINT.index) {
-      Value arg =
-          interpret_expression(scope, _PROG.get(curr.first_child).next_child);
-      switch (arg.tag) {
-      case ValueTag::INT:
-        println(to_string(arg.as.INT));
-        break;
-      case ValueTag::STRING:
-        println(_HEAP.heap_string(arg.as.STRING));
-        break;
-      case ValueTag::FLOAT:
-        println(to_string(arg.as.FLOAT));
-        break;
-      case ValueTag::SYMBOL:
-        println(resolve_symbol(arg.as.SYMBOL));
-        break;
-      case ValueTag::LIST:
-        throw runtime_error("NOT YET IMPLEMENTED");
-        break;
-      case ValueTag::NONE:
-        println("none");
-        break;
-      }
-      return Value::None();
+      return msl_buildin_println(scope, curr);
     }
     Scope fn_scope;
     fn_scope.parent = scope;
@@ -986,7 +1005,6 @@ void free_heap() {
 }; // namespace
 
 int interpret(nodes ns) {
-
   GlobalContext global;
   _GLOBAL = global;
   _PROG = ns;

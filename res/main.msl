@@ -1,7 +1,5 @@
 
-print(#true and #false)
-print(#true or 1)
-print(not #true)
-print(#true)
-print(1 + 2.5)
-print("hallo")
+let x = 1
+print(x)
+set x = #true
+print(x)

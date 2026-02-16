@@ -1,7 +1,5 @@
-#include "node.hpp"
-#include <cassert>
+#include "../src/parser/node.hpp"
 #include <vector>
-using namespace std;
 namespace {
 void mask_children(std::vector<bool> *mask, nodes *n, node_idx first_child) {
   if (first_child.is_null()) {
@@ -17,7 +15,6 @@ void mask_children(std::vector<bool> *mask, nodes *n, node_idx first_child) {
   } while (!curr_idx.is_null());
 }
 } // namespace
-
 std::vector<bool> create_mask(nodes *n) {
   std::vector<bool> mask = std::vector<bool>(n->elements.size(), false);
   mask.at(0) = true;
