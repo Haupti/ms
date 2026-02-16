@@ -966,8 +966,15 @@ void interpret_one(Scope *scope, node_idx node) {
   case NodeTag::INFIX_STR_CONCAT:
     interpret_expression(scope, node);
     break;
-  case NodeTag::IF:
-    throw runtime_error("NOT YET IMPLEMENTED");
+  case NodeTag::IF: {
+    Node if_node = _PROG.get(node);
+    Value if_cond = interpret_expression(scope, if_node.first_child);
+    if(if_cond.tag == ValueTag::SYMBOL && if_cond.as.SYMBOL.index == _SYM_TRUE.index){
+      // TODO interpret body
+    }
+    // TODO interpret elifs
+    // TODO interpret else
+  } break;
   case NodeTag::AT:
     interpret_expression(scope, node);
     break;
