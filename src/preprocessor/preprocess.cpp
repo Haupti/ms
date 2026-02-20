@@ -69,12 +69,6 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
   case PpTokenTag::SET:
     token.tag = TokenTag::SET;
     return token;
-  case PpTokenTag::AT:
-    token.tag = TokenTag::AT;
-    return token;
-  case PpTokenTag::PUT:
-    token.tag = TokenTag::PUT;
-    return token;
   case PpTokenTag::IF:
     token.tag = TokenTag::IF;
     return token;
@@ -168,9 +162,6 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
     return token;
   case PpTokenTag::RETURN:
     token.tag = TokenTag::RETURN;
-    return token;
-  case PpTokenTag::LIST:
-    token.tag = TokenTag::LIST;
     return token;
   case PpTokenTag::INCLUDE_MACRO:
   case PpTokenTag::DEFINE_MACRO:

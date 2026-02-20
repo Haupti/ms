@@ -13,8 +13,8 @@
 ; }
 
 function add_and_print(a,b){ 
+  return a <> b
   print(a)
   print(b)
-  return a + b
 }
-print(add_and_print(6,99))
+print(add_and_print("6","99"))

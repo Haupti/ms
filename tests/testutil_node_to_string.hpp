@@ -45,16 +45,16 @@ inline std::string show_node(const Node &node) {
   case NodeTag::IF:
     s += " IF";
     break;
-  case NodeTag::PARTIAL_CONDITION:
+  case NodeTag::INTERNAL_PARTIAL_CONDITION:
     s += " PARTIAL_CONDITION";
     break;
-  case NodeTag::PARTIAL_DEFAULT_CONDITION:
+  case NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION:
     s += " PARTIAL_DEFAULT_CONDITION";
     break;
   case NodeTag::FUNCTION:
     s += " FUNCTION = " + resolve_interned_string(node.as.IDENTIFIER);
     break;
-  case NodeTag::LIST:
+  case NodeTag::INTERNAL_LIST:
     s += " LIST";
     break;
   case NodeTag::INFIX_ADD:
@@ -101,12 +101,6 @@ inline std::string show_node(const Node &node) {
     break;
   case NodeTag::RETURN:
     s += " RETURN";
-    break;
-  case NodeTag::AT:
-    s += " AT";
-    break;
-  case NodeTag::PUT:
-    s += " PUT";
     break;
   }
   s += ":\n";

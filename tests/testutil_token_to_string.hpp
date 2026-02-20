@@ -17,10 +17,6 @@ inline string token_to_string(const Token &token) {
     return "let";
   case TokenTag::SET:
     return "set";
-  case TokenTag::AT:
-    return "at";
-  case TokenTag::PUT:
-    return "put";
   case TokenTag::IF:
     return "if";
   case TokenTag::ELIF:
@@ -83,8 +79,6 @@ inline string token_to_string(const Token &token) {
     return resolve_interned_string(token.as.IDENTIFIER);
   case TokenTag::RETURN:
     return "return";
-  case TokenTag::LIST:
-    return "list";
   }
 }
 inline string pptoken_to_string(const PreprocessorToken &token) {
@@ -101,10 +95,6 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return "let";
   case PpTokenTag::SET:
     return "set";
-  case PpTokenTag::AT:
-    return "at";
-  case PpTokenTag::PUT:
-    return "put";
   case PpTokenTag::IF:
     return "if";
   case PpTokenTag::ELIF:
@@ -167,8 +157,6 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return resolve_interned_string(token.as.IDENTIFIER);
   case PpTokenTag::RETURN:
     return "return";
-  case PpTokenTag::LIST:
-    return "list";
   case PpTokenTag::INCLUDE_MACRO:
     return "MACRO(-include)";
   case PpTokenTag::DEFINE_MACRO:

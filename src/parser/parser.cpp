@@ -216,7 +216,7 @@ node_idx parse_list(Parser *p) {
   p->adv();
   Node list_node = Node();
   list_node.start = bropen.location;
-  list_node.tag = NodeTag::LIST;
+  list_node.tag = NodeTag::INTERNAL_LIST;
   node_idx list_idx = p->nodes.add_dangling(list_node);
 
   if (p->peek().tag == TokenTag::BRCLOSE) {
@@ -233,33 +233,6 @@ node_idx parse_list(Parser *p) {
     node_idx next_child = parse_expression_eager(p);
     p->nodes.add_child(list_idx, next_child);
   }
-}
-
-node_idx parse_list_constructor(Parser *p) {
-  p->adv();
-  return parse_list(p);
-}
-node_idx parse_collection_at(Parser *p) {
-  LocationRef start = p->peek().location;
-  p->adv();
-  Node myself = Node();
-  myself.start = start;
-  myself.tag = NodeTag::AT;
-  node_idx myself_idx = p->nodes.add_dangling(myself);
-  node_idx args_idx = parse_list(p);
-  p->nodes.add_child(myself_idx, args_idx);
-  return myself_idx;
-}
-node_idx parse_collection_put(Parser *p) {
-  LocationRef start = p->peek().location;
-  p->adv();
-  Node myself = Node();
-  myself.start = start;
-  myself.tag = NodeTag::PUT;
-  node_idx myself_idx = p->nodes.add_dangling(myself);
-  node_idx args_idx = parse_list(p);
-  p->nodes.add_child(myself_idx, args_idx);
-  return myself_idx;
 }
 
 node_idx parse_consecutive_expression(Parser *p, node_idx left,
@@ -319,8 +292,6 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::COMMA:
   case TokenTag::LET:
   case TokenTag::SET:
-  case TokenTag::AT:
-  case TokenTag::PUT:
   case TokenTag::IF:
   case TokenTag::ELIF:
   case TokenTag::ELSE:
@@ -334,7 +305,6 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::STRING:
   case TokenTag::IDENTIFIER:
   case TokenTag::RETURN:
-  case TokenTag::LIST:
     return left;
   }
 }
@@ -373,19 +343,12 @@ node_idx parse_expression_lazy(Parser *p) {
       return var_ref;
     }
   }
-  case TokenTag::LIST: {
-    return parse_list_constructor(p);
-  }
   case TokenTag::LET:
     throw compile_error(t.location,
                         "unexpected token 'let' is not an expression");
   case TokenTag::SET:
     throw compile_error(t.location,
                         "unexpected token 'set' is not an expression");
-  case TokenTag::AT:
-    return parse_collection_at(p);
-  case TokenTag::PUT:
-    return parse_collection_put(p);
   case TokenTag::IF:
     throw compile_error(t.location, "unexpected token 'if'");
   case TokenTag::ELIF:
@@ -543,7 +506,7 @@ node_idx parse_if(Parser *p) {
   {
     Node if_cond = Node();
     if_cond.start = myself.start;
-    if_cond.tag = NodeTag::PARTIAL_CONDITION;
+    if_cond.tag = NodeTag::INTERNAL_PARTIAL_CONDITION;
     node_idx if_cond_idx = p->nodes.add_dangling(if_cond);
     p->nodes.add_child(myself_idx, if_cond_idx);
     p->adv();
@@ -566,7 +529,7 @@ node_idx parse_if(Parser *p) {
   while (!p->eof() && p->peek().tag == TokenTag::ELIF) {
     Node elif_cond = Node();
     elif_cond.start = p->peek().location;
-    elif_cond.tag = NodeTag::PARTIAL_CONDITION;
+    elif_cond.tag = NodeTag::INTERNAL_PARTIAL_CONDITION;
     node_idx elif_cond_idx = p->nodes.add_dangling(elif_cond);
     p->nodes.add_child(myself_idx, elif_cond_idx);
     p->adv();
@@ -589,7 +552,7 @@ node_idx parse_if(Parser *p) {
   if (!p->eof() && p->peek().tag == TokenTag::ELSE) {
     Node else_cond = Node();
     else_cond.start = p->peek().location;
-    else_cond.tag = NodeTag::PARTIAL_DEFAULT_CONDITION;
+    else_cond.tag = NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION;
     node_idx else_cond_idx = p->nodes.add_dangling(else_cond);
     p->nodes.add_child(myself_idx, else_cond_idx);
     p->adv();
@@ -654,10 +617,6 @@ node_idx parse_one(Parser *p) {
     return parse_let(p);
   case TokenTag::SET:
     return parse_set(p);
-  case TokenTag::AT:
-    return parse_collection_at(p);
-  case TokenTag::PUT:
-    return parse_collection_put(p);
   case TokenTag::IF:
     return parse_if(p);
   case TokenTag::ELIF:
@@ -720,8 +679,6 @@ node_idx parse_one(Parser *p) {
     throw compile_error(token.location, "unexpected token");
   case TokenTag::IDENTIFIER:
     return parse_expression_eager(p);
-  case TokenTag::LIST:
-    return parse_list_constructor(p);
   }
 }
 }; // namespace

@@ -103,7 +103,7 @@ struct Heap {
       return current_free;
     }
   }
-  Value alloc_new_string(string str) {
+  Value alloc_new_string(const string &str) {
     HeapNode node = {};
     node.as.STRING = new string(str);
     node.tag = ValueTag::STRING;
@@ -256,8 +256,10 @@ static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
 // ------- LOGIC -------
 // ------- LOGIC -------
 
-// --------- UTILS
-bool value_as_bool(Value value) {
+// ------- UTILS -------
+// ------- UTILS -------
+// ------- UTILS -------
+inline bool value_as_bool(const Value &value) {
   // TODO either that or throw if its not #true/#t/#f/#false not sure yet
   return value.tag == ValueTag::SYMBOL &&
          (value.as.SYMBOL.index == _SYM_TRUE.index ||
@@ -265,7 +267,9 @@ bool value_as_bool(Value value) {
 }
 
 Value interpret_expression(Scope *scope, node_idx node);
-// --------- BUILDINS
+// ------- BUILDIN FUNCTIONS -------
+// ------- BUILDIN FUNCTIONS -------
+// ------- BUILDIN FUNCTIONS -------
 Value msl_buildin_println(Scope *scope, Node node) {
   Value arg =
       interpret_expression(scope, _PROG.at(node.first_child).next_child);
@@ -835,7 +839,7 @@ inline void interpret_if(Scope *scope, Node curr) {
   if (!condition_was_true) {
     Node cond_node = _PROG.at(next_partial_condition);
     while (!next_partial_condition.is_null() &&
-           cond_node.tag == NodeTag::PARTIAL_CONDITION) {
+           cond_node.tag == NodeTag::INTERNAL_PARTIAL_CONDITION) {
       Value cond = interpret_expression(scope, cond_node.first_child);
       bool cond_value = value_as_bool(cond);
 
@@ -854,7 +858,7 @@ inline void interpret_if(Scope *scope, Node curr) {
   if (!condition_was_true) {
     if (!next_partial_condition.is_null() &&
         _PROG.at(next_partial_condition).tag ==
-            NodeTag::PARTIAL_DEFAULT_CONDITION) {
+            NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
       node_idx cond_body = _PROG.at(next_partial_condition).first_child;
       while (!cond_body.is_null()) {
         interpret_one(scope, cond_body);
@@ -875,16 +879,16 @@ Value interpret_expression(Scope *scope, node_idx node) {
     return interpret_fn_call(scope, curr);
   case NodeTag::NIL:
     throw msl_runtime_error(curr.start,
-                            "this is a bug: encountered null node of AST tree");
+                            "BUG: encountered null node of AST tree");
   case NodeTag::FN_DEF:
-    throw msl_runtime_error(
-        curr.start, "this is a bug: encountered statement as expression");
+    throw msl_runtime_error(curr.start,
+                            "BUG: encountered statement as expression");
   case NodeTag::VAR_DEF:
-    throw msl_runtime_error(
-        curr.start, "this is a bug: encountered statement as expression");
+    throw msl_runtime_error(curr.start,
+                            "BUG: encountered statement as expression");
   case NodeTag::VAR_SET:
-    throw msl_runtime_error(
-        curr.start, "this is a bug: encountered statement as expression");
+    throw msl_runtime_error(curr.start,
+                            "BUG: encountered statement as expression");
   case NodeTag::VAR_REF:
     if (scope && scope->has_var(curr.as.IDENTIFIER)) {
       return scope->get_var(curr.as.IDENTIFIER);
@@ -934,28 +938,22 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_STR_CONCAT:
     return interpret_operator_str_concat(scope, curr);
   case NodeTag::IF:
-    throw msl_runtime_error(
-        curr.start, "this is a bug: encountered statement as expression");
-  case NodeTag::AT:
-    throw runtime_error("NOT YET IMPLEMENTED(at)");
-    break;
-  case NodeTag::PUT:
-    throw runtime_error("NOT YET IMPLEMENTED(put)");
-    break;
+    throw msl_runtime_error(curr.start,
+                            "BUG: encountered statement as expression");
   case NodeTag::FUNCTION:
-    throw msl_runtime_error(curr.start, "this is a bug: function definition "
+    throw msl_runtime_error(curr.start, "BUG: function definition "
                                         "statement encountered as expression");
-  case NodeTag::LIST:
-    throw runtime_error("NOT YET IMPLEMENTED(list)");
-    break;
-  case NodeTag::PARTIAL_CONDITION:
-  case NodeTag::PARTIAL_DEFAULT_CONDITION:
+  case NodeTag::RETURN:
+    throw msl_runtime_error(curr.start,
+                            "BUG: encountered statement as expression");
+  case NodeTag::INTERNAL_PARTIAL_CONDITION:
+  case NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION:
     throw msl_runtime_error(
         curr.start,
-        "this is a bug: partial condition statement encountered as expression");
-  case NodeTag::RETURN:
+        "BUG: partial condition statement encountered as expression");
+  case NodeTag::INTERNAL_LIST:
     throw msl_runtime_error(
-        curr.start, "this is a bug: encountered statement as expression");
+        curr.start, "BUG: encountered internal list node as expression");
   }
 }
 
@@ -967,7 +965,7 @@ void interpret_one(Scope *scope, node_idx node) {
   switch (curr.tag) {
   case NodeTag::NIL:
     throw msl_runtime_error(curr.start,
-                            "this is a bug: encountered null node of AST tree");
+                            "BUG: encountered null node of AST tree");
   case NodeTag::FN_CALL:
     interpret_fn_call(scope, curr);
     break;
@@ -1058,15 +1056,6 @@ void interpret_one(Scope *scope, node_idx node) {
   case NodeTag::IF:
     interpret_if(scope, curr);
     break;
-  case NodeTag::AT:
-    interpret_expression(scope, node);
-    break;
-  case NodeTag::PUT:
-    interpret_expression(scope, node);
-    break;
-  case NodeTag::PARTIAL_CONDITION:
-  case NodeTag::PARTIAL_DEFAULT_CONDITION:
-    throw msl_runtime_error(curr.start, "BUG: partial conditional encountered");
   case NodeTag::FUNCTION: {
     if (scope) {
       throw msl_runtime_error(curr.start,
@@ -1078,12 +1067,6 @@ void interpret_one(Scope *scope, node_idx node) {
     }
     break;
   }
-  case NodeTag::LIST:
-    // TODO have to implement this because there could be a function call in
-    // here with sideeffects
-    throw runtime_error(
-        "not yet implemented LIST in expression interpretation");
-    break;
   case NodeTag::RETURN: {
     if (!scope) {
       throw msl_runtime_error(
@@ -1093,6 +1076,14 @@ void interpret_one(Scope *scope, node_idx node) {
     scope->is_returning = true;
     scope->return_value = return_value;
   } break;
+  case NodeTag::INTERNAL_PARTIAL_CONDITION:
+  case NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION:
+    throw msl_runtime_error(
+        curr.start,
+        "BUG: encountered internal partical condition node as statement");
+  case NodeTag::INTERNAL_LIST:
+    throw msl_runtime_error(curr.start,
+                            "BUG: encountered internal list node as statement");
   }
 }
 
