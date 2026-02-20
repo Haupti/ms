@@ -226,6 +226,29 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
                                     create_interned_string(value));
   }
 }
+void skip_comment(Tokenizer *t) {
+  tok_adv(t);
+  if (tok_eof(t)) {
+    return;
+  }
+  char c = tok_peek(t);
+  while (true) {
+    if (c == '\n') {
+      tok_adv(t);
+      return;
+    }
+    if (c == ';') {
+      tok_adv(t);
+      return;
+    }
+    tok_adv(t);
+    if (!tok_eof(t)) {
+      c = tok_peek(t);
+    } else {
+      return;
+    }
+  }
+}
 } // namespace
 
 std::vector<PreprocessorToken>
@@ -276,6 +299,8 @@ preprocessor_tokenize(const filesystem::path &filename,
       tok_adv(&t);
     } else if (c == '\n' or c == '\r' or c == '\t' or c == ' ') {
       tok_adv(&t);
+    } else if (c == ';') {
+      skip_comment(&t);
     } else {
       throw runtime_error("unexpected character '" + string(1, c) + "'\n");
     }

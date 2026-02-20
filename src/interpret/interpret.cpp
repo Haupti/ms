@@ -1,5 +1,6 @@
 #include "../../lib/asap/util.hpp"
 #include "../../tests/testutil_node_to_string.hpp"
+#include "../interned_string.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
 #include <unordered_map>
@@ -255,6 +256,7 @@ static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
 // ------- LOGIC -------
 // ------- LOGIC -------
 
+// --------- UTILS
 bool value_as_bool(Value value) {
   // TODO either that or throw if its not #true/#t/#f/#false not sure yet
   return value.tag == ValueTag::SYMBOL &&
@@ -263,6 +265,7 @@ bool value_as_bool(Value value) {
 }
 
 Value interpret_expression(Scope *scope, node_idx node);
+// --------- BUILDINS
 Value msl_buildin_println(Scope *scope, Node node) {
   Value arg =
       interpret_expression(scope, _PROG.at(node.first_child).next_child);
@@ -293,45 +296,583 @@ Value msl_buildin_println(Scope *scope, Node node) {
   }
   return Value::None();
 }
+// --------- OPERATORS
+
+inline Value interpret_operator_str_concat(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  if (leftval.tag != ValueTag::STRING || rightval.tag != ValueTag::STRING) {
+    throw msl_runtime_error(curr.start, "'<>' expected two strings");
+  }
+  return _HEAP.alloc_new_string(_HEAP.heap_string(leftval.as.STRING) +
+                                _HEAP.heap_string(rightval.as.STRING));
+}
+inline Value interpret_operator_neq(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT:
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      if (leftval.as.INT == rightval.as.INT) {
+        return Value::Symbol(_SYM_FALSE);
+      } else {
+        return Value::Symbol(_SYM_TRUE);
+      }
+    case ValueTag::FLOAT:
+      if (leftval.as.INT == rightval.as.FLOAT) {
+        return Value::Symbol(_SYM_FALSE);
+      } else {
+        return Value::Symbol(_SYM_TRUE);
+      }
+    default:
+      return Value::Symbol(_SYM_TRUE);
+    }
+  case ValueTag::STRING:
+    switch (rightval.tag) {
+    case ValueTag::STRING:
+      if (_HEAP.heap_string(leftval.as.STRING) ==
+          _HEAP.heap_string(rightval.as.STRING)) {
+        return Value::Symbol(_SYM_FALSE);
+      } else {
+        return Value::Symbol(_SYM_TRUE);
+      }
+    default:
+      return Value::Symbol(_SYM_TRUE);
+    }
+  case ValueTag::FLOAT:
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      if (leftval.as.FLOAT == rightval.as.INT) {
+        return Value::Symbol(_SYM_FALSE);
+      } else {
+        return Value::Symbol(_SYM_TRUE);
+      }
+    case ValueTag::FLOAT:
+      if (leftval.as.FLOAT == rightval.as.FLOAT) {
+        return Value::Symbol(_SYM_FALSE);
+      } else {
+        return Value::Symbol(_SYM_TRUE);
+      }
+    default:
+      return Value::Symbol(_SYM_TRUE);
+    }
+  case ValueTag::SYMBOL:
+    switch (rightval.tag) {
+    case ValueTag::SYMBOL:
+      if (leftval.as.SYMBOL.index == rightval.as.SYMBOL.index) {
+        return Value::Symbol(_SYM_FALSE);
+      } else {
+        return Value::Symbol(_SYM_TRUE);
+      }
+    default:
+      return Value::Symbol(_SYM_TRUE);
+    }
+  case ValueTag::LIST:
+    if (rightval.tag == ValueTag::LIST &&
+        leftval.as.LIST.idx == rightval.as.LIST.idx) {
+      return Value::Symbol(_SYM_FALSE);
+    } else {
+      return Value::Symbol(_SYM_TRUE);
+    }
+  case ValueTag::NONE:
+    if (rightval.tag == ValueTag::NONE) {
+      return Value::Symbol(_SYM_FALSE);
+    } else {
+      return Value::Symbol(_SYM_TRUE);
+    }
+  }
+}
+inline Value interpret_operator_eq(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT:
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      if (leftval.as.INT == rightval.as.INT) {
+        return Value::Symbol(_SYM_TRUE);
+      } else {
+        return Value::Symbol(_SYM_FALSE);
+      }
+    case ValueTag::FLOAT:
+      if (leftval.as.INT == rightval.as.FLOAT) {
+        return Value::Symbol(_SYM_TRUE);
+      } else {
+        return Value::Symbol(_SYM_FALSE);
+      }
+    default:
+      return Value::Symbol(_SYM_FALSE);
+    }
+  case ValueTag::STRING:
+    switch (rightval.tag) {
+    case ValueTag::STRING:
+      if (_HEAP.heap_string(leftval.as.STRING) ==
+          _HEAP.heap_string(rightval.as.STRING)) {
+        return Value::Symbol(_SYM_TRUE);
+      } else {
+        return Value::Symbol(_SYM_FALSE);
+      }
+    default:
+      return Value::Symbol(_SYM_FALSE);
+    }
+  case ValueTag::FLOAT:
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      if (leftval.as.FLOAT == rightval.as.INT) {
+        return Value::Symbol(_SYM_TRUE);
+      } else {
+        return Value::Symbol(_SYM_FALSE);
+      }
+    case ValueTag::FLOAT:
+      if (leftval.as.FLOAT == rightval.as.FLOAT) {
+        return Value::Symbol(_SYM_TRUE);
+      } else {
+        return Value::Symbol(_SYM_FALSE);
+      }
+    default:
+      return Value::Symbol(_SYM_FALSE);
+    }
+  case ValueTag::SYMBOL:
+    switch (rightval.tag) {
+    case ValueTag::SYMBOL:
+      if (leftval.as.SYMBOL.index == rightval.as.SYMBOL.index) {
+        return Value::Symbol(_SYM_TRUE);
+      } else {
+        return Value::Symbol(_SYM_FALSE);
+      }
+    default:
+      return Value::Symbol(_SYM_FALSE);
+    }
+  case ValueTag::LIST:
+    if (rightval.tag == ValueTag::LIST &&
+        leftval.as.LIST.idx == rightval.as.LIST.idx) {
+      return Value::Symbol(_SYM_TRUE);
+    } else {
+      return Value::Symbol(_SYM_FALSE);
+    }
+  case ValueTag::NONE:
+    if (rightval.tag == ValueTag::NONE) {
+      return Value::Symbol(_SYM_TRUE);
+    } else {
+      return Value::Symbol(_SYM_FALSE);
+    }
+  }
+}
+inline Value interpret_operator_gte(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Int(leftval.as.INT >= rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.INT >= rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'>=' expected two number arguments");
+    }
+  } break;
+
+  case ValueTag::FLOAT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(leftval.as.FLOAT >= rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.FLOAT >= rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'>=' expected two number arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'>' expected two number arguments");
+  }
+}
+inline Value interpret_operator_gt(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Int(leftval.as.INT > rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.INT > rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'>' expected two number arguments");
+    }
+  } break;
+
+  case ValueTag::FLOAT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(leftval.as.FLOAT > rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.FLOAT > rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'>' expected two number arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'>' expected two number arguments");
+  }
+}
+inline Value interpret_operator_lte(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Int(leftval.as.INT <= rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.INT <= rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'<=' expected two number arguments");
+    }
+  } break;
+
+  case ValueTag::FLOAT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(leftval.as.FLOAT <= rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.FLOAT <= rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'<=' expected two number arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'<=' expected two number arguments");
+  }
+}
+inline Value interpret_operator_lt(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Int(leftval.as.INT < rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.INT < rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'<' expected two number arguments");
+    }
+  } break;
+
+  case ValueTag::FLOAT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(leftval.as.FLOAT < rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.FLOAT < rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'<' expected two number arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'<' expected two number arguments");
+  }
+}
+inline Value interpret_operator_or(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  if (leftval.tag == ValueTag::SYMBOL &&
+      leftval.as.SYMBOL.index == _SYM_TRUE.index) {
+    return Value::Symbol(_SYM_TRUE);
+  }
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  if (rightval.tag == ValueTag::SYMBOL &&
+      rightval.as.SYMBOL.index == _SYM_TRUE.index) {
+    return Value::Symbol(_SYM_TRUE);
+  } else {
+    return Value::Symbol(_SYM_FALSE);
+  }
+}
+inline Value interpret_operator_and(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  if (leftval.tag == ValueTag::SYMBOL &&
+      leftval.as.SYMBOL.index != _SYM_TRUE.index) {
+    return Value::Symbol(_SYM_FALSE);
+  } else {
+    return Value::Symbol(_SYM_FALSE);
+  }
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  if (rightval.tag == ValueTag::SYMBOL &&
+      rightval.as.SYMBOL.index == _SYM_TRUE.index) {
+    return Value::Symbol(_SYM_TRUE);
+  } else {
+    return Value::Symbol(_SYM_FALSE);
+  }
+}
+inline Value interpret_operator_mod(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Int(leftval.as.INT % rightval.as.INT);
+    default:
+      throw msl_runtime_error(curr.start,
+                              "'mod' expected two integer arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'mod' expected two number arguments");
+  }
+}
+inline Value interpret_operator_div(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(static_cast<double>(leftval.as.INT) /
+                          static_cast<double>(rightval.as.INT));
+    case ValueTag::FLOAT:
+      return Value::Float(static_cast<double>(leftval.as.INT) /
+                          rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'/' expected two number arguments");
+    }
+  } break;
+
+  case ValueTag::FLOAT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(leftval.as.FLOAT /
+                          static_cast<double>(rightval.as.INT));
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.FLOAT / rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'/' expected two number arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'/' expected two number arguments");
+  }
+}
+inline Value interpret_operator_mul(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Int(leftval.as.INT * rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.INT * rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'*' expected two number arguments");
+    }
+  } break;
+
+  case ValueTag::FLOAT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(leftval.as.FLOAT * rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.FLOAT * rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'*' expected two number arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'*' expected two number arguments");
+  }
+}
+
+inline Value interpret_operator_sub(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Int(leftval.as.INT - rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.INT - rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'-' expected two number arguments");
+    }
+  } break;
+
+  case ValueTag::FLOAT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(leftval.as.FLOAT - rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.FLOAT - rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'-' expected two number arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'-' expected two number arguments");
+  }
+}
+inline Value interpret_operator_invers(Scope *scope, Node curr) {
+  Value val = interpret_expression(scope, curr.first_child);
+  switch (val.tag) {
+  case ValueTag::INT:
+    return Value::Int(-1 * val.as.INT);
+  case ValueTag::FLOAT:
+    return Value::Float(-1 * val.as.FLOAT);
+  default:
+    throw msl_runtime_error(curr.start, "'-' expected a number");
+  }
+}
+inline Value interpret_operator_not(Scope *scope, Node curr) {
+  Value val = interpret_expression(scope, curr.first_child);
+  if (val.tag == ValueTag::SYMBOL && val.as.SYMBOL.index == _SYM_TRUE.index) {
+    return Value::Symbol(_SYM_FALSE);
+  } else if (val.tag == ValueTag::SYMBOL) {
+    return Value::Symbol(_SYM_TRUE);
+  } else if (val.tag == ValueTag::NONE) {
+    return Value::Symbol(_SYM_TRUE);
+  } else {
+    throw msl_runtime_error(curr.start, "'not' expected a symbol or none");
+  }
+}
+inline Value interpret_operator_add(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, curr.first_child);
+  Value rightval =
+      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  switch (leftval.tag) {
+  case ValueTag::INT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Int(leftval.as.INT + rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.INT + rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'+' expected two number arguments");
+    }
+  } break;
+
+  case ValueTag::FLOAT: {
+    switch (rightval.tag) {
+    case ValueTag::INT:
+      return Value::Float(leftval.as.FLOAT + rightval.as.INT);
+    case ValueTag::FLOAT:
+      return Value::Float(leftval.as.FLOAT + rightval.as.FLOAT);
+    default:
+      throw msl_runtime_error(curr.start, "'+' expected two number arguments");
+    }
+  } break;
+  default:
+    throw msl_runtime_error(curr.start, "'+' expected two number arguments");
+  }
+}
+
+// ---------- MAIN LOGIC
 void interpret_one(Scope *scope, node_idx node);
+
+inline Value interpret_fn_call(Scope *scope, Node curr) {
+  InternedString fn_name = _PROG.at(curr.first_child).as.IDENTIFIER;
+  if (fn_name.index == _BUILDIN_FN_PRINT.index) {
+    return msl_buildin_println(scope, curr);
+  }
+  Scope fn_scope;
+  fn_scope.parent = scope;
+  node_idx function = _GLOBAL.functions.at(fn_name.index);
+  Node fn = _PROG.at(function);
+
+  // first element is a list of args, first list element is first arg
+  node_idx arg_name = _PROG.at(fn.first_child).first_child;
+  node_idx arg = _PROG.at(curr.first_child).next_child;
+  if (!arg_name.is_null()) {
+    while (!arg_name.is_null()) {
+      if (arg.is_null()) {
+        throw msl_runtime_error(curr.start, "too less arguments given");
+      }
+      fn_scope.variables[_PROG.at(arg_name).as.IDENTIFIER.index] =
+          interpret_expression(scope, arg);
+      arg = _PROG.at(arg).next_child;
+      arg_name = _PROG.at(arg_name).next_child;
+    }
+    if (!arg.is_null()) {
+      throw msl_runtime_error(curr.start, "too many arguments given");
+    }
+  }
+  node_idx fn_body = _PROG.at(fn.first_child).next_child;
+  while (!fn_body.is_null()) {
+    interpret_one(&fn_scope, fn_body);
+    fn_body = _PROG.at(fn_body).next_child;
+  }
+  return fn_scope.return_value;
+}
+
+inline void interpret_if(Scope *scope, Node curr) {
+  Node if_node = _PROG.at(curr.first_child);
+  Value if_cond = interpret_expression(scope, if_node.first_child);
+  bool condition_was_true = value_as_bool(if_cond);
+
+  if (condition_was_true) {
+    node_idx if_body = _PROG.at(if_node.first_child).next_child;
+    while (!if_body.is_null()) {
+      interpret_one(scope, if_body);
+      if_body = _PROG.at(if_body).next_child;
+    }
+  }
+
+  node_idx next_partial_condition = if_node.next_child;
+  if (!condition_was_true) {
+    Node cond_node = _PROG.at(next_partial_condition);
+    while (!next_partial_condition.is_null() &&
+           cond_node.tag == NodeTag::PARTIAL_CONDITION) {
+      Value cond = interpret_expression(scope, cond_node.first_child);
+      bool cond_value = value_as_bool(cond);
+
+      if (cond_value) {
+        condition_was_true = true;
+        node_idx cond_body = _PROG.at(cond_node.first_child).next_child;
+        while (!cond_body.is_null()) {
+          interpret_one(scope, cond_body);
+          cond_body = _PROG.at(cond_body).next_child;
+        }
+      }
+      next_partial_condition = cond_node.next_child;
+      cond_node = _PROG.at(next_partial_condition);
+    }
+  }
+  if (!condition_was_true) {
+    if (!next_partial_condition.is_null() &&
+        _PROG.at(next_partial_condition).tag ==
+            NodeTag::PARTIAL_DEFAULT_CONDITION) {
+      node_idx cond_body = _PROG.at(next_partial_condition).first_child;
+      while (!cond_body.is_null()) {
+        interpret_one(scope, cond_body);
+        cond_body = _PROG.at(cond_body).next_child;
+      }
+    }
+  }
+}
+
+// ---------- EXECUTION LOGIC
 Value interpret_expression(Scope *scope, node_idx node) {
   if (scope && scope->is_returning) {
     return Value::None();
   }
   Node curr = _PROG.at(node);
   switch (curr.tag) {
-  case NodeTag::FN_CALL: {
-    InternedString fn_name = _PROG.at(curr.first_child).as.IDENTIFIER;
-    if (fn_name.index == _BUILDIN_FN_PRINT.index) {
-      return msl_buildin_println(scope, curr);
-    }
-    Scope fn_scope;
-    fn_scope.parent = scope;
-    node_idx function = _GLOBAL.functions.at(fn_name.index);
-    Node fn = _PROG.at(function);
-    node_idx arg_name = _PROG.at(fn.first_child).first_child;
-    node_idx arg = _PROG.at(curr.first_child).next_child;
-    if (!arg_name.is_null()) {
-      while (!arg_name.is_null()) {
-        if (arg.is_null()) {
-          throw msl_runtime_error(curr.start, "too less arguments given");
-        }
-        fn_scope.variables.at(_PROG.at(arg_name).as.IDENTIFIER.index) =
-            interpret_expression(scope, arg);
-        arg = _PROG.at(arg).next_child;
-        arg_name = _PROG.at(arg_name).next_child;
-      }
-      if (!arg.is_null()) {
-        throw msl_runtime_error(curr.start, "too many arguments given");
-      }
-    }
-    node_idx fn_body = _PROG.at(fn.first_child).next_child;
-    while (!fn_body.is_null()) {
-      interpret_one(&fn_scope, fn_body);
-      fn_body = _PROG.at(fn_body).next_child;
-    }
-    return fn_scope.return_value;
-  } break;
+  case NodeTag::FN_CALL:
+    return interpret_fn_call(scope, curr);
   case NodeTag::NIL:
     throw msl_runtime_error(curr.start,
                             "this is a bug: encountered null node of AST tree");
@@ -360,519 +901,58 @@ Value interpret_expression(Scope *scope, node_idx node) {
     return Value::Float(curr.as.INT);
   case NodeTag::LITERAL_SYMBOL:
     return Value::Symbol(curr.as.SYMBOL);
-  case NodeTag::PREFIX_NOT: {
-    Value val = interpret_expression(scope, curr.first_child);
-    if (val.tag == ValueTag::SYMBOL && val.as.SYMBOL.index == _SYM_TRUE.index) {
-      return Value::Symbol(_SYM_FALSE);
-    } else if (val.tag == ValueTag::SYMBOL) {
-      return Value::Symbol(_SYM_TRUE);
-    } else if (val.tag == ValueTag::NONE) {
-      return Value::Symbol(_SYM_TRUE);
-    } else {
-      throw msl_runtime_error(curr.start, "'not' expected a symbol or none");
-    }
-  }
-  case NodeTag::PREFIX_INVERS: {
-    Value val = interpret_expression(scope, curr.first_child);
-    switch (val.tag) {
-    case ValueTag::INT:
-      return Value::Int(-1 * val.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(-1 * val.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'-' expected a number");
-    }
-  } break;
-  case NodeTag::INFIX_ADD: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Int(leftval.as.INT + rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.INT + rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'+' expected two number arguments");
-      }
-    } break;
-
-    case ValueTag::FLOAT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(leftval.as.FLOAT + rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.FLOAT + rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'+' expected two number arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start, "'+' expected two number arguments");
-    }
-  } break;
-
-  case NodeTag::INFIX_SUB: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Int(leftval.as.INT - rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.INT - rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'-' expected two number arguments");
-      }
-    } break;
-
-    case ValueTag::FLOAT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(leftval.as.FLOAT - rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.FLOAT - rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'-' expected two number arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start, "'-' expected two number arguments");
-    }
-  } break;
-
-  case NodeTag::INFIX_MUL: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Int(leftval.as.INT * rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.INT * rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'*' expected two number arguments");
-      }
-    } break;
-
-    case ValueTag::FLOAT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(leftval.as.FLOAT * rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.FLOAT * rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'*' expected two number arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start, "'*' expected two number arguments");
-    }
-  } break;
-
-  case NodeTag::INFIX_DIV: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(static_cast<double>(leftval.as.INT) /
-                            static_cast<double>(rightval.as.INT));
-      case ValueTag::FLOAT:
-        return Value::Float(static_cast<double>(leftval.as.INT) /
-                            rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'/' expected two number arguments");
-      }
-    } break;
-
-    case ValueTag::FLOAT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(leftval.as.FLOAT /
-                            static_cast<double>(rightval.as.INT));
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.FLOAT / rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'/' expected two number arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start, "'/' expected two number arguments");
-    }
-  } break;
-
-  case NodeTag::INFIX_MOD: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Int(leftval.as.INT % rightval.as.INT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'mod' expected two integer arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start,
-                              "'mod' expected two number arguments");
-    }
-  } break;
-
-  case NodeTag::INFIX_AND: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    if (leftval.tag == ValueTag::SYMBOL &&
-        leftval.as.SYMBOL.index != _SYM_TRUE.index) {
-      return Value::Symbol(_SYM_FALSE);
-    } else {
-      return Value::Symbol(_SYM_FALSE);
-    }
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    if (rightval.tag == ValueTag::SYMBOL &&
-        rightval.as.SYMBOL.index == _SYM_TRUE.index) {
-      return Value::Symbol(_SYM_TRUE);
-    } else {
-      return Value::Symbol(_SYM_FALSE);
-    }
-  } break;
-  case NodeTag::INFIX_OR: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    if (leftval.tag == ValueTag::SYMBOL &&
-        leftval.as.SYMBOL.index == _SYM_TRUE.index) {
-      return Value::Symbol(_SYM_TRUE);
-    }
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    if (rightval.tag == ValueTag::SYMBOL &&
-        rightval.as.SYMBOL.index == _SYM_TRUE.index) {
-      return Value::Symbol(_SYM_TRUE);
-    } else {
-      return Value::Symbol(_SYM_FALSE);
-    }
-  } break;
-
-  case NodeTag::INFIX_LT: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Int(leftval.as.INT < rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.INT < rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'<' expected two number arguments");
-      }
-    } break;
-
-    case ValueTag::FLOAT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(leftval.as.FLOAT < rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.FLOAT < rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'<' expected two number arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start, "'<' expected two number arguments");
-    }
-  } break;
-
-  case NodeTag::INFIX_LTE: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Int(leftval.as.INT <= rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.INT <= rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'<=' expected two number arguments");
-      }
-    } break;
-
-    case ValueTag::FLOAT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(leftval.as.FLOAT <= rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.FLOAT <= rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'<=' expected two number arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start, "'<=' expected two number arguments");
-    }
-  } break;
-  case NodeTag::INFIX_GT: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Int(leftval.as.INT > rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.INT > rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'>' expected two number arguments");
-      }
-    } break;
-
-    case ValueTag::FLOAT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(leftval.as.FLOAT > rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.FLOAT > rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'>' expected two number arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start, "'>' expected two number arguments");
-    }
-  } break;
-  case NodeTag::INFIX_GTE: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Int(leftval.as.INT >= rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.INT >= rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'>=' expected two number arguments");
-      }
-    } break;
-
-    case ValueTag::FLOAT: {
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        return Value::Float(leftval.as.FLOAT >= rightval.as.INT);
-      case ValueTag::FLOAT:
-        return Value::Float(leftval.as.FLOAT >= rightval.as.FLOAT);
-      default:
-        throw msl_runtime_error(curr.start,
-                                "'>=' expected two number arguments");
-      }
-    } break;
-    default:
-      throw msl_runtime_error(curr.start, "'>' expected two number arguments");
-    }
-  } break;
-  case NodeTag::INFIX_EQ: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT:
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        if (leftval.as.INT == rightval.as.INT) {
-          return Value::Symbol(_SYM_TRUE);
-        } else {
-          return Value::Symbol(_SYM_FALSE);
-        }
-      case ValueTag::FLOAT:
-        if (leftval.as.INT == rightval.as.FLOAT) {
-          return Value::Symbol(_SYM_TRUE);
-        } else {
-          return Value::Symbol(_SYM_FALSE);
-        }
-      default:
-        return Value::Symbol(_SYM_FALSE);
-      }
-    case ValueTag::STRING:
-      switch (rightval.tag) {
-      case ValueTag::STRING:
-        if (_HEAP.heap_string(leftval.as.STRING) ==
-            _HEAP.heap_string(rightval.as.STRING)) {
-          return Value::Symbol(_SYM_TRUE);
-        } else {
-          return Value::Symbol(_SYM_FALSE);
-        }
-      default:
-        return Value::Symbol(_SYM_FALSE);
-      }
-    case ValueTag::FLOAT:
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        if (leftval.as.FLOAT == rightval.as.INT) {
-          return Value::Symbol(_SYM_TRUE);
-        } else {
-          return Value::Symbol(_SYM_FALSE);
-        }
-      case ValueTag::FLOAT:
-        if (leftval.as.FLOAT == rightval.as.FLOAT) {
-          return Value::Symbol(_SYM_TRUE);
-        } else {
-          return Value::Symbol(_SYM_FALSE);
-        }
-      default:
-        return Value::Symbol(_SYM_FALSE);
-      }
-    case ValueTag::SYMBOL:
-      switch (rightval.tag) {
-      case ValueTag::SYMBOL:
-        if (leftval.as.SYMBOL.index == rightval.as.SYMBOL.index) {
-          return Value::Symbol(_SYM_TRUE);
-        } else {
-          return Value::Symbol(_SYM_FALSE);
-        }
-      default:
-        return Value::Symbol(_SYM_FALSE);
-      }
-    case ValueTag::LIST:
-      if (rightval.tag == ValueTag::LIST &&
-          leftval.as.LIST.idx == rightval.as.LIST.idx) {
-        return Value::Symbol(_SYM_TRUE);
-      } else {
-        return Value::Symbol(_SYM_FALSE);
-      }
-    case ValueTag::NONE:
-      if (rightval.tag == ValueTag::NONE) {
-        return Value::Symbol(_SYM_TRUE);
-      } else {
-        return Value::Symbol(_SYM_FALSE);
-      }
-    }
-  } break;
-
-  case NodeTag::INFIX_NEQ: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    switch (leftval.tag) {
-    case ValueTag::INT:
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        if (leftval.as.INT == rightval.as.INT) {
-          return Value::Symbol(_SYM_FALSE);
-        } else {
-          return Value::Symbol(_SYM_TRUE);
-        }
-      case ValueTag::FLOAT:
-        if (leftval.as.INT == rightval.as.FLOAT) {
-          return Value::Symbol(_SYM_FALSE);
-        } else {
-          return Value::Symbol(_SYM_TRUE);
-        }
-      default:
-        return Value::Symbol(_SYM_TRUE);
-      }
-    case ValueTag::STRING:
-      switch (rightval.tag) {
-      case ValueTag::STRING:
-        if (_HEAP.heap_string(leftval.as.STRING) ==
-            _HEAP.heap_string(rightval.as.STRING)) {
-          return Value::Symbol(_SYM_FALSE);
-        } else {
-          return Value::Symbol(_SYM_TRUE);
-        }
-      default:
-        return Value::Symbol(_SYM_TRUE);
-      }
-    case ValueTag::FLOAT:
-      switch (rightval.tag) {
-      case ValueTag::INT:
-        if (leftval.as.FLOAT == rightval.as.INT) {
-          return Value::Symbol(_SYM_FALSE);
-        } else {
-          return Value::Symbol(_SYM_TRUE);
-        }
-      case ValueTag::FLOAT:
-        if (leftval.as.FLOAT == rightval.as.FLOAT) {
-          return Value::Symbol(_SYM_FALSE);
-        } else {
-          return Value::Symbol(_SYM_TRUE);
-        }
-      default:
-        return Value::Symbol(_SYM_TRUE);
-      }
-    case ValueTag::SYMBOL:
-      switch (rightval.tag) {
-      case ValueTag::SYMBOL:
-        if (leftval.as.SYMBOL.index == rightval.as.SYMBOL.index) {
-          return Value::Symbol(_SYM_FALSE);
-        } else {
-          return Value::Symbol(_SYM_TRUE);
-        }
-      default:
-        return Value::Symbol(_SYM_TRUE);
-      }
-    case ValueTag::LIST:
-      if (rightval.tag == ValueTag::LIST &&
-          leftval.as.LIST.idx == rightval.as.LIST.idx) {
-        return Value::Symbol(_SYM_FALSE);
-      } else {
-        return Value::Symbol(_SYM_TRUE);
-      }
-    case ValueTag::NONE:
-      if (rightval.tag == ValueTag::NONE) {
-        return Value::Symbol(_SYM_FALSE);
-      } else {
-        return Value::Symbol(_SYM_TRUE);
-      }
-    }
-  } break;
-  case NodeTag::INFIX_STR_CONCAT: {
-    Value leftval = interpret_expression(scope, curr.first_child);
-    Value rightval =
-        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-    return _HEAP.alloc_new_string(_HEAP.heap_string(leftval.as.STRING) +
-                                  _HEAP.heap_string(rightval.as.STRING));
-  } break;
+  case NodeTag::PREFIX_NOT:
+    return interpret_operator_not(scope, curr);
+  case NodeTag::PREFIX_INVERS:
+    return interpret_operator_invers(scope, curr);
+  case NodeTag::INFIX_ADD:
+    return interpret_operator_add(scope, curr);
+  case NodeTag::INFIX_SUB:
+    return interpret_operator_sub(scope, curr);
+  case NodeTag::INFIX_MUL:
+    return interpret_operator_mul(scope, curr);
+  case NodeTag::INFIX_DIV:
+    return interpret_operator_div(scope, curr);
+  case NodeTag::INFIX_MOD:
+    return interpret_operator_mod(scope, curr);
+  case NodeTag::INFIX_AND:
+    return interpret_operator_and(scope, curr);
+  case NodeTag::INFIX_OR:
+    return interpret_operator_or(scope, curr);
+  case NodeTag::INFIX_LT:
+    return interpret_operator_lt(scope, curr);
+  case NodeTag::INFIX_LTE:
+    return interpret_operator_lte(scope, curr);
+  case NodeTag::INFIX_GT:
+    return interpret_operator_gt(scope, curr);
+  case NodeTag::INFIX_GTE:
+    return interpret_operator_gte(scope, curr);
+  case NodeTag::INFIX_EQ:
+    return interpret_operator_eq(scope, curr);
+  case NodeTag::INFIX_NEQ:
+    return interpret_operator_neq(scope, curr);
+  case NodeTag::INFIX_STR_CONCAT:
+    return interpret_operator_str_concat(scope, curr);
   case NodeTag::IF:
     throw msl_runtime_error(
         curr.start, "this is a bug: encountered statement as expression");
   case NodeTag::AT:
+    throw runtime_error("NOT YET IMPLEMENTED(at)");
+    break;
   case NodeTag::PUT:
-  case NodeTag::PARTIAL_CONDITION:
-  case NodeTag::PARTIAL_DEFAULT_CONDITION:
+    throw runtime_error("NOT YET IMPLEMENTED(put)");
+    break;
   case NodeTag::FUNCTION:
+    throw msl_runtime_error(curr.start, "this is a bug: function definition "
+                                        "statement encountered as expression");
   case NodeTag::LIST:
     throw runtime_error("NOT YET IMPLEMENTED(list)");
     break;
+  case NodeTag::PARTIAL_CONDITION:
+  case NodeTag::PARTIAL_DEFAULT_CONDITION:
+    throw msl_runtime_error(
+        curr.start,
+        "this is a bug: partial condition statement encountered as expression");
   case NodeTag::RETURN:
     throw msl_runtime_error(
         curr.start, "this is a bug: encountered statement as expression");
@@ -889,7 +969,7 @@ void interpret_one(Scope *scope, node_idx node) {
     throw msl_runtime_error(curr.start,
                             "this is a bug: encountered null node of AST tree");
   case NodeTag::FN_CALL:
-    interpret_expression(scope, node);
+    interpret_fn_call(scope, curr);
     break;
   case NodeTag::FN_DEF:
     _GLOBAL.functions[curr.as.IDENTIFIER.index] = curr.first_child;
@@ -928,98 +1008,56 @@ void interpret_one(Scope *scope, node_idx node) {
   case NodeTag::LITERAL_SYMBOL:
     break;
   case NodeTag::PREFIX_NOT:
-    interpret_expression(scope, node);
+    interpret_operator_not(scope, curr);
     break;
   case NodeTag::PREFIX_INVERS:
-    interpret_expression(scope, node);
+    interpret_operator_invers(scope, curr);
     break;
   case NodeTag::INFIX_ADD:
-    interpret_expression(scope, node);
+    interpret_operator_add(scope, curr);
     break;
   case NodeTag::INFIX_SUB:
-    interpret_expression(scope, node);
+    interpret_operator_sub(scope, curr);
     break;
   case NodeTag::INFIX_MUL:
-    interpret_expression(scope, node);
+    interpret_operator_mul(scope, curr);
     break;
   case NodeTag::INFIX_DIV:
-    interpret_expression(scope, node);
+    interpret_operator_div(scope, curr);
     break;
   case NodeTag::INFIX_MOD:
-    interpret_expression(scope, node);
+    interpret_operator_mod(scope, curr);
     break;
   case NodeTag::INFIX_AND:
-    interpret_expression(scope, node);
+    interpret_operator_and(scope, curr);
     break;
   case NodeTag::INFIX_OR:
-    interpret_expression(scope, node);
+    interpret_operator_or(scope, curr);
     break;
   case NodeTag::INFIX_LT:
-    interpret_expression(scope, node);
+    interpret_operator_lt(scope, curr);
     break;
   case NodeTag::INFIX_LTE:
-    interpret_expression(scope, node);
+    interpret_operator_lte(scope, curr);
     break;
   case NodeTag::INFIX_GT:
-    interpret_expression(scope, node);
+    interpret_operator_gt(scope, curr);
     break;
   case NodeTag::INFIX_GTE:
-    interpret_expression(scope, node);
+    interpret_operator_gte(scope, curr);
     break;
   case NodeTag::INFIX_EQ:
-    interpret_expression(scope, node);
+    interpret_operator_eq(scope, curr);
     break;
   case NodeTag::INFIX_NEQ:
-    interpret_expression(scope, node);
+    interpret_operator_neq(scope, curr);
     break;
   case NodeTag::INFIX_STR_CONCAT:
-    interpret_expression(scope, node);
+    interpret_operator_str_concat(scope, curr);
     break;
-  case NodeTag::IF: {
-    Node if_node = _PROG.at(_PROG.at(node).first_child);
-    Value if_cond = interpret_expression(scope, if_node.first_child);
-    bool condition_was_true = value_as_bool(if_cond);
-
-    if (condition_was_true) {
-      node_idx if_body = _PROG.at(if_node.first_child).next_child;
-      while (!if_body.is_null()) {
-        interpret_one(scope, if_body);
-        if_body = _PROG.at(if_body).next_child;
-      }
-    }
-
-    node_idx next_partial_condition = if_node.next_child;
-    if (!condition_was_true) {
-      Node cond_node = _PROG.at(next_partial_condition);
-      while (!next_partial_condition.is_null() &&
-             cond_node.tag == NodeTag::PARTIAL_CONDITION) {
-        Value cond = interpret_expression(scope, cond_node.first_child);
-        bool cond_value = value_as_bool(cond);
-
-        if (cond_value) {
-          condition_was_true = true;
-          node_idx cond_body = _PROG.at(cond_node.first_child).next_child;
-          while (!cond_body.is_null()) {
-            interpret_one(scope, cond_body);
-            cond_body = _PROG.at(cond_body).next_child;
-          }
-        }
-        next_partial_condition = cond_node.next_child;
-        cond_node = _PROG.at(next_partial_condition);
-      }
-    }
-    if (!condition_was_true) {
-      if (!next_partial_condition.is_null() &&
-          _PROG.at(next_partial_condition).tag ==
-              NodeTag::PARTIAL_DEFAULT_CONDITION) {
-        node_idx cond_body = _PROG.at(next_partial_condition).first_child;
-        while (!cond_body.is_null()) {
-          interpret_one(scope, cond_body);
-          cond_body = _PROG.at(cond_body).next_child;
-        }
-      }
-    }
-  } break;
+  case NodeTag::IF:
+    interpret_if(scope, curr);
+    break;
   case NodeTag::AT:
     interpret_expression(scope, node);
     break;
@@ -1041,9 +1079,20 @@ void interpret_one(Scope *scope, node_idx node) {
     break;
   }
   case NodeTag::LIST:
+    // TODO have to implement this because there could be a function call in
+    // here with sideeffects
+    throw runtime_error(
+        "not yet implemented LIST in expression interpretation");
     break;
-  case NodeTag::RETURN:
-    throw runtime_error("NOT YET IMPLEMENTED(return)");
+  case NodeTag::RETURN: {
+    if (!scope) {
+      throw msl_runtime_error(
+          curr.start, "return is not allowed outside of a function scope");
+    }
+    Value return_value = interpret_expression(scope, curr.first_child);
+    scope->is_returning = true;
+    scope->return_value = return_value;
+  } break;
   }
 }
 
