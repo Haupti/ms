@@ -1,4 +1,5 @@
 #include "../../lib/asap/util.hpp"
+#include "../../tests/testutil_node_to_string.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
 #include <unordered_map>
@@ -246,6 +247,7 @@ static nodes _PROG;
 static GlobalContext _GLOBAL;
 static Heap _HEAP;
 static Symbol _SYM_TRUE = create_symbol("#true");
+static Symbol _SYM_T = create_symbol("#t");
 static Symbol _SYM_FALSE = create_symbol("#false");
 static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
 
@@ -253,10 +255,17 @@ static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
 // ------- LOGIC -------
 // ------- LOGIC -------
 
+bool value_as_bool(Value value) {
+  // TODO either that or throw if its not #true/#t/#f/#false not sure yet
+  return value.tag == ValueTag::SYMBOL &&
+         (value.as.SYMBOL.index == _SYM_TRUE.index ||
+          value.as.SYMBOL.index == _SYM_T.index);
+}
+
 Value interpret_expression(Scope *scope, node_idx node);
 Value msl_buildin_println(Scope *scope, Node node) {
   Value arg =
-      interpret_expression(scope, _PROG.get(node.first_child).next_child);
+      interpret_expression(scope, _PROG.at(node.first_child).next_child);
   switch (arg.tag) {
   case ValueTag::INT:
     println(to_string(arg.as.INT));
@@ -273,7 +282,7 @@ Value msl_buildin_println(Scope *scope, Node node) {
   case ValueTag::LIST: {
     node_idx list_elem_idx = node.first_child;
     while (!list_elem_idx.is_null()) {
-      auto list_elem = _PROG.get(list_elem_idx);
+      auto list_elem = _PROG.at(list_elem_idx);
       msl_buildin_println(scope, list_elem);
       list_elem_idx = list_elem.next_child;
     }
@@ -289,37 +298,37 @@ Value interpret_expression(Scope *scope, node_idx node) {
   if (scope && scope->is_returning) {
     return Value::None();
   }
-  Node curr = _PROG.get(node);
+  Node curr = _PROG.at(node);
   switch (curr.tag) {
   case NodeTag::FN_CALL: {
-    InternedString fn_name = _PROG.get(curr.first_child).as.IDENTIFIER;
+    InternedString fn_name = _PROG.at(curr.first_child).as.IDENTIFIER;
     if (fn_name.index == _BUILDIN_FN_PRINT.index) {
       return msl_buildin_println(scope, curr);
     }
     Scope fn_scope;
     fn_scope.parent = scope;
     node_idx function = _GLOBAL.functions.at(fn_name.index);
-    Node fn = _PROG.get(function);
-    node_idx arg_name = _PROG.get(fn.first_child).first_child;
-    node_idx arg = _PROG.get(curr.first_child).next_child;
+    Node fn = _PROG.at(function);
+    node_idx arg_name = _PROG.at(fn.first_child).first_child;
+    node_idx arg = _PROG.at(curr.first_child).next_child;
     if (!arg_name.is_null()) {
       while (!arg_name.is_null()) {
         if (arg.is_null()) {
           throw msl_runtime_error(curr.start, "too less arguments given");
         }
-        fn_scope.variables.at(_PROG.get(arg_name).as.IDENTIFIER.index) =
+        fn_scope.variables.at(_PROG.at(arg_name).as.IDENTIFIER.index) =
             interpret_expression(scope, arg);
-        arg = _PROG.get(arg).next_child;
-        arg_name = _PROG.get(arg_name).next_child;
+        arg = _PROG.at(arg).next_child;
+        arg_name = _PROG.at(arg_name).next_child;
       }
       if (!arg.is_null()) {
         throw msl_runtime_error(curr.start, "too many arguments given");
       }
     }
-    node_idx fn_body = _PROG.get(fn.first_child).next_child;
+    node_idx fn_body = _PROG.at(fn.first_child).next_child;
     while (!fn_body.is_null()) {
       interpret_one(&fn_scope, fn_body);
-      fn_body = _PROG.get(fn_body).next_child;
+      fn_body = _PROG.at(fn_body).next_child;
     }
     return fn_scope.return_value;
   } break;
@@ -377,7 +386,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_ADD: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -410,7 +419,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_SUB: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -443,7 +452,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_MUL: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -476,7 +485,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_DIV: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -512,7 +521,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_MOD: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -538,7 +547,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
       return Value::Symbol(_SYM_FALSE);
     }
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     if (rightval.tag == ValueTag::SYMBOL &&
         rightval.as.SYMBOL.index == _SYM_TRUE.index) {
       return Value::Symbol(_SYM_TRUE);
@@ -553,7 +562,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
       return Value::Symbol(_SYM_TRUE);
     }
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     if (rightval.tag == ValueTag::SYMBOL &&
         rightval.as.SYMBOL.index == _SYM_TRUE.index) {
       return Value::Symbol(_SYM_TRUE);
@@ -565,7 +574,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_LT: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -598,7 +607,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_LTE: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -630,7 +639,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_GT: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -662,7 +671,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_GTE: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT: {
       switch (rightval.tag) {
@@ -694,7 +703,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_EQ: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT:
       switch (rightval.tag) {
@@ -772,7 +781,7 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_NEQ: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     switch (leftval.tag) {
     case ValueTag::INT:
       switch (rightval.tag) {
@@ -849,20 +858,20 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INFIX_STR_CONCAT: {
     Value leftval = interpret_expression(scope, curr.first_child);
     Value rightval =
-        interpret_expression(scope, _PROG.get(curr.first_child).next_child);
+        interpret_expression(scope, _PROG.at(curr.first_child).next_child);
     return _HEAP.alloc_new_string(_HEAP.heap_string(leftval.as.STRING) +
                                   _HEAP.heap_string(rightval.as.STRING));
   } break;
   case NodeTag::IF:
-    throw runtime_error("NOT YET IMPLEMENTED");
-    break;
+    throw msl_runtime_error(
+        curr.start, "this is a bug: encountered statement as expression");
   case NodeTag::AT:
   case NodeTag::PUT:
   case NodeTag::PARTIAL_CONDITION:
   case NodeTag::PARTIAL_DEFAULT_CONDITION:
   case NodeTag::FUNCTION:
   case NodeTag::LIST:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    throw runtime_error("NOT YET IMPLEMENTED(list)");
     break;
   case NodeTag::RETURN:
     throw msl_runtime_error(
@@ -874,7 +883,7 @@ void interpret_one(Scope *scope, node_idx node) {
   if (scope && scope->is_returning) {
     return;
   }
-  Node curr = _PROG.get(node);
+  Node curr = _PROG.at(node);
   switch (curr.tag) {
   case NodeTag::NIL:
     throw msl_runtime_error(curr.start,
@@ -967,13 +976,49 @@ void interpret_one(Scope *scope, node_idx node) {
     interpret_expression(scope, node);
     break;
   case NodeTag::IF: {
-    Node if_node = _PROG.get(node);
+    Node if_node = _PROG.at(_PROG.at(node).first_child);
     Value if_cond = interpret_expression(scope, if_node.first_child);
-    if(if_cond.tag == ValueTag::SYMBOL && if_cond.as.SYMBOL.index == _SYM_TRUE.index){
-      // TODO interpret body
+    bool condition_was_true = value_as_bool(if_cond);
+
+    if (condition_was_true) {
+      node_idx if_body = _PROG.at(if_node.first_child).next_child;
+      while (!if_body.is_null()) {
+        interpret_one(scope, if_body);
+        if_body = _PROG.at(if_body).next_child;
+      }
     }
-    // TODO interpret elifs
-    // TODO interpret else
+
+    node_idx next_partial_condition = if_node.next_child;
+    if (!condition_was_true) {
+      Node cond_node = _PROG.at(next_partial_condition);
+      while (!next_partial_condition.is_null() &&
+             cond_node.tag == NodeTag::PARTIAL_CONDITION) {
+        Value cond = interpret_expression(scope, cond_node.first_child);
+        bool cond_value = value_as_bool(cond);
+
+        if (cond_value) {
+          condition_was_true = true;
+          node_idx cond_body = _PROG.at(cond_node.first_child).next_child;
+          while (!cond_body.is_null()) {
+            interpret_one(scope, cond_body);
+            cond_body = _PROG.at(cond_body).next_child;
+          }
+        }
+        next_partial_condition = cond_node.next_child;
+        cond_node = _PROG.at(next_partial_condition);
+      }
+    }
+    if (!condition_was_true) {
+      if (!next_partial_condition.is_null() &&
+          _PROG.at(next_partial_condition).tag ==
+              NodeTag::PARTIAL_DEFAULT_CONDITION) {
+        node_idx cond_body = _PROG.at(next_partial_condition).first_child;
+        while (!cond_body.is_null()) {
+          interpret_one(scope, cond_body);
+          cond_body = _PROG.at(cond_body).next_child;
+        }
+      }
+    }
   } break;
   case NodeTag::AT:
     interpret_expression(scope, node);
@@ -998,7 +1043,7 @@ void interpret_one(Scope *scope, node_idx node) {
   case NodeTag::LIST:
     break;
   case NodeTag::RETURN:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    throw runtime_error("NOT YET IMPLEMENTED(return)");
   }
 }
 
@@ -1019,7 +1064,7 @@ int interpret(nodes ns) {
   node_idx curr = node_idx{_PROG.first_elem};
   while (!curr.is_null()) {
     interpret_one(NULL, curr);
-    curr = _PROG.get(curr).next_sibling;
+    curr = _PROG.at(curr).next_sibling;
   }
   free_heap();
   return 0;

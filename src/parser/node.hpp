@@ -131,7 +131,12 @@ struct nodes {
     elements.reserve(10000);
     elements.push_back(Node());
   }
-  Node get(node_idx idx) { return elements.at(idx.idx); }
+  Node at(node_idx idx) {
+    if (elements.size() <= idx.idx) {
+      return elements.at(0);
+    }
+    return elements.at(idx.idx);
+  }
   node_idx add_sibling(Node elem) {
     if (last_sibling == 0) {
       elements.push_back(elem);
@@ -190,11 +195,5 @@ struct nodes {
   node_idx add_dangling(Node node) {
     elements.push_back(node);
     return node_idx{elements.size() - 1};
-  }
-  Node at(node_idx idx) {
-    if (elements.size() <= idx.idx) {
-      return elements.at(0);
-    }
-    return elements.at(idx.idx);
   }
 };

@@ -395,9 +395,9 @@ node_idx parse_expression_lazy(Parser *p) {
   case TokenTag::FUNCTION:
     throw compile_error(t.location, "unexpected token 'function'");
   case TokenTag::TRY:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    throw runtime_error("NOT YET IMPLEMENTED(parse:try)");
   case TokenTag::EXPECT:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    throw runtime_error("NOT YET IMPLEMENTED(parse:expect)");
   case TokenTag::ASSIGN:
     throw compile_error(t.location, "unexpected token '='");
   case TokenTag::BROPEN: {
@@ -523,10 +523,6 @@ node_idx parse_block(Parser *p) {
     return node_idx{0};
   }
   node_idx dangling_first_elem_idx = parse_one(p);
-  if (p->peek().tag == TokenTag::CURLCLOSE) {
-    p->adv();
-    return dangling_first_elem_idx;
-  }
   while (true) {
     if (p->peek().tag == TokenTag::CURLCLOSE) {
       p->adv();
@@ -671,9 +667,9 @@ node_idx parse_one(Parser *p) {
   case TokenTag::FUNCTION:
     return parse_function(p);
   case TokenTag::TRY:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    throw runtime_error("NOT YET IMPLEMENTED(parse:try)");
   case TokenTag::EXPECT:
-    throw runtime_error("NOT YET IMPLEMENTED");
+    throw runtime_error("NOT YET IMPLEMENTED(parse:expect)");
   case TokenTag::RETURN:
     return parse_return(p);
   case TokenTag::ASSIGN:

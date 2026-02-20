@@ -1,5 +1,13 @@
-
-let x = 1
-print(x)
-set x = #true
-print(x)
+if (#f) {
+  print(0)
+  print(1)
+  print(2)
+}elif (#f) {
+  print("hell yeah")
+  print("hell yeah too")
+  print("hell yeah more")
+}else {
+  print("this")
+  print("very")
+  print("sad")
+}
