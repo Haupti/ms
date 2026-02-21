@@ -115,7 +115,7 @@ Value msl_buildin_put(Scope *scope, Node node) {
   do {
     if (current_pos == index) {
       _HEAP.replace(it.next, value);
-      break;
+      return Value::None();
     }
     _HEAP.list_iterator_advance(&it);
   } while (!it.next.is_null());

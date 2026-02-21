@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../lib/asap/util.hpp"
 #include "../interned_string.hpp"
 #include "../symbol.hpp"
-#include "../../lib/asap/util.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -113,6 +113,9 @@ struct Heap {
   }
   void replace(HeapNodeIdx idx, Value value) {
     HeapNode curr = elements.at(idx.idx);
+    if (curr.tag == ValueTag::STRING) {
+      delete curr.as.STRING;
+    }
     HeapNode new_val = to_heap(value);
     new_val.next_sibling = curr.next_sibling;
     new_val.next_child = curr.next_child;
@@ -180,7 +183,6 @@ struct Heap {
     return value;
   }
   Value alloc_new_string(InternedString str) {
-    println("ALLOC NEW STRING");
     if (static_strings.count(str.index) > 0) {
       Value value;
       value.as.STRING = static_strings.at(str.index);
@@ -222,9 +224,16 @@ private:
     case ValueTag::INT:
       node.as.INT = value.as.INT;
       break;
-    case ValueTag::STRING:
-      return elements.at(value.as.STRING.idx);
-      break;
+    case ValueTag::STRING: {
+      HeapNode original = elements.at(value.as.STRING.idx);
+      HeapNode new_string = {};
+      new_string.as.STRING = new std::string(*original.as.STRING);
+      new_string.tag = ValueTag::STRING;
+      new_string.next_sibling = original.next_sibling;
+      new_string.first_child = original.first_child;
+      new_string.next_child = original.next_child;
+      return new_string;
+    } break;
     case ValueTag::FLOAT:
       node.as.FLOAT = value.as.FLOAT;
       break;
