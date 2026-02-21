@@ -12,5 +12,7 @@
 ;   print("sad")
 ; }
 
-let mylist = list(123,321,#true)
+let name = "steve"
+let greet = " hallo "
+let mylist = list(name)
 print(mylist)
