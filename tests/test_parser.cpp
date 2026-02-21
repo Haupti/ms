@@ -599,10 +599,11 @@ void test_function_right_apply(T *t) {
 
   );
 }
+
 void test_list(T *t) {
   string code = "list() list(1,2,3) list(1)";
   string out = parse_and_show(code);
-  t->assert_str_eq(out, "First Item = 1\n"
+  t->assert_str_eq(out, "First Item = 2\n"
                         "\n"
                         "0 Node  NIL:\n"
                         "    Start = NIL\n"
@@ -610,56 +611,73 @@ void test_list(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "1 Node  LIST:\n"
-                        "    Start = test.msl/0/6\n"
+                        "1 Node  VAR_REF = list:\n"
+                        "    Start = test.msl/0/2\n"
                         "    First_Child = 0\n"
                         "    Next_Child = 0\n"
-                        "    Next_Sibling = 2\n"
-                        "-----------------------\n"
-                        "2 Node  LIST:\n"
-                        "    Start = test.msl/0/13\n"
-                        "    First_Child = 3\n"
-                        "    Next_Child = 0\n"
-                        "    Next_Sibling = 6\n"
-                        "-----------------------\n"
-                        "3 Node  LITERAL_INT = 1:\n"
-                        "    Start = test.msl/0/14\n"
-                        "    First_Child = 0\n"
-                        "    Next_Child = 4\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "4 Node  LITERAL_INT = 2:\n"
-                        "    Start = test.msl/0/16\n"
+                        "2 Node  FN_CALL:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 1\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 4\n"
+                        "-----------------------\n"
+                        "3 Node  VAR_REF = list:\n"
+                        "    Start = test.msl/0/9\n"
                         "    First_Child = 0\n"
                         "    Next_Child = 5\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "5 Node  LITERAL_INT = 3:\n"
+                        "4 Node  FN_CALL:\n"
+                        "    Start = test.msl/0/9\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 9\n"
+                        "-----------------------\n"
+                        "5 Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/14\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 6\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "6 Node  LITERAL_INT = 2:\n"
+                        "    Start = test.msl/0/16\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 7\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "7 Node  LITERAL_INT = 3:\n"
                         "    Start = test.msl/0/18\n"
                         "    First_Child = 0\n"
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "6 Node  LIST:\n"
-                        "    Start = test.msl/0/25\n"
-                        "    First_Child = 7\n"
+                        "8 Node  VAR_REF = list:\n"
+                        "    Start = test.msl/0/21\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 10\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "9 Node  FN_CALL:\n"
+                        "    Start = test.msl/0/21\n"
+                        "    First_Child = 8\n"
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "7 Node  LITERAL_INT = 1:\n"
+                        "10 Node  LITERAL_INT = 1:\n"
                         "    Start = test.msl/0/26\n"
                         "    First_Child = 0\n"
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ $ $ $ \n"
-
-  );
+                        "MASK: $ $ $ $ $ $ $ $ $ $ $ \n");
 }
+
 void test_list_get(T *t) {
   string code = "at(mylist,0)";
   string out = parse_and_show(code);
-  t->assert_str_eq(out, "First Item = 1\n"
+  t->assert_str_eq(out, "First Item = 2\n"
                         "\n"
                         "0 Node  NIL:\n"
                         "    Start = NIL\n"
@@ -667,15 +685,15 @@ void test_list_get(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "1 Node  AT:\n"
+                        "1 Node  VAR_REF = at:\n"
                         "    Start = test.msl/0/2\n"
-                        "    First_Child = 2\n"
-                        "    Next_Child = 0\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 3\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "2 Node  LIST:\n"
-                        "    Start = test.msl/0/4\n"
-                        "    First_Child = 3\n"
+                        "2 Node  FN_CALL:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 1\n"
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
@@ -691,14 +709,12 @@ void test_list_get(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ \n"
-
-  );
+                        "MASK: $ $ $ $ $ \n");
 }
 void test_list_set(T *t) {
   string code = "put(mylist,0,1)";
   string out = parse_and_show(code);
-  t->assert_str_eq(out, "First Item = 1\n"
+  t->assert_str_eq(out, "First Item = 2\n"
                         "\n"
                         "0 Node  NIL:\n"
                         "    Start = NIL\n"
@@ -706,15 +722,15 @@ void test_list_set(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "1 Node  PUT:\n"
+                        "1 Node  VAR_REF = put:\n"
                         "    Start = test.msl/0/2\n"
-                        "    First_Child = 2\n"
-                        "    Next_Child = 0\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 3\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "2 Node  LIST:\n"
-                        "    Start = test.msl/0/5\n"
-                        "    First_Child = 3\n"
+                        "2 Node  FN_CALL:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 1\n"
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
@@ -736,9 +752,7 @@ void test_list_set(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ $ \n"
-
-  );
+                        "MASK: $ $ $ $ $ $ \n");
 }
 
 void test_fn_call_3(T *t) {
@@ -899,6 +913,6 @@ int main() {
   t.test("function call with args used", test_fn_call_3);
   t.test("list", test_list);
   t.test("get list element", test_list_get);
-  t.test("set list element", test_list_set);
+  t.test("put list element", test_list_set);
   return 0;
 }

@@ -102,7 +102,12 @@ node_idx parse_function_call(Parser *p, node_idx left,
 
   p->nodes.add_child(myself_idx, left);
 
-  while (p->peek().tag != TokenTag::BRCLOSE) {
+  if (p->peek().tag == TokenTag::BRCLOSE) {
+    p->adv();
+    return myself_idx;
+  }
+
+  while (true) {
     node_idx arg_idx = parse_expression_eager(p);
     p->nodes.add_child(myself_idx, arg_idx);
     Token next = p->peek();

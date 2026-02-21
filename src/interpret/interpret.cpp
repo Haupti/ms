@@ -251,6 +251,9 @@ static Symbol _SYM_TRUE = create_symbol("#true");
 static Symbol _SYM_T = create_symbol("#t");
 static Symbol _SYM_FALSE = create_symbol("#false");
 static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
+static InternedString _BUILDIN_FN_LIST = create_interned_string("list");
+static InternedString _BUILDIN_FN_PUT = create_interned_string("put");
+static InternedString _BUILDIN_FN_AT = create_interned_string("at");
 
 // ------- LOGIC -------
 // ------- LOGIC -------
@@ -270,6 +273,31 @@ Value interpret_expression(Scope *scope, node_idx node);
 // ------- BUILDIN FUNCTIONS -------
 // ------- BUILDIN FUNCTIONS -------
 // ------- BUILDIN FUNCTIONS -------
+Value msl_buildin_list(Scope *scope, Node node) {
+  Value list;
+  list.tag = ValueTag::LIST;
+  if (node.first_child.is_null()) {
+    //TODO implement
+  }
+  if (scope && node.first_child.is_null()) {
+    throw runtime_error("NOT YET IMPLEMENTED");
+  }
+  throw runtime_error("NOT YET IMPLEMENTED");
+}
+Value msl_buildin_put(Scope *scope, Node node) {
+  // TODO implement
+  if (scope && node.first_child.is_null()) {
+    throw runtime_error("NOT YET IMPLEMENTED");
+  }
+  throw runtime_error("NOT YET IMPLEMENTED");
+}
+Value msl_buildin_at(Scope *scope, Node node) {
+  // TODO implement
+  if (scope && node.first_child.is_null()) {
+    throw runtime_error("NOT YET IMPLEMENTED");
+  }
+  throw runtime_error("NOT YET IMPLEMENTED");
+}
 Value msl_buildin_println(Scope *scope, Node node) {
   Value arg =
       interpret_expression(scope, _PROG.at(node.first_child).next_child);
@@ -791,6 +819,12 @@ inline Value interpret_fn_call(Scope *scope, Node curr) {
   InternedString fn_name = _PROG.at(curr.first_child).as.IDENTIFIER;
   if (fn_name.index == _BUILDIN_FN_PRINT.index) {
     return msl_buildin_println(scope, curr);
+  } else if (fn_name.index == _BUILDIN_FN_LIST.index) {
+    return msl_buildin_list(scope, curr);
+  } else if (fn_name.index == _BUILDIN_FN_PUT.index) {
+    return msl_buildin_put(scope, curr);
+  } else if (fn_name.index == _BUILDIN_FN_AT.index) {
+    return msl_buildin_at(scope, curr);
   }
   Scope fn_scope;
   fn_scope.parent = scope;
