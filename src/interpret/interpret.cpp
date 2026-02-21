@@ -90,6 +90,7 @@ struct Value {
 struct ListIterator {
   Value current;
   HeapNodeIdx next;
+  bool has_next() { return !next.is_null(); }
 };
 
 struct Heap {
@@ -98,6 +99,29 @@ struct Heap {
   unordered_map<uint64_t, HeapNodeIdx> static_strings;
 
   Value at(HeapNodeIdx idx) { return to_stack(elements.at(idx.idx), idx); }
+  HeapNodeIdx next_child(HeapNodeIdx idx) {
+    return elements.at(idx.idx).next_child;
+  }
+  HeapNodeIdx first_child(HeapNodeIdx idx) {
+    return elements.at(idx.idx).first_child;
+  }
+  HeapNodeIdx nth_child(HeapNodeIdx node, uint64_t n) {
+    HeapNodeIdx curr = elements.at(node.idx).first_child;
+    uint64_t i = 0;
+    while (i != n) {
+      curr = elements.at(curr.idx).next_child;
+      i++;
+    };
+    return curr;
+  }
+  void replace(HeapNodeIdx idx, Value value) {
+    HeapNode curr = elements.at(idx.idx);
+    HeapNode new_val = to_heap(value);
+    new_val.next_sibling = curr.next_sibling;
+    new_val.next_child = curr.next_child;
+    new_val.first_child = curr.first_child;
+    elements.at(idx.idx) = new_val;
+  }
   HeapNodeIdx alloc(Value value) {
     if (value.tag == ValueTag::STRING) {
       return value.as.STRING;
@@ -145,7 +169,7 @@ struct Heap {
   }
   void list_iterator_advance(ListIterator *it) {
     it->current = at(it->next);
-    HeapNodeIdx next_elem = elements.at(it->next.idx).next_child;
+    HeapNodeIdx next_elem = next_child(it->next);
     it->next = next_elem;
   }
   Value alloc_new_string(const string &str) {
@@ -306,6 +330,12 @@ inline bool value_as_bool(const Value &value) {
          (value.as.SYMBOL.index == _SYM_TRUE.index ||
           value.as.SYMBOL.index == _SYM_T.index);
 }
+inline int64_t value_as_int(LocationRef location, const Value &value) {
+  if (value.tag != ValueTag::INT) {
+    throw msl_runtime_error(location, "expected a int value");
+  }
+  return value.as.INT;
+}
 
 Value interpret_expression(Scope *scope, node_idx node);
 // ------- BUILDIN FUNCTIONS -------
@@ -313,20 +343,39 @@ Value interpret_expression(Scope *scope, node_idx node);
 // ------- BUILDIN FUNCTIONS -------
 Value msl_buildin_list(Scope *scope, Node node) {
   Value list = _HEAP.alloc_new_empty_list();
-  node_idx list_element = _PROG.at(node.first_child).next_child;
+  node_idx list_element = _PROG.next_child(node.first_child);
   while (!list_element.is_null()) {
     Value elem = interpret_expression(scope, list_element);
     _HEAP.list_append(list.as.LIST, elem);
-    list_element = _PROG.at(list_element).next_child;
+    list_element = _PROG.next_child(list_element);
   }
   return list;
 }
 Value msl_buildin_put(Scope *scope, Node node) {
-  // TODO implement
-  if (scope && node.first_child.is_null()) {
-    throw runtime_error("NOT YET IMPLEMENTED");
+  Node _fn_name = _PROG.at(node.first_child);
+  Value list_head = interpret_expression(scope, _fn_name.next_child);
+  Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
+  int64_t index =
+      value_as_int(_list_var_ref_node.start,
+                   interpret_expression(scope, _list_var_ref_node.next_child));
+  Value value = interpret_expression(
+      scope, _PROG.next_child(_list_var_ref_node.next_child));
+
+  ListIterator it = _HEAP.get_list_iterator(list_head.as.LIST);
+  if (it.next.is_null()) {
+    throw msl_runtime_error(node.start,
+                            "index out of bounds :" + to_string(index));
   }
-  throw runtime_error("NOT YET IMPLEMENTED");
+  int64_t current_pos = 0;
+  do {
+    if (current_pos == index) {
+      _HEAP.replace(it.next, value);
+      break;
+    }
+    _HEAP.list_iterator_advance(&it);
+  } while (!it.next.is_null());
+  throw msl_runtime_error(node.start,
+                          "index out of bounds :" + to_string(index));
 }
 Value msl_buildin_at(Scope *scope, Node node) {
   // TODO implement
@@ -348,11 +397,13 @@ string value_to_string(const Value &value) {
   case ValueTag::LIST: {
     vector<string> elems;
     ListIterator iterator = _HEAP.get_list_iterator(value.as.LIST);
-    _HEAP.list_iterator_advance(&iterator);
-    while (!iterator.next.is_null()) {
-      elems.push_back(value_to_string(iterator.current));
-      _HEAP.list_iterator_advance(&iterator);
+    if (!iterator.has_next()) {
+      return "[]";
     }
+    do {
+      _HEAP.list_iterator_advance(&iterator);
+      elems.push_back(value_to_string(iterator.current));
+    } while (iterator.has_next());
     return "[" + join(elems, ",") + "]";
   };
   case ValueTag::NONE:
@@ -360,8 +411,7 @@ string value_to_string(const Value &value) {
   }
 }
 Value msl_buildin_println(Scope *scope, Node node) {
-  Value arg =
-      interpret_expression(scope, _PROG.at(node.first_child).next_child);
+  Value arg = interpret_expression(scope, _PROG.nth_child(node, 1));
   println(value_to_string(arg));
   return Value::None();
 }
@@ -532,9 +582,8 @@ inline Value interpret_operator_eq(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_gte(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -562,9 +611,8 @@ inline Value interpret_operator_gte(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_gt(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -592,9 +640,8 @@ inline Value interpret_operator_gt(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_lte(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -622,9 +669,8 @@ inline Value interpret_operator_lte(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_lt(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -652,13 +698,12 @@ inline Value interpret_operator_lt(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_or(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
   if (leftval.tag == ValueTag::SYMBOL &&
       leftval.as.SYMBOL.index == _SYM_TRUE.index) {
     return Value::Symbol(_SYM_TRUE);
   }
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   if (rightval.tag == ValueTag::SYMBOL &&
       rightval.as.SYMBOL.index == _SYM_TRUE.index) {
     return Value::Symbol(_SYM_TRUE);
@@ -667,15 +712,14 @@ inline Value interpret_operator_or(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_and(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
   if (leftval.tag == ValueTag::SYMBOL &&
       leftval.as.SYMBOL.index != _SYM_TRUE.index) {
     return Value::Symbol(_SYM_FALSE);
   } else {
     return Value::Symbol(_SYM_FALSE);
   }
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   if (rightval.tag == ValueTag::SYMBOL &&
       rightval.as.SYMBOL.index == _SYM_TRUE.index) {
     return Value::Symbol(_SYM_TRUE);
@@ -684,9 +728,8 @@ inline Value interpret_operator_and(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_mod(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -702,9 +745,8 @@ inline Value interpret_operator_mod(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_div(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -735,9 +777,8 @@ inline Value interpret_operator_div(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_mul(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -766,9 +807,8 @@ inline Value interpret_operator_mul(Scope *scope, Node curr) {
 }
 
 inline Value interpret_operator_sub(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -796,7 +836,7 @@ inline Value interpret_operator_sub(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_invers(Scope *scope, Node curr) {
-  Value val = interpret_expression(scope, curr.first_child);
+  Value val = interpret_expression(scope, _PROG.nth_child(curr, 0));
   switch (val.tag) {
   case ValueTag::INT:
     return Value::Int(-1 * val.as.INT);
@@ -807,7 +847,7 @@ inline Value interpret_operator_invers(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_not(Scope *scope, Node curr) {
-  Value val = interpret_expression(scope, curr.first_child);
+  Value val = interpret_expression(scope, _PROG.nth_child(curr, 0));
   if (val.tag == ValueTag::SYMBOL && val.as.SYMBOL.index == _SYM_TRUE.index) {
     return Value::Symbol(_SYM_FALSE);
   } else if (val.tag == ValueTag::SYMBOL) {
@@ -819,9 +859,8 @@ inline Value interpret_operator_not(Scope *scope, Node curr) {
   }
 }
 inline Value interpret_operator_add(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, curr.first_child);
-  Value rightval =
-      interpret_expression(scope, _PROG.at(curr.first_child).next_child);
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
   switch (leftval.tag) {
   case ValueTag::INT: {
     switch (rightval.tag) {
@@ -852,8 +891,8 @@ inline Value interpret_operator_add(Scope *scope, Node curr) {
 // ---------- MAIN LOGIC
 void interpret_one(Scope *scope, node_idx node);
 
-inline Value interpret_fn_call(Scope *scope, Node curr) {
-  InternedString fn_name = _PROG.at(curr.first_child).as.IDENTIFIER;
+Value interpret_fn_call(Scope *scope, Node curr) {
+  InternedString fn_name = _PROG.nth_child_node(curr, 0).as.IDENTIFIER;
   if (fn_name.index == _BUILDIN_FN_PRINT.index) {
     return msl_buildin_println(scope, curr);
   } else if (fn_name.index == _BUILDIN_FN_LIST.index) {
@@ -869,8 +908,8 @@ inline Value interpret_fn_call(Scope *scope, Node curr) {
   Node fn = _PROG.at(function);
 
   // first element is a list of args, first list element is first arg
-  node_idx arg_name = _PROG.at(fn.first_child).first_child;
-  node_idx arg = _PROG.at(curr.first_child).next_child;
+  node_idx arg_name = _PROG.first_child(fn.first_child);
+  node_idx arg = _PROG.nth_child(curr, 1);
   if (!arg_name.is_null()) {
     while (!arg_name.is_null()) {
       if (arg.is_null()) {
@@ -878,17 +917,17 @@ inline Value interpret_fn_call(Scope *scope, Node curr) {
       }
       fn_scope.variables[_PROG.at(arg_name).as.IDENTIFIER.index] =
           interpret_expression(scope, arg);
-      arg = _PROG.at(arg).next_child;
-      arg_name = _PROG.at(arg_name).next_child;
+      arg = _PROG.next_child(arg);
+      arg_name = _PROG.next_child(arg_name);
     }
     if (!arg.is_null()) {
       throw msl_runtime_error(curr.start, "too many arguments given");
     }
   }
-  node_idx fn_body = _PROG.at(fn.first_child).next_child;
+  node_idx fn_body = _PROG.nth_child(fn, 1);
   while (!fn_body.is_null()) {
     interpret_one(&fn_scope, fn_body);
-    fn_body = _PROG.at(fn_body).next_child;
+    fn_body = _PROG.next_child(fn_body);
   }
   return fn_scope.return_value;
 }
@@ -899,10 +938,10 @@ inline void interpret_if(Scope *scope, Node curr) {
   bool condition_was_true = value_as_bool(if_cond);
 
   if (condition_was_true) {
-    node_idx if_body = _PROG.at(if_node.first_child).next_child;
+    node_idx if_body = _PROG.nth_child(if_node, 1);
     while (!if_body.is_null()) {
       interpret_one(scope, if_body);
-      if_body = _PROG.at(if_body).next_child;
+      if_body = _PROG.next_sibling(if_body);
     }
   }
 
@@ -916,10 +955,10 @@ inline void interpret_if(Scope *scope, Node curr) {
 
       if (cond_value) {
         condition_was_true = true;
-        node_idx cond_body = _PROG.at(cond_node.first_child).next_child;
+        node_idx cond_body = _PROG.nth_child(cond_node, 1);
         while (!cond_body.is_null()) {
           interpret_one(scope, cond_body);
-          cond_body = _PROG.at(cond_body).next_child;
+          cond_body = _PROG.first_child(cond_body);
         }
       }
       next_partial_condition = cond_node.next_child;
@@ -930,10 +969,10 @@ inline void interpret_if(Scope *scope, Node curr) {
     if (!next_partial_condition.is_null() &&
         _PROG.at(next_partial_condition).tag ==
             NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
-      node_idx cond_body = _PROG.at(next_partial_condition).first_child;
+      node_idx cond_body = _PROG.first_child(next_partial_condition);
       while (!cond_body.is_null()) {
         interpret_one(scope, cond_body);
-        cond_body = _PROG.at(cond_body).next_child;
+        cond_body = _PROG.next_child(cond_body);
       }
     }
   }
@@ -1175,7 +1214,7 @@ int interpret(nodes ns) {
   node_idx curr = node_idx{_PROG.first_elem};
   while (!curr.is_null()) {
     interpret_one(NULL, curr);
-    curr = _PROG.at(curr).next_sibling;
+    curr = _PROG.next_sibling(curr);
   }
   free_heap();
   return 0;

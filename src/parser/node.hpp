@@ -136,6 +136,42 @@ struct nodes {
     }
     return elements.at(idx.idx);
   }
+  node_idx next_child(node_idx idx) {
+    if (elements.size() <= idx.idx) {
+      return node_idx{0};
+    }
+    return elements.at(idx.idx).next_child;
+  }
+  node_idx nth_child(Node node, uint64_t n) {
+    node_idx curr = node.first_child;
+    uint64_t i = 0;
+    while (i != n) {
+      curr = elements.at(curr.idx).next_child;
+      i++;
+    };
+    return curr;
+  }
+  Node nth_child_node(Node node, uint64_t n) {
+    node_idx curr = node.first_child;
+    uint64_t i = 0;
+    while (i != n) {
+      curr = elements.at(curr.idx).next_child;
+      i++;
+    };
+    return elements.at(curr.idx);
+  }
+  node_idx next_sibling(node_idx idx) {
+    if (elements.size() <= idx.idx) {
+      return node_idx{0};
+    }
+    return elements.at(idx.idx).next_sibling;
+  }
+  node_idx first_child(node_idx idx) {
+    if (elements.size() <= idx.idx) {
+      return node_idx{0};
+    }
+    return elements.at(idx.idx).first_child;
+  }
   node_idx add_sibling(Node elem) {
     if (last_sibling == 0) {
       elements.push_back(elem);

@@ -893,6 +893,13 @@ void test_fn_call_3(T *t) {
                         "-----------------------\n"
                         "MASK: $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ \n");
 }
+void test_debugging(T *t) {
+
+  string code = "let mylist = list(1,2,3)\n"
+                "print(mylist)\n";
+  string out = parse_and_show(code);
+  t->assert_str_eq("", "");
+}
 
 } // namespace
 int main() {
@@ -914,5 +921,6 @@ int main() {
   t.test("list", test_list);
   t.test("get list element", test_list_get);
   t.test("put list element", test_list_set);
+t.test("DEBUGGING", test_debugging);
   return 0;
 }

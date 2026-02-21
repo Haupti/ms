@@ -12,12 +12,5 @@
 ;   print("sad")
 ; }
 
-function add_and_print(a,b){ 
-  return a <> b
-  print(a)
-  print(b)
-}
-print(add_and_print("6","99"))
-let mylist = list(1,2,3)
-
+let mylist = list(123,321,#true)
 print(mylist)
