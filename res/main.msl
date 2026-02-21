@@ -18,3 +18,6 @@ function add_and_print(a,b){
   print(b)
 }
 print(add_and_print("6","99"))
+let mylist = list(1,2,3)
+
+print(mylist)

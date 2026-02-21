@@ -33,6 +33,10 @@ enum class Mark : uint8_t {
   MARKED,
 };
 
+// lists:
+// Value of type lists holds heap node of type list
+// i.e. value list holds a 'pointer' to a heap list
+// which itself can contain heap list 'pointers'
 struct HeapNode {
   uint64_t next_sibling;
   uint64_t first_child;
@@ -83,6 +87,11 @@ struct Value {
   }
 };
 
+struct ListIterator {
+  Value current;
+  HeapNodeIdx next;
+};
+
 struct Heap {
   vector<HeapNode> elements;
   HeapNodeIdx free_list = HeapNodeIdx(0);
@@ -103,20 +112,47 @@ struct Heap {
       return current_free;
     }
   }
+  Value alloc_new_empty_list() {
+    HeapNode node = {};
+    node.as.LIST = HeapNodeIdx{0};
+    node.tag = ValueTag::LIST;
+    HeapNodeIdx list_idx = alloc_next_free(node);
+    Value value = Value();
+    value.as.LIST = list_idx;
+    value.tag = ValueTag::LIST;
+    return value;
+  }
+  void list_append(HeapNodeIdx list_idx, Value value) {
+    HeapNode list_node = elements.at(list_idx.idx);
+    HeapNode list_element_node = to_heap(value);
+    HeapNodeIdx list_element_idx = alloc_next_free(list_element_node);
+    if (list_node.first_child == 0) {
+      elements.at(list_idx.idx).first_child = list_element_idx.idx;
+      return;
+    }
+    uint64_t last_child = list_node.first_child;
+    while (elements.at(last_child).next_child != 0) {
+      last_child = elements.at(last_child).next_child;
+    }
+    elements.at(last_child).next_child = list_element_idx.idx;
+  }
+  ListIterator get_list_iterator(HeapNodeIdx first_elem) {
+    ListIterator it;
+    it.current = at(first_elem);
+    HeapNode list_head = elements.at(first_elem.idx);
+    it.next = list_head.first_child;
+    return it;
+  }
+  void list_iterator_advance(ListIterator *it) {
+    it->current = at(it->next);
+    HeapNodeIdx next_elem = elements.at(it->next.idx).next_child;
+    it->next = next_elem;
+  }
   Value alloc_new_string(const string &str) {
     HeapNode node = {};
     node.as.STRING = new string(str);
     node.tag = ValueTag::STRING;
-    HeapNodeIdx new_string_idx;
-    if (free_list.is_null()) {
-      elements.push_back(node);
-      new_string_idx = HeapNodeIdx(elements.size() - 1);
-    } else {
-      HeapNodeIdx current_free = free_list;
-      free_list = elements.at(free_list.idx).next_sibling;
-      elements[current_free.idx] = node;
-      new_string_idx = current_free;
-    }
+    HeapNodeIdx new_string_idx = alloc_next_free(node);
     Value value;
     value.as.STRING = new_string_idx;
     value.tag = ValueTag::STRING;
@@ -132,16 +168,8 @@ struct Heap {
     HeapNode node = {};
     node.as.STRING = new string(resolve_interned_string(str));
     node.tag = ValueTag::STRING;
-    HeapNodeIdx new_string_idx;
-    if (free_list.is_null()) {
-      elements.push_back(node);
-      new_string_idx = HeapNodeIdx(elements.size() - 1);
-    } else {
-      HeapNodeIdx current_free = free_list;
-      free_list = elements.at(free_list.idx).next_sibling;
-      elements[current_free.idx] = node;
-      new_string_idx = current_free;
-    }
+    HeapNodeIdx new_string_idx = alloc_next_free(node);
+
     Value value;
     value.as.STRING = new_string_idx;
     value.tag = ValueTag::STRING;
@@ -155,6 +183,16 @@ struct Heap {
   Heap() { elements.reserve(10000); }
 
 private:
+  HeapNodeIdx alloc_next_free(HeapNode node) {
+    if (free_list.is_null()) {
+      elements.push_back(node);
+      return HeapNodeIdx(elements.size() - 1);
+    }
+    HeapNodeIdx current_free = free_list;
+    free_list = elements.at(free_list.idx).next_sibling;
+    elements[current_free.idx] = node;
+    return current_free;
+  }
   HeapNode to_heap(const Value &value) {
     HeapNode node = {};
     node.tag = value.tag;
@@ -274,15 +312,14 @@ Value interpret_expression(Scope *scope, node_idx node);
 // ------- BUILDIN FUNCTIONS -------
 // ------- BUILDIN FUNCTIONS -------
 Value msl_buildin_list(Scope *scope, Node node) {
-  Value list;
-  list.tag = ValueTag::LIST;
-  if (node.first_child.is_null()) {
-    //TODO implement
+  Value list = _HEAP.alloc_new_empty_list();
+  node_idx list_element = _PROG.at(node.first_child).next_child;
+  while (!list_element.is_null()) {
+    Value elem = interpret_expression(scope, list_element);
+    _HEAP.list_append(list.as.LIST, elem);
+    list_element = _PROG.at(list_element).next_child;
   }
-  if (scope && node.first_child.is_null()) {
-    throw runtime_error("NOT YET IMPLEMENTED");
-  }
-  throw runtime_error("NOT YET IMPLEMENTED");
+  return list;
 }
 Value msl_buildin_put(Scope *scope, Node node) {
   // TODO implement
@@ -298,34 +335,34 @@ Value msl_buildin_at(Scope *scope, Node node) {
   }
   throw runtime_error("NOT YET IMPLEMENTED");
 }
+string value_to_string(const Value &value) {
+  switch (value.tag) {
+  case ValueTag::INT:
+    return to_string(value.as.INT);
+  case ValueTag::STRING:
+    return _HEAP.heap_string(value.as.STRING);
+  case ValueTag::FLOAT:
+    return to_string(value.as.FLOAT);
+  case ValueTag::SYMBOL:
+    return resolve_symbol(value.as.SYMBOL);
+  case ValueTag::LIST: {
+    vector<string> elems;
+    ListIterator iterator = _HEAP.get_list_iterator(value.as.LIST);
+    _HEAP.list_iterator_advance(&iterator);
+    while (!iterator.next.is_null()) {
+      elems.push_back(value_to_string(iterator.current));
+      _HEAP.list_iterator_advance(&iterator);
+    }
+    return "[" + join(elems, ",") + "]";
+  };
+  case ValueTag::NONE:
+    return "none";
+  }
+}
 Value msl_buildin_println(Scope *scope, Node node) {
   Value arg =
       interpret_expression(scope, _PROG.at(node.first_child).next_child);
-  switch (arg.tag) {
-  case ValueTag::INT:
-    println(to_string(arg.as.INT));
-    break;
-  case ValueTag::STRING:
-    println(_HEAP.heap_string(arg.as.STRING));
-    break;
-  case ValueTag::FLOAT:
-    println(to_string(arg.as.FLOAT));
-    break;
-  case ValueTag::SYMBOL:
-    println(resolve_symbol(arg.as.SYMBOL));
-    break;
-  case ValueTag::LIST: {
-    node_idx list_elem_idx = node.first_child;
-    while (!list_elem_idx.is_null()) {
-      auto list_elem = _PROG.at(list_elem_idx);
-      msl_buildin_println(scope, list_elem);
-      list_elem_idx = list_elem.next_child;
-    }
-  } break;
-  case ValueTag::NONE:
-    println("none");
-    break;
-  }
+  println(value_to_string(arg));
   return Value::None();
 }
 // --------- OPERATORS
