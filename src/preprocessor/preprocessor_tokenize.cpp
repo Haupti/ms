@@ -33,6 +33,14 @@ char tok_peek(Tokenizer *t) {
     return t->code.at(t->pos);
   }
 }
+char tok_has_next(Tokenizer *t) { return t->pos + 1 < t->len; }
+char tok_peek_next(Tokenizer *t) {
+  if (tok_eof(t) || t->pos + 1 >= t->len) {
+    throw runtime_error("unexpected EOF");
+  } else {
+    return t->code.at(t->pos + 1);
+  }
+}
 
 bool is_number(char c) { return c >= '0' and c <= '9'; }
 bool is_letter(char c) {
@@ -64,7 +72,8 @@ PreprocessorToken tokenize_number(Tokenizer *t) {
     char c = tok_peek(t);
     if (is_number(c)) {
       tok_adv(t);
-    } else if (c == '.' && !has_dot) {
+    } else if (c == '.' && !has_dot && tok_has_next(t) &&
+               is_number(tok_peek_next(t))) {
       has_dot = true;
       tok_adv(t);
     } else {

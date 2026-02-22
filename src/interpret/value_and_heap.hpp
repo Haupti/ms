@@ -18,6 +18,7 @@ enum class ValueTag : uint8_t {
   SYMBOL,
   STRING,
   LIST,
+  ERROR,
   NONE,
 };
 
@@ -28,6 +29,7 @@ struct Value {
     StringIdx STRING;
     Symbol SYMBOL;
     ILHIDX LIST;
+    ILHIDX ERROR;
     int64_t NONE;
   } as;
   ValueTag tag;
@@ -60,6 +62,12 @@ struct Value {
     Value val;
     val.as.LIST = 0;
     val.tag = ValueTag::LIST;
+    return val;
+  }
+  static Value Error(ILHIDX boxed_value) {
+    Value val;
+    val.as.ERROR = boxed_value;
+    val.tag = ValueTag::ERROR;
     return val;
   }
 };
@@ -143,6 +151,28 @@ public:
     } else {
       elements.at(list_node->last_child).next_child = value_idx;
       list_node->last_child = value_idx;
+    }
+    return value_idx;
+  }
+  ILHIDX add_child_front(ILHIDX list_head, Value value) {
+    if (elements.size() <= list_head) {
+      warn("attempt to access out of bounds element " +
+           std::to_string(list_head));
+      return INVALID;
+    }
+    ILHNode *list_node = &elements.at(list_head);
+    if (list_node->value.tag != ValueTag::LIST) {
+      warn("attempt to add child to non-list value");
+      return INVALID;
+    }
+    ILHIDX value_idx = add(value);
+    if (list_node->first_child == 0) {
+      list_node->first_child = value_idx;
+      list_node->last_child = value_idx;
+    } else {
+      ILHIDX curr_first = list_node->first_child;
+      list_node->first_child = value_idx;
+      elements.at(list_node->first_child).next_child = curr_first;
     }
     return value_idx;
   }

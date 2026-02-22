@@ -3,7 +3,6 @@
 #include "../src/preprocessor/preprocess.hpp"
 #include "../src/preprocessor/preprocessor_tokenize.hpp"
 #include "../src/preprocessor/token.hpp"
-#include "testutil_token_to_string.hpp"
 
 using namespace std;
 namespace {

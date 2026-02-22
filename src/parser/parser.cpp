@@ -118,7 +118,8 @@ node_idx parse_function_call(Parser *p, node_idx left,
       break;
     } else {
       throw compile_error(next.location,
-                          "unexpected token, expected ',' or ')'");
+                          "unexpected token, expected ',' or ')' but was '" +
+                              token_to_string(next) + "'");
     }
   }
   return myself_idx;

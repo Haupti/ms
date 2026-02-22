@@ -3,6 +3,7 @@
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
 #include "value_and_heap.hpp"
+#include <functional>
 #include <unordered_map>
 
 using namespace std;
@@ -60,6 +61,9 @@ static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
 static InternedString _BUILDIN_FN_LIST = create_interned_string("list");
 static InternedString _BUILDIN_FN_PUT = create_interned_string("put");
 static InternedString _BUILDIN_FN_AT = create_interned_string("at");
+static InternedString _BUILDIN_FN_APPEND = create_interned_string("append");
+static InternedString _BUILDIN_FN_PREPEND = create_interned_string("prepend");
+static InternedString _BUILDIN_FN_CONCAT = create_interned_string("concat");
 
 // ------- LOGIC -------
 // ------- LOGIC -------
@@ -85,6 +89,30 @@ Value interpret_expression(Scope *scope, node_idx node);
 // ------- BUILDIN FUNCTIONS -------
 // ------- BUILDIN FUNCTIONS -------
 // ------- BUILDIN FUNCTIONS -------
+Value msl_buildin_append(Scope *scope, Node node) {
+  const Node &_fn_name = _PROG.at(node.first_child);
+  Value list_head = interpret_expression(scope, _fn_name.next_child);
+  Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
+  const Value &value =
+      interpret_expression(scope, _list_var_ref_node.next_child);
+  auto res = _HEAP.add_child(list_head.as.LIST, value);
+  if (res == 0) {
+    throw msl_runtime_error(node.start, "failed to add element to list");
+  }
+  return list_head;
+}
+Value msl_buildin_prepend(Scope *scope, Node node) {
+  const Node &_fn_name = _PROG.at(node.first_child);
+  Value list_head = interpret_expression(scope, _fn_name.next_child);
+  Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
+  const Value &value =
+      interpret_expression(scope, _list_var_ref_node.next_child);
+  auto res = _HEAP.add_child_front(list_head.as.LIST, value);
+  if (res == 0) {
+    throw msl_runtime_error(node.start, "failed to add element to list");
+  }
+  return list_head;
+}
 Value msl_buildin_list(Scope *scope, Node node) {
   Value list = Value::EmptyList();
   ILHIDX list_idx = _HEAP.add(list);
@@ -631,17 +659,30 @@ inline Value interpret_operator_add(Scope *scope, Node curr) {
 // ---------- MAIN LOGIC
 void interpret_one(Scope *scope, node_idx node);
 
-Value interpret_fn_call(Scope *scope, Node curr) {
-  InternedString fn_name = _PROG.nth_child_node(curr, 0).as.IDENTIFIER;
-  if (fn_name.index == _BUILDIN_FN_PRINT.index) {
-    return msl_buildin_println(scope, curr);
-  } else if (fn_name.index == _BUILDIN_FN_LIST.index) {
-    return msl_buildin_list(scope, curr);
-  } else if (fn_name.index == _BUILDIN_FN_PUT.index) {
-    return msl_buildin_put(scope, curr);
-  } else if (fn_name.index == _BUILDIN_FN_AT.index) {
-    return msl_buildin_at(scope, curr);
+struct BuildinFnMap {
+  std::unordered_map<uint64_t, std::function<Value(Scope *, Node)>> buildins = {
+      {_BUILDIN_FN_PRINT.index, msl_buildin_println},
+      {_BUILDIN_FN_LIST.index, msl_buildin_list},
+      {_BUILDIN_FN_PUT.index, msl_buildin_put},
+      {_BUILDIN_FN_AT.index, msl_buildin_at},
+      {_BUILDIN_FN_APPEND.index, msl_buildin_append},
+      {_BUILDIN_FN_PREPEND.index, msl_buildin_prepend},
+      //{_BUILDIN_FN_CONCAT.index, msl_buildin_concat},
+  };
+  bool has(InternedString name) { return buildins.count(name.index) > 0; }
+  Value call(Scope *scope, Node curr, InternedString name) {
+    return buildins[name.index](scope, curr);
   }
+};
+
+Value interpret_fn_call(Scope *scope, Node curr) {
+  static BuildinFnMap buildins;
+  InternedString fn_name = _PROG.nth_child_node(curr, 0).as.IDENTIFIER;
+
+  if (buildins.has(fn_name)) {
+    return buildins.call(scope, curr, fn_name);
+  }
+
   Scope fn_scope;
   fn_scope.parent = scope;
   node_idx function = _GLOBAL.functions.at(fn_name.index);
@@ -742,6 +783,10 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::VAR_REF:
     if (scope && scope->has_var(curr.as.IDENTIFIER)) {
       return scope->get_var(curr.as.IDENTIFIER);
+    } else if (_GLOBAL.variables.count(curr.as.IDENTIFIER.index) == 0) {
+      throw msl_runtime_error(
+          curr.start, "undefined variable '" +
+                          resolve_interned_string(curr.as.IDENTIFIER) + "'");
     } else {
       return _GLOBAL.variables.at(curr.as.IDENTIFIER.index);
     }
