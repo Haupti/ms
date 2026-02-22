@@ -1,9 +1,8 @@
 #include "../../lib/asap/util.hpp"
-#include "../../tests/testutil_node_to_string.hpp"
 #include "../interned_string.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
-#include "data.hpp"
+#include "value_and_heap.hpp"
 #include <unordered_map>
 
 using namespace std;
@@ -19,7 +18,7 @@ struct GlobalContext {
 };
 struct Scope {
   unordered_map<uint64_t, Value> variables;
-  Value return_value = Value::None();
+  Value return_value = Value();
   Scope *parent = nullptr;
   bool is_returning = false;
   bool has_var(InternedString varname) {
@@ -53,7 +52,7 @@ struct Scope {
 
 static nodes _PROG;
 static GlobalContext _GLOBAL;
-static Heap _HEAP;
+static ILHeap _HEAP = ILHeap(10000, 1000);
 static Symbol _SYM_TRUE = create_symbol("#true");
 static Symbol _SYM_T = create_symbol("#t");
 static Symbol _SYM_FALSE = create_symbol("#false");
@@ -87,68 +86,65 @@ Value interpret_expression(Scope *scope, node_idx node);
 // ------- BUILDIN FUNCTIONS -------
 // ------- BUILDIN FUNCTIONS -------
 Value msl_buildin_list(Scope *scope, Node node) {
-  Value list = _HEAP.alloc_new_empty_list();
+  Value list = Value::EmptyList();
+  ILHIDX list_idx = _HEAP.add(list);
+  list.as.LIST = list_idx;
   node_idx list_element = _PROG.next_child(node.first_child);
   while (!list_element.is_null()) {
     Value elem = interpret_expression(scope, list_element);
-    _HEAP.list_append(list.as.LIST, elem);
+    _HEAP.add_child(list.as.LIST, elem);
     list_element = _PROG.next_child(list_element);
   }
   return list;
 }
 Value msl_buildin_put(Scope *scope, Node node) {
-  Node _fn_name = _PROG.at(node.first_child);
+  const Node &_fn_name = _PROG.at(node.first_child);
   Value list_head = interpret_expression(scope, _fn_name.next_child);
   Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
-  int64_t index =
-      value_as_int(_list_var_ref_node.start,
-                   interpret_expression(scope, _list_var_ref_node.next_child));
+  const Value &val_index =
+      interpret_expression(scope, _list_var_ref_node.next_child);
+  int64_t index = value_as_int(_list_var_ref_node.start, val_index);
   Value value = interpret_expression(
       scope, _PROG.next_child(_list_var_ref_node.next_child));
-
-  ListIterator it = _HEAP.get_list_iterator(list_head.as.LIST);
-  if (it.next.is_null()) {
-    throw msl_runtime_error(node.start,
-                            "index out of bounds :" + to_string(index));
+  if (index < 0) {
+    msl_runtime_error(_list_var_ref_node.start,
+                      "index out of bounds: " + to_string(index));
   }
-  int64_t current_pos = 0;
-  do {
-    if (current_pos == index) {
-      _HEAP.replace(it.next, value);
-      return Value::None();
-    }
-    _HEAP.list_iterator_advance(&it);
-  } while (!it.next.is_null());
-  throw msl_runtime_error(node.start,
-                          "index out of bounds :" + to_string(index));
+
+  ILHIDX list_elem_idx = _HEAP.nth_child_idx(list_head.as.LIST, index);
+  _HEAP.replace(list_elem_idx, value);
+  return Value();
 }
 Value msl_buildin_at(Scope *scope, Node node) {
-  // TODO implement
-  if (scope && node.first_child.is_null()) {
-    throw runtime_error("NOT YET IMPLEMENTED");
+  const Node &_fn_name = _PROG.at(node.first_child);
+  Value list_head = interpret_expression(scope, _fn_name.next_child);
+  Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
+  const Value &val_index =
+      interpret_expression(scope, _list_var_ref_node.next_child);
+  int64_t index = value_as_int(_list_var_ref_node.start, val_index);
+  if (index < 0) {
+    msl_runtime_error(_list_var_ref_node.start,
+                      "index out of bounds: " + to_string(index));
   }
-  throw runtime_error("NOT YET IMPLEMENTED");
+  return _HEAP.nth_child(list_head.as.LIST, index);
 }
 string value_to_string(const Value &value) {
   switch (value.tag) {
   case ValueTag::INT:
     return to_string(value.as.INT);
   case ValueTag::STRING:
-    return _HEAP.heap_string(value.as.STRING);
+    return _HEAP.get_string(value.as.STRING);
   case ValueTag::FLOAT:
     return to_string(value.as.FLOAT);
   case ValueTag::SYMBOL:
     return resolve_symbol(value.as.SYMBOL);
   case ValueTag::LIST: {
     vector<string> elems;
-    ListIterator iterator = _HEAP.get_list_iterator(value.as.LIST);
-    if (!iterator.has_next()) {
-      return "[]";
+    int64_t i = 0;
+    while (0 != _HEAP.nth_child_idx(value.as.LIST, i)) {
+      elems.push_back(value_to_string(_HEAP.nth_child(value.as.LIST, i)));
+      i++;
     }
-    do {
-      _HEAP.list_iterator_advance(&iterator);
-      elems.push_back(value_to_string(iterator.current));
-    } while (iterator.has_next());
     return "[" + join(elems, ",") + "]";
   };
   case ValueTag::NONE:
@@ -158,7 +154,7 @@ string value_to_string(const Value &value) {
 Value msl_buildin_println(Scope *scope, Node node) {
   Value arg = interpret_expression(scope, _PROG.nth_child(node, 1));
   println(value_to_string(arg));
-  return Value::None();
+  return Value();
 }
 // --------- OPERATORS
 
@@ -169,8 +165,9 @@ inline Value interpret_operator_str_concat(Scope *scope, Node curr) {
   if (leftval.tag != ValueTag::STRING || rightval.tag != ValueTag::STRING) {
     throw msl_runtime_error(curr.start, "'<>' expected two strings");
   }
-  return _HEAP.alloc_new_string(_HEAP.heap_string(leftval.as.STRING) +
-                                _HEAP.heap_string(rightval.as.STRING));
+  ILHIDX str_idx = _HEAP.add_string(_HEAP.get_string(leftval.as.STRING) +
+                                    _HEAP.get_string(rightval.as.STRING));
+  return _HEAP.at(str_idx);
 }
 inline Value interpret_operator_neq(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, curr.first_child);
@@ -197,8 +194,8 @@ inline Value interpret_operator_neq(Scope *scope, Node curr) {
   case ValueTag::STRING:
     switch (rightval.tag) {
     case ValueTag::STRING:
-      if (_HEAP.heap_string(leftval.as.STRING) ==
-          _HEAP.heap_string(rightval.as.STRING)) {
+      if (_HEAP.get_string(leftval.as.STRING) ==
+          _HEAP.get_string(rightval.as.STRING)) {
         return Value::Symbol(_SYM_FALSE);
       } else {
         return Value::Symbol(_SYM_TRUE);
@@ -235,8 +232,7 @@ inline Value interpret_operator_neq(Scope *scope, Node curr) {
       return Value::Symbol(_SYM_TRUE);
     }
   case ValueTag::LIST:
-    if (rightval.tag == ValueTag::LIST &&
-        leftval.as.LIST.idx == rightval.as.LIST.idx) {
+    if (rightval.tag == ValueTag::LIST && leftval.as.LIST == rightval.as.LIST) {
       return Value::Symbol(_SYM_FALSE);
     } else {
       return Value::Symbol(_SYM_TRUE);
@@ -274,8 +270,8 @@ inline Value interpret_operator_eq(Scope *scope, Node curr) {
   case ValueTag::STRING:
     switch (rightval.tag) {
     case ValueTag::STRING:
-      if (_HEAP.heap_string(leftval.as.STRING) ==
-          _HEAP.heap_string(rightval.as.STRING)) {
+      if (_HEAP.get_string(leftval.as.STRING) ==
+          _HEAP.get_string(rightval.as.STRING)) {
         return Value::Symbol(_SYM_TRUE);
       } else {
         return Value::Symbol(_SYM_FALSE);
@@ -312,8 +308,7 @@ inline Value interpret_operator_eq(Scope *scope, Node curr) {
       return Value::Symbol(_SYM_FALSE);
     }
   case ValueTag::LIST:
-    if (rightval.tag == ValueTag::LIST &&
-        leftval.as.LIST.idx == rightval.as.LIST.idx) {
+    if (rightval.tag == ValueTag::LIST && leftval.as.LIST == rightval.as.LIST) {
       return Value::Symbol(_SYM_TRUE);
     } else {
       return Value::Symbol(_SYM_FALSE);
@@ -726,7 +721,7 @@ inline void interpret_if(Scope *scope, Node curr) {
 // ---------- EXECUTION LOGIC
 Value interpret_expression(Scope *scope, node_idx node) {
   if (scope && scope->is_returning) {
-    return Value::None();
+    return Value();
   }
   Node curr = _PROG.at(node);
   switch (curr.tag) {
@@ -753,8 +748,8 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::LITERAL_INT:
     return Value::Int(curr.as.INT);
   case NodeTag::LITERAL_STRING: {
-    auto str = _HEAP.alloc_new_string(curr.as.STRING);
-    return str;
+    ILHIDX str_idx = _HEAP.add_string(curr.as.STRING);
+    return _HEAP.at(str_idx);
   }
   case NodeTag::LITERAL_FLOAT:
     return Value::Float(curr.as.INT);
@@ -942,25 +937,16 @@ void interpret_one(Scope *scope, node_idx node) {
   }
 }
 
-void free_heap() {
-  for (size_t i = 0; i < _HEAP.elements.size(); i++) {
-    if (_HEAP.elements.at(i).tag == ValueTag::STRING) {
-      delete _HEAP.elements.at(i).as.STRING;
-    }
-  }
-}
 }; // namespace
 
 int interpret(nodes ns) {
   GlobalContext global;
   _GLOBAL = global;
   _PROG = ns;
-  _HEAP = Heap();
   node_idx curr = node_idx{_PROG.first_elem};
   while (!curr.is_null()) {
     interpret_one(NULL, curr);
     curr = _PROG.next_sibling(curr);
   }
-  free_heap();
   return 0;
 }

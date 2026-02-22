@@ -15,5 +15,10 @@
 let name = "steve"
 let greet = " hallo "
 let mylist = list(name, greet, list(name,name,greet,greet))
+print(mylist)
 mylist.put(0,1)
 print(mylist)
+set name = "joerg"
+print(name)
+print(mylist)
+print(mylist.at(2))
