@@ -1,6 +1,0 @@
-let mylist = list(1)
-
-print(mylist.append(2))
-print(mylist.at(1))
-print(mylist.at(0))
-print(#f|prepend(mylist))

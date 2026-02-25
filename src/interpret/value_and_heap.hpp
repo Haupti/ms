@@ -198,7 +198,7 @@ public:
     }
     return curr;
   }
-  Value nth_child(ILHIDX list_head, int64_t n) {
+  Value nth_child(ILHIDX list_head, uint64_t n) {
     ILHIDX idx = nth_child_idx(list_head, n);
     return elements.at(idx).value;
   }

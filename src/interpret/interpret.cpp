@@ -2,6 +2,9 @@
 #include "../interned_string.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
+#include "buildin/operators.hpp"
+#include "constants.hpp"
+#include "scope.hpp"
 #include "value_and_heap.hpp"
 #include <functional>
 #include <unordered_map>
@@ -17,35 +20,6 @@ struct GlobalContext {
   unordered_map<uint64_t, node_idx> functions;
   unordered_map<uint64_t, Value> variables;
 };
-struct Scope {
-  unordered_map<uint64_t, Value> variables;
-  Value return_value = Value();
-  Scope *parent = nullptr;
-  bool is_returning = false;
-  bool has_var(InternedString varname) {
-    if (variables.count(varname.index) > 0) {
-      return true;
-    }
-    if (parent) {
-      return parent->has_var(varname);
-    }
-    return false;
-  }
-  Value get_var(InternedString varname) {
-    if (variables.count(varname.index) > 0) {
-      return variables[varname.index];
-    } else {
-      return parent->get_var(varname);
-    }
-  }
-  void set_var(InternedString varname, Value value) {
-    if (variables.count(varname.index) > 0) {
-      variables[varname.index] = value;
-    } else {
-      parent->set_var(varname, value);
-    }
-  }
-};
 
 // ------- GLOBALS -------
 // ------- GLOBALS -------
@@ -54,16 +28,6 @@ struct Scope {
 static nodes _PROG;
 static GlobalContext _GLOBAL;
 static ILHeap _HEAP = ILHeap(10000, 1000);
-static Symbol _SYM_TRUE = create_symbol("#true");
-static Symbol _SYM_T = create_symbol("#t");
-static Symbol _SYM_FALSE = create_symbol("#false");
-static InternedString _BUILDIN_FN_PRINT = create_interned_string("print");
-static InternedString _BUILDIN_FN_LIST = create_interned_string("list");
-static InternedString _BUILDIN_FN_PUT = create_interned_string("put");
-static InternedString _BUILDIN_FN_AT = create_interned_string("at");
-static InternedString _BUILDIN_FN_APPEND = create_interned_string("append");
-static InternedString _BUILDIN_FN_PREPEND = create_interned_string("prepend");
-static InternedString _BUILDIN_FN_CONCAT = create_interned_string("concat");
 
 // ------- LOGIC -------
 // ------- LOGIC -------
@@ -73,16 +37,21 @@ static InternedString _BUILDIN_FN_CONCAT = create_interned_string("concat");
 // ------- UTILS -------
 // ------- UTILS -------
 inline bool value_as_bool(const Value &value) {
-  // TODO either that or throw if its not #true/#t/#f/#false not sure yet
+  // TODO either that or throw if its not #true/#false not sure yet
   return value.tag == ValueTag::SYMBOL &&
-         (value.as.SYMBOL.index == _SYM_TRUE.index ||
-          value.as.SYMBOL.index == _SYM_T.index);
+         value.as.SYMBOL.index == _SYM_TRUE.index;
 }
 inline int64_t value_as_int(LocationRef location, const Value &value) {
   if (value.tag != ValueTag::INT) {
     throw msl_runtime_error(location, "expected a int value");
   }
   return value.as.INT;
+}
+
+inline void assert_list(LocationRef where, ValueTag tag) {
+  if (tag != ValueTag::LIST) {
+    throw msl_runtime_error(where, "expected a list");
+  }
 }
 
 Value interpret_expression(Scope *scope, node_idx node);
@@ -92,6 +61,7 @@ Value interpret_expression(Scope *scope, node_idx node);
 Value msl_buildin_append(Scope *scope, Node node) {
   const Node &_fn_name = _PROG.at(node.first_child);
   Value list_head = interpret_expression(scope, _fn_name.next_child);
+  assert_list(node.start, list_head.tag);
   Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
   const Value &value =
       interpret_expression(scope, _list_var_ref_node.next_child);
@@ -104,6 +74,7 @@ Value msl_buildin_append(Scope *scope, Node node) {
 Value msl_buildin_prepend(Scope *scope, Node node) {
   const Node &_fn_name = _PROG.at(node.first_child);
   Value list_head = interpret_expression(scope, _fn_name.next_child);
+  assert_list(node.start, list_head.tag);
   Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
   const Value &value =
       interpret_expression(scope, _list_var_ref_node.next_child);
@@ -112,6 +83,27 @@ Value msl_buildin_prepend(Scope *scope, Node node) {
     throw msl_runtime_error(node.start, "failed to add element to list");
   }
   return list_head;
+}
+Value msl_buildin_concat(Scope *scope, Node node) {
+  const Node &_fn_name = _PROG.at(node.first_child);
+  Value list_head_left = interpret_expression(scope, _fn_name.next_child);
+  assert_list(node.start, list_head_left.tag);
+  Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
+  const Value &list_head_right =
+      interpret_expression(scope, _list_var_ref_node.next_child);
+  assert_list(node.start, list_head_right.tag);
+
+  ILHIDX element = _HEAP.nth_child_idx(list_head_right.as.LIST, 0);
+  uint64_t i = 0;
+  while (element != INVALID) {
+    auto res = _HEAP.add_child(list_head_left.as.LIST, _HEAP.at(element));
+    if (res == 0) {
+      throw msl_runtime_error(node.start, "failed to add element to list");
+    }
+    i++;
+    element = _HEAP.nth_child_idx(list_head_right.as.LIST, i);
+  }
+  return list_head_left;
 }
 Value msl_buildin_list(Scope *scope, Node node) {
   Value list = Value::EmptyList();
@@ -128,6 +120,7 @@ Value msl_buildin_list(Scope *scope, Node node) {
 Value msl_buildin_put(Scope *scope, Node node) {
   const Node &_fn_name = _PROG.at(node.first_child);
   Value list_head = interpret_expression(scope, _fn_name.next_child);
+  assert_list(node.start, list_head.tag);
   Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
   const Value &val_index =
       interpret_expression(scope, _list_var_ref_node.next_child);
@@ -146,6 +139,7 @@ Value msl_buildin_put(Scope *scope, Node node) {
 Value msl_buildin_at(Scope *scope, Node node) {
   const Node &_fn_name = _PROG.at(node.first_child);
   Value list_head = interpret_expression(scope, _fn_name.next_child);
+  assert_list(node.start, list_head.tag);
   Node _list_var_ref_node = _PROG.at(_fn_name.next_child);
   const Value &val_index =
       interpret_expression(scope, _list_var_ref_node.next_child);
@@ -156,6 +150,7 @@ Value msl_buildin_at(Scope *scope, Node node) {
   }
   return _HEAP.nth_child(list_head.as.LIST, index);
 }
+
 string value_to_string(const Value &value) {
   switch (value.tag) {
   case ValueTag::INT:
@@ -168,7 +163,7 @@ string value_to_string(const Value &value) {
     return resolve_symbol(value.as.SYMBOL);
   case ValueTag::LIST: {
     vector<string> elems;
-    int64_t i = 0;
+    uint64_t i = 0;
     while (0 != _HEAP.nth_child_idx(value.as.LIST, i)) {
       elems.push_back(value_to_string(_HEAP.nth_child(value.as.LIST, i)));
       i++;
@@ -177,6 +172,9 @@ string value_to_string(const Value &value) {
   };
   case ValueTag::NONE:
     return "none";
+  case ValueTag::ERROR:
+    return "error(" + value_to_string(_HEAP.at(value.as.ERROR)) + ")";
+    break;
   }
 }
 Value msl_buildin_println(Scope *scope, Node node) {
@@ -184,287 +182,102 @@ Value msl_buildin_println(Scope *scope, Node node) {
   println(value_to_string(arg));
   return Value();
 }
+
+struct BuildinFnMap {
+  std::unordered_map<uint64_t, std::function<Value(Scope *, Node)>> buildins = {
+      {_BUILDIN_FN_PRINT.index, msl_buildin_println},
+      {_BUILDIN_FN_LIST.index, msl_buildin_list},
+      {_BUILDIN_FN_PUT.index, msl_buildin_put},
+      {_BUILDIN_FN_AT.index, msl_buildin_at},
+      {_BUILDIN_FN_APPEND.index, msl_buildin_append},
+      {_BUILDIN_FN_PREPEND.index, msl_buildin_prepend},
+      {_BUILDIN_FN_CONCAT.index, msl_buildin_concat},
+  };
+  bool has(InternedString name) { return buildins.count(name.index) > 0; }
+  Value call(Scope *scope, Node curr, InternedString name) {
+    return buildins[name.index](scope, curr);
+  }
+};
 // --------- OPERATORS
 
 inline Value interpret_operator_str_concat(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, curr.first_child);
   Value rightval =
       interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-  if (leftval.tag != ValueTag::STRING || rightval.tag != ValueTag::STRING) {
-    throw msl_runtime_error(curr.start, "'<>' expected two strings");
-  }
-  ILHIDX str_idx = _HEAP.add_string(_HEAP.get_string(leftval.as.STRING) +
-                                    _HEAP.get_string(rightval.as.STRING));
-  return _HEAP.at(str_idx);
+  return mslbuildin_op_str_concat(&_HEAP, curr.start, leftval, rightval);
 }
+
 inline Value interpret_operator_neq(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, curr.first_child);
   Value rightval =
       interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-  switch (leftval.tag) {
-  case ValueTag::INT:
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      if (leftval.as.INT == rightval.as.INT) {
-        return Value::Symbol(_SYM_FALSE);
-      } else {
-        return Value::Symbol(_SYM_TRUE);
-      }
-    case ValueTag::FLOAT:
-      if (leftval.as.INT == rightval.as.FLOAT) {
-        return Value::Symbol(_SYM_FALSE);
-      } else {
-        return Value::Symbol(_SYM_TRUE);
-      }
-    default:
-      return Value::Symbol(_SYM_TRUE);
-    }
-  case ValueTag::STRING:
-    switch (rightval.tag) {
-    case ValueTag::STRING:
-      if (_HEAP.get_string(leftval.as.STRING) ==
-          _HEAP.get_string(rightval.as.STRING)) {
-        return Value::Symbol(_SYM_FALSE);
-      } else {
-        return Value::Symbol(_SYM_TRUE);
-      }
-    default:
-      return Value::Symbol(_SYM_TRUE);
-    }
-  case ValueTag::FLOAT:
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      if (leftval.as.FLOAT == rightval.as.INT) {
-        return Value::Symbol(_SYM_FALSE);
-      } else {
-        return Value::Symbol(_SYM_TRUE);
-      }
-    case ValueTag::FLOAT:
-      if (leftval.as.FLOAT == rightval.as.FLOAT) {
-        return Value::Symbol(_SYM_FALSE);
-      } else {
-        return Value::Symbol(_SYM_TRUE);
-      }
-    default:
-      return Value::Symbol(_SYM_TRUE);
-    }
-  case ValueTag::SYMBOL:
-    switch (rightval.tag) {
-    case ValueTag::SYMBOL:
-      if (leftval.as.SYMBOL.index == rightval.as.SYMBOL.index) {
-        return Value::Symbol(_SYM_FALSE);
-      } else {
-        return Value::Symbol(_SYM_TRUE);
-      }
-    default:
-      return Value::Symbol(_SYM_TRUE);
-    }
-  case ValueTag::LIST:
-    if (rightval.tag == ValueTag::LIST && leftval.as.LIST == rightval.as.LIST) {
-      return Value::Symbol(_SYM_FALSE);
-    } else {
-      return Value::Symbol(_SYM_TRUE);
-    }
-  case ValueTag::NONE:
-    if (rightval.tag == ValueTag::NONE) {
-      return Value::Symbol(_SYM_FALSE);
-    } else {
-      return Value::Symbol(_SYM_TRUE);
-    }
-  }
+  return mslbuildin_op_neq(&_HEAP, leftval, rightval);
 }
+
 inline Value interpret_operator_eq(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, curr.first_child);
   Value rightval =
       interpret_expression(scope, _PROG.at(curr.first_child).next_child);
-  switch (leftval.tag) {
-  case ValueTag::INT:
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      if (leftval.as.INT == rightval.as.INT) {
-        return Value::Symbol(_SYM_TRUE);
-      } else {
-        return Value::Symbol(_SYM_FALSE);
-      }
-    case ValueTag::FLOAT:
-      if (leftval.as.INT == rightval.as.FLOAT) {
-        return Value::Symbol(_SYM_TRUE);
-      } else {
-        return Value::Symbol(_SYM_FALSE);
-      }
-    default:
-      return Value::Symbol(_SYM_FALSE);
-    }
-  case ValueTag::STRING:
-    switch (rightval.tag) {
-    case ValueTag::STRING:
-      if (_HEAP.get_string(leftval.as.STRING) ==
-          _HEAP.get_string(rightval.as.STRING)) {
-        return Value::Symbol(_SYM_TRUE);
-      } else {
-        return Value::Symbol(_SYM_FALSE);
-      }
-    default:
-      return Value::Symbol(_SYM_FALSE);
-    }
-  case ValueTag::FLOAT:
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      if (leftval.as.FLOAT == rightval.as.INT) {
-        return Value::Symbol(_SYM_TRUE);
-      } else {
-        return Value::Symbol(_SYM_FALSE);
-      }
-    case ValueTag::FLOAT:
-      if (leftval.as.FLOAT == rightval.as.FLOAT) {
-        return Value::Symbol(_SYM_TRUE);
-      } else {
-        return Value::Symbol(_SYM_FALSE);
-      }
-    default:
-      return Value::Symbol(_SYM_FALSE);
-    }
-  case ValueTag::SYMBOL:
-    switch (rightval.tag) {
-    case ValueTag::SYMBOL:
-      if (leftval.as.SYMBOL.index == rightval.as.SYMBOL.index) {
-        return Value::Symbol(_SYM_TRUE);
-      } else {
-        return Value::Symbol(_SYM_FALSE);
-      }
-    default:
-      return Value::Symbol(_SYM_FALSE);
-    }
-  case ValueTag::LIST:
-    if (rightval.tag == ValueTag::LIST && leftval.as.LIST == rightval.as.LIST) {
-      return Value::Symbol(_SYM_TRUE);
-    } else {
-      return Value::Symbol(_SYM_FALSE);
-    }
-  case ValueTag::NONE:
-    if (rightval.tag == ValueTag::NONE) {
-      return Value::Symbol(_SYM_TRUE);
-    } else {
-      return Value::Symbol(_SYM_FALSE);
-    }
-  }
+  return mslbuildin_op_eq(&_HEAP, leftval, rightval);
 }
+
 inline Value interpret_operator_gte(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
   Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Int(leftval.as.INT >= rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.INT >= rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'>=' expected two number arguments");
-    }
-  } break;
-
-  case ValueTag::FLOAT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(leftval.as.FLOAT >= rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.FLOAT >= rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'>=' expected two number arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'>' expected two number arguments");
-  }
+  return mslbuildin_op_gte(curr.start, leftval, rightval);
 }
+
 inline Value interpret_operator_gt(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
   Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Int(leftval.as.INT > rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.INT > rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'>' expected two number arguments");
-    }
-  } break;
-
-  case ValueTag::FLOAT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(leftval.as.FLOAT > rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.FLOAT > rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'>' expected two number arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'>' expected two number arguments");
-  }
+  return mslbuildin_op_gt(curr.start, leftval, rightval);
 }
+
 inline Value interpret_operator_lte(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
   Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Int(leftval.as.INT <= rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.INT <= rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'<=' expected two number arguments");
-    }
-  } break;
-
-  case ValueTag::FLOAT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(leftval.as.FLOAT <= rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.FLOAT <= rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'<=' expected two number arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'<=' expected two number arguments");
-  }
+  return mslbuildin_op_lte(curr.start, leftval, rightval);
 }
+
 inline Value interpret_operator_lt(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
   Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Int(leftval.as.INT < rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.INT < rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'<' expected two number arguments");
-    }
-  } break;
-
-  case ValueTag::FLOAT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(leftval.as.FLOAT < rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.FLOAT < rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'<' expected two number arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'<' expected two number arguments");
-  }
+  return mslbuildin_op_lt(curr.start, leftval, rightval);
 }
+
+inline Value interpret_operator_mod(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
+  return mslbuildin_op_mod(curr.start, leftval, rightval);
+}
+inline Value interpret_operator_div(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
+  return mslbuildin_op_div(curr.start, leftval, rightval);
+}
+inline Value interpret_operator_mul(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
+  return mslbuildin_op_mul(curr.start, leftval, rightval);
+}
+
+inline Value interpret_operator_sub(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
+  return mslbuildin_op_sub(curr.start, leftval, rightval);
+}
+
+inline Value interpret_operator_add(Scope *scope, Node curr) {
+  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
+  return mslbuildin_op_add(curr.start, leftval, rightval);
+}
+
+inline Value interpret_operator_invers(Scope *scope, Node curr) {
+  Value val = interpret_expression(scope, _PROG.nth_child(curr, 0));
+  return mslbuildin_op_invers(curr.start, val);
+}
+
 inline Value interpret_operator_or(Scope *scope, Node curr) {
   Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
   if (leftval.tag == ValueTag::SYMBOL &&
@@ -495,125 +308,7 @@ inline Value interpret_operator_and(Scope *scope, Node curr) {
     return Value::Symbol(_SYM_FALSE);
   }
 }
-inline Value interpret_operator_mod(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
-  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Int(leftval.as.INT % rightval.as.INT);
-    default:
-      throw msl_runtime_error(curr.start,
-                              "'mod' expected two integer arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'mod' expected two number arguments");
-  }
-}
-inline Value interpret_operator_div(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
-  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(static_cast<double>(leftval.as.INT) /
-                          static_cast<double>(rightval.as.INT));
-    case ValueTag::FLOAT:
-      return Value::Float(static_cast<double>(leftval.as.INT) /
-                          rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'/' expected two number arguments");
-    }
-  } break;
 
-  case ValueTag::FLOAT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(leftval.as.FLOAT /
-                          static_cast<double>(rightval.as.INT));
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.FLOAT / rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'/' expected two number arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'/' expected two number arguments");
-  }
-}
-inline Value interpret_operator_mul(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
-  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Int(leftval.as.INT * rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.INT * rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'*' expected two number arguments");
-    }
-  } break;
-
-  case ValueTag::FLOAT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(leftval.as.FLOAT * rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.FLOAT * rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'*' expected two number arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'*' expected two number arguments");
-  }
-}
-
-inline Value interpret_operator_sub(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
-  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Int(leftval.as.INT - rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.INT - rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'-' expected two number arguments");
-    }
-  } break;
-
-  case ValueTag::FLOAT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(leftval.as.FLOAT - rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.FLOAT - rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'-' expected two number arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'-' expected two number arguments");
-  }
-}
-inline Value interpret_operator_invers(Scope *scope, Node curr) {
-  Value val = interpret_expression(scope, _PROG.nth_child(curr, 0));
-  switch (val.tag) {
-  case ValueTag::INT:
-    return Value::Int(-1 * val.as.INT);
-  case ValueTag::FLOAT:
-    return Value::Float(-1 * val.as.FLOAT);
-  default:
-    throw msl_runtime_error(curr.start, "'-' expected a number");
-  }
-}
 inline Value interpret_operator_not(Scope *scope, Node curr) {
   Value val = interpret_expression(scope, _PROG.nth_child(curr, 0));
   if (val.tag == ValueTag::SYMBOL && val.as.SYMBOL.index == _SYM_TRUE.index) {
@@ -626,54 +321,9 @@ inline Value interpret_operator_not(Scope *scope, Node curr) {
     throw msl_runtime_error(curr.start, "'not' expected a symbol or none");
   }
 }
-inline Value interpret_operator_add(Scope *scope, Node curr) {
-  Value leftval = interpret_expression(scope, _PROG.nth_child(curr, 0));
-  Value rightval = interpret_expression(scope, _PROG.nth_child(curr, 1));
-  switch (leftval.tag) {
-  case ValueTag::INT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Int(leftval.as.INT + rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.INT + rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'+' expected two number arguments");
-    }
-  } break;
-
-  case ValueTag::FLOAT: {
-    switch (rightval.tag) {
-    case ValueTag::INT:
-      return Value::Float(leftval.as.FLOAT + rightval.as.INT);
-    case ValueTag::FLOAT:
-      return Value::Float(leftval.as.FLOAT + rightval.as.FLOAT);
-    default:
-      throw msl_runtime_error(curr.start, "'+' expected two number arguments");
-    }
-  } break;
-  default:
-    throw msl_runtime_error(curr.start, "'+' expected two number arguments");
-  }
-}
 
 // ---------- MAIN LOGIC
 void interpret_one(Scope *scope, node_idx node);
-
-struct BuildinFnMap {
-  std::unordered_map<uint64_t, std::function<Value(Scope *, Node)>> buildins = {
-      {_BUILDIN_FN_PRINT.index, msl_buildin_println},
-      {_BUILDIN_FN_LIST.index, msl_buildin_list},
-      {_BUILDIN_FN_PUT.index, msl_buildin_put},
-      {_BUILDIN_FN_AT.index, msl_buildin_at},
-      {_BUILDIN_FN_APPEND.index, msl_buildin_append},
-      {_BUILDIN_FN_PREPEND.index, msl_buildin_prepend},
-      //{_BUILDIN_FN_CONCAT.index, msl_buildin_concat},
-  };
-  bool has(InternedString name) { return buildins.count(name.index) > 0; }
-  Value call(Scope *scope, Node curr, InternedString name) {
-    return buildins[name.index](scope, curr);
-  }
-};
 
 Value interpret_fn_call(Scope *scope, Node curr) {
   static BuildinFnMap buildins;
@@ -981,7 +631,6 @@ void interpret_one(Scope *scope, node_idx node) {
                             "BUG: encountered internal list node as statement");
   }
 }
-
 }; // namespace
 
 int interpret(nodes ns) {
