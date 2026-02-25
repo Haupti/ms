@@ -41,6 +41,8 @@ enum class NodeTag : uint8_t {
   IF,
   FUNCTION,
   RETURN,
+  TRY,
+  EXPECT,
   // INTERNAL_ prefixed tags are for internal structuring of nodes
   INTERNAL_PARTIAL_CONDITION,
   INTERNAL_PARTIAL_DEFAULT_CONDITION,

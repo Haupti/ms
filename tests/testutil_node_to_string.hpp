@@ -102,6 +102,12 @@ inline std::string show_node(const Node &node) {
   case NodeTag::RETURN:
     s += " RETURN";
     break;
+  case NodeTag::TRY:
+    s += " TRY";
+    break;
+  case NodeTag::EXPECT:
+    s += " EXPECT";
+    break;
   }
   s += ":\n";
   if (node.tag != NodeTag::NIL) {

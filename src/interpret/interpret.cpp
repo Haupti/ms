@@ -363,6 +363,13 @@ Value interpret_fn_call(Scope *scope, Node curr) {
   return fn_scope.return_value;
 }
 
+// TODO currently there is no new scope created for the if/elif/else body
+// evaluation.
+// this should be done, also then!!! there must be a mechanism that passes the returning state one up.
+// maybe that would be a good time to implement a more 'flat' approach to scopes rather than hirachy.
+// maybe that would also be a good time to realize that converting the AST to a absolute positioned instruction vector would be a good idea.
+// ... yeah much like that of a VM, that apparently makes some things a LOT easier.
+// also GC would be a lot easier that way since i dont have to traverse a hirachy of scopes that way...
 inline void interpret_if(Scope *scope, Node curr) {
   Node if_node = _PROG.at(curr.first_child);
   Value if_cond = interpret_expression(scope, if_node.first_child);
@@ -407,6 +414,16 @@ inline void interpret_if(Scope *scope, Node curr) {
       }
     }
   }
+}
+
+inline Value interpret_try(Scope *, Node) {
+  throw runtime_error("NOT YET IMPLEMENTED");
+  return Value();
+}
+
+inline Value interpret_expect(Scope *, Node) {
+  throw runtime_error("NOT YET IMPLEMENTED");
+  return Value();
 }
 
 // ---------- EXECUTION LOGIC
@@ -499,6 +516,10 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::INTERNAL_LIST:
     throw msl_runtime_error(
         curr.start, "BUG: encountered internal list node as expression");
+  case NodeTag::TRY:
+    return interpret_try(scope, curr);
+  case NodeTag::EXPECT:
+    return interpret_expect(scope, curr);
   }
 }
 
@@ -629,6 +650,12 @@ void interpret_one(Scope *scope, node_idx node) {
   case NodeTag::INTERNAL_LIST:
     throw msl_runtime_error(curr.start,
                             "BUG: encountered internal list node as statement");
+  case NodeTag::TRY:
+    interpret_try(scope, curr);
+    break;
+  case NodeTag::EXPECT:
+    interpret_expect(scope, curr);
+    break;
   }
 }
 }; // namespace

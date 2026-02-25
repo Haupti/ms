@@ -125,6 +125,36 @@ node_idx parse_function_call(Parser *p, node_idx left,
   return myself_idx;
 }
 
+node_idx parse_try_lazy(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv();
+
+  Node myself = Node();
+  myself.start = start;
+  myself.tag = NodeTag::TRY;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  node_idx arg_idx = parse_expression_lazy(p);
+  p->nodes.add_child(myself_idx, arg_idx);
+
+  return myself_idx;
+}
+
+node_idx parse_expect_lazy(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv();
+
+  Node myself = Node();
+  myself.start = start;
+  myself.tag = NodeTag::EXPECT;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  node_idx arg_idx = parse_expression_lazy(p);
+  p->nodes.add_child(myself_idx, arg_idx);
+
+  return myself_idx;
+}
+
 node_idx parse_left_apply_function(Parser *p, node_idx left) {
   Token identifier = p->peek();
   assert_identifier(identifier);
@@ -364,9 +394,9 @@ node_idx parse_expression_lazy(Parser *p) {
   case TokenTag::FUNCTION:
     throw compile_error(t.location, "unexpected token 'function'");
   case TokenTag::TRY:
-    throw runtime_error("NOT YET IMPLEMENTED(parse:try)");
+    return parse_try_lazy(p);
   case TokenTag::EXPECT:
-    throw runtime_error("NOT YET IMPLEMENTED(parse:expect)");
+    return parse_expect_lazy(p);
   case TokenTag::ASSIGN:
     throw compile_error(t.location, "unexpected token '='");
   case TokenTag::BROPEN: {
@@ -632,9 +662,9 @@ node_idx parse_one(Parser *p) {
   case TokenTag::FUNCTION:
     return parse_function(p);
   case TokenTag::TRY:
-    throw runtime_error("NOT YET IMPLEMENTED(parse:try)");
+    return parse_expression_eager(p);
   case TokenTag::EXPECT:
-    throw runtime_error("NOT YET IMPLEMENTED(parse:expect)");
+    return parse_expression_eager(p);
   case TokenTag::RETURN:
     return parse_return(p);
   case TokenTag::ASSIGN:

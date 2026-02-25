@@ -1,0 +1,10 @@
+function dostuff(arg) {
+  if(arg) {
+    return #wasarg
+  }else {
+    print(arg)
+  }
+  return #hehe
+}
+
+print(dostuff(#false))

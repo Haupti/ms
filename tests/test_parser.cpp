@@ -755,6 +755,106 @@ void test_list_set(T *t) {
                         "MASK: $ $ $ $ $ $ \n");
 }
 
+void test_try(T *t) {
+  string code = "try print(#hi) + 1";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 5\n"
+                        "\n"
+                        "0 Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "1 Node  TRY:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 6\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "2 Node  VAR_REF = print:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "3 Node  FN_CALL:\n"
+                        "    Start = test.msl/0/6\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "4 Node  LITERAL_SYMBOL = #hi:\n"
+                        "    Start = test.msl/0/12\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "5 Node  INFIX(+):\n"
+                        "    Start = test.msl/0/17\n"
+                        "    First_Child = 1\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "6 Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/19\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ $ \n");
+}
+
+void test_expect(T *t) {
+  string code = "expect print(#hi) + 1";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 5\n"
+                        "\n"
+                        "0 Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "1 Node  EXPECT:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 6\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "2 Node  VAR_REF = print:\n"
+                        "    Start = test.msl/0/9\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "3 Node  FN_CALL:\n"
+                        "    Start = test.msl/0/9\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "4 Node  LITERAL_SYMBOL = #hi:\n"
+                        "    Start = test.msl/0/15\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "5 Node  INFIX(+):\n"
+                        "    Start = test.msl/0/20\n"
+                        "    First_Child = 1\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "6 Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/0/22\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ $ \n");
+}
+
 void test_fn_call_3(T *t) {
   string code = "function add_and_print(a,b){ \n"
                 "  print(a)\n"
@@ -921,6 +1021,8 @@ int main() {
   t.test("list", test_list);
   t.test("get list element", test_list_get);
   t.test("put list element", test_list_set);
-t.test("DEBUGGING", test_debugging);
+  t.test("try", test_try);
+  t.test("expect", test_expect);
+  t.test("DEBUGGING", test_debugging);
   return 0;
 }
