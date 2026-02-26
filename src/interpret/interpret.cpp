@@ -365,11 +365,14 @@ Value interpret_fn_call(Scope *scope, Node curr) {
 
 // TODO currently there is no new scope created for the if/elif/else body
 // evaluation.
-// this should be done, also then!!! there must be a mechanism that passes the returning state one up.
-// maybe that would be a good time to implement a more 'flat' approach to scopes rather than hirachy.
-// maybe that would also be a good time to realize that converting the AST to a absolute positioned instruction vector would be a good idea.
-// ... yeah much like that of a VM, that apparently makes some things a LOT easier.
-// also GC would be a lot easier that way since i dont have to traverse a hirachy of scopes that way...
+// this should be done, also then!!! there must be a mechanism that passes the
+// returning state one up. maybe that would be a good time to implement a more
+// 'flat' approach to scopes rather than hirachy. maybe that would also be a
+// good time to realize that converting the AST to a absolute positioned
+// instruction vector would be a good idea.
+// ... yeah much like that of a VM, that apparently makes some things a LOT
+// easier. also GC would be a lot easier that way since i dont have to traverse
+// a hirachy of scopes that way...
 inline void interpret_if(Scope *scope, Node curr) {
   Node if_node = _PROG.at(curr.first_child);
   Value if_cond = interpret_expression(scope, if_node.first_child);
@@ -535,9 +538,17 @@ void interpret_one(Scope *scope, node_idx node) {
   case NodeTag::FN_CALL:
     interpret_fn_call(scope, curr);
     break;
-  case NodeTag::FN_DEF:
-    _GLOBAL.functions[curr.as.IDENTIFIER.index] = curr.first_child;
+  case NodeTag::FN_DEF: {
+    if (scope) {
+      throw msl_runtime_error(curr.start,
+                              "function definition not allowed here");
+    } else if (_GLOBAL.functions.count(curr.as.IDENTIFIER.index) > 0) {
+      throw msl_runtime_error(curr.start, "function already defined");
+    } else {
+      _GLOBAL.functions[curr.as.IDENTIFIER.index] = node;
+    }
     break;
+  }
   case NodeTag::VAR_DEF:
     if (scope && scope->variables.count(curr.as.IDENTIFIER.index) > 0) {
       throw msl_runtime_error(curr.start, "variable already defined");
@@ -622,17 +633,6 @@ void interpret_one(Scope *scope, node_idx node) {
   case NodeTag::IF:
     interpret_if(scope, curr);
     break;
-  case NodeTag::FUNCTION: {
-    if (scope) {
-      throw msl_runtime_error(curr.start,
-                              "function definition not allowed here");
-    } else if (_GLOBAL.functions.count(curr.as.IDENTIFIER.index) > 0) {
-      throw msl_runtime_error(curr.start, "function already defined");
-    } else {
-      _GLOBAL.functions[curr.as.IDENTIFIER.index] = node;
-    }
-    break;
-  }
   case NodeTag::RETURN: {
     if (!scope) {
       throw msl_runtime_error(

@@ -39,7 +39,6 @@ enum class NodeTag : uint8_t {
   INFIX_NEQ,
   INFIX_STR_CONCAT,
   IF,
-  FUNCTION,
   RETURN,
   TRY,
   EXPECT,
