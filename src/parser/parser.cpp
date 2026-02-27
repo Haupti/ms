@@ -286,42 +286,119 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
       return left;
     }
   }
-  case TokenTag::DOT:
+  case TokenTag::DOT: {
     p->adv();
-    return parse_left_apply_function(p, left);
-  case TokenTag::BAR:
+    node_idx myself_idx = parse_left_apply_function(p, left);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::BAR: {
     p->adv();
-    return parse_right_apply_function(p, left);
-  case TokenTag::OP_ADD:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_ADD);
-  case TokenTag::OP_SUB:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_SUB);
-  case TokenTag::OP_MUL:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_MUL);
-  case TokenTag::OP_DIV:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_DIV);
-  case TokenTag::OP_MOD:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_MOD);
-  case TokenTag::OP_EQ:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_EQ);
-  case TokenTag::OP_NEQ:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_NEQ);
-  case TokenTag::OP_OR:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_OR);
-  case TokenTag::OP_AND:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_AND);
-  case TokenTag::OPERATOR_LT:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_LT);
-  case TokenTag::OPERATOR_LTE:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_LTE);
-  case TokenTag::OPERATOR_GT:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_GT);
-  case TokenTag::OPERATOR_GTE:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_GTE);
-  case TokenTag::OPERATOR_STRCONCAT:
-    return parse_regular_infix_operator(p, left, NodeTag::INFIX_STR_CONCAT);
+    node_idx myself_idx = parse_right_apply_function(p, left);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_ADD: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_ADD);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_SUB: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_SUB);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_MUL: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_MUL);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_DIV: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_DIV);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_MOD: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_MOD);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_EQ: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_EQ);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_NEQ: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_NEQ);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_OR: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_OR);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OP_AND: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_AND);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OPERATOR_LT: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_LT);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OPERATOR_LTE: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_LTE);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OPERATOR_GT: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_GT);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OPERATOR_GTE: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_GTE);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
+  case TokenTag::OPERATOR_STRCONCAT: {
+    node_idx myself_idx =
+        parse_regular_infix_operator(p, left, NodeTag::INFIX_STR_CONCAT);
+    Node myself = p->nodes.at(myself_idx);
+    return parse_consecutive_expression(p, myself_idx, myself.tag,
+                                        myself.start);
+  }
   case TokenTag::OP_NOT:
-    return left;
   case TokenTag::BRCLOSE:
   case TokenTag::CURLOPEN:
   case TokenTag::CURLCLOSE:
@@ -611,7 +688,7 @@ node_idx parse_function(Parser *p) {
   Node myself = Node();
   myself.start = start;
   myself.as.IDENTIFIER = identifier.as.IDENTIFIER;
-  myself.tag = NodeTag::FUNCTION;
+  myself.tag = NodeTag::FN_DEF;
   node_idx myself_idx = p->nodes.add_dangling(myself);
 
   // arguments

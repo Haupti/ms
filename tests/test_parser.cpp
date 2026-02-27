@@ -403,7 +403,7 @@ void test_function(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "1 Node  FUNCTION = add:\n"
+                        "1 Node  FN_DEF = add:\n"
                         "    Start = test.msl/0/2\n"
                         "    First_Child = 2\n"
                         "    Next_Child = 0\n"
@@ -460,7 +460,7 @@ void test_function_no_args(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "1 Node  FUNCTION = void:\n"
+                        "1 Node  FN_DEF = void:\n"
                         "    Start = test.msl/0/2\n"
                         "    First_Child = 2\n"
                         "    Next_Child = 0\n"
@@ -487,7 +487,7 @@ void test_function_returns(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "1 Node  FUNCTION = does_return:\n"
+                        "1 Node  FN_DEF = does_return:\n"
                         "    Start = test.msl/0/2\n"
                         "    First_Child = 2\n"
                         "    Next_Child = 0\n"
@@ -871,7 +871,7 @@ void test_fn_call_3(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "1 Node  FUNCTION = add_and_print:\n"
+                        "1 Node  FN_DEF = add_and_print:\n"
                         "    Start = test.msl/0/2\n"
                         "    First_Child = 2\n"
                         "    Next_Child = 0\n"
@@ -995,10 +995,9 @@ void test_fn_call_3(T *t) {
 }
 void test_debugging(T *t) {
 
-  string code = "let mylist = list(1,2,3)\n"
-                "print(mylist)\n";
+  string code = "1 - -1";
   string out = parse_and_show(code);
-  t->assert_str_eq("", "");
+  t->assert_str_eq(out, "");
 }
 
 } // namespace

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../interned_string.hpp"
-#include "../symbol.hpp"
 #include "../location.hpp"
+#include "../symbol.hpp"
 #include "label.hpp"
 #include <cstdint>
 
@@ -11,6 +11,24 @@ enum class IRTag : uint8_t {
   PUSH_FLOAT,
   PUSH_ALLOC_STRING,
   PUSH_SYMBOL,
+  STORE,
+  LOAD,
+  NOT,
+  INVERT,
+  ADD,
+  SUB,
+  MUL,
+  DIV,
+  MOD,
+  LT,
+  LTE,
+  GT,
+  GTE,
+  EQ,
+  NEQ,
+  STR_CONCAT,
+  AND,
+  OR,
   LABEL,
 };
 
@@ -21,6 +39,7 @@ struct IRInstr {
     double FLOAT;
     Symbol SYMBOL;
     InternedString STRING;
+    InternedString VAR;
     bool NOTHING;
     Label LABEL;
   } as;

@@ -505,9 +505,6 @@ Value interpret_expression(Scope *scope, node_idx node) {
   case NodeTag::IF:
     throw msl_runtime_error(curr.start,
                             "BUG: encountered statement as expression");
-  case NodeTag::FUNCTION:
-    throw msl_runtime_error(curr.start, "BUG: function definition "
-                                        "statement encountered as expression");
   case NodeTag::RETURN:
     throw msl_runtime_error(curr.start,
                             "BUG: encountered statement as expression");
