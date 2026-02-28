@@ -993,12 +993,6 @@ void test_fn_call_3(T *t) {
                         "-----------------------\n"
                         "MASK: $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ $ \n");
 }
-void test_debugging(T *t) {
-
-  string code = "1 - -1";
-  string out = parse_and_show(code);
-  t->assert_str_eq(out, "");
-}
 
 } // namespace
 int main() {
@@ -1022,6 +1016,5 @@ int main() {
   t.test("put list element", test_list_set);
   t.test("try", test_try);
   t.test("expect", test_expect);
-  t.test("DEBUGGING", test_debugging);
   return 0;
 }

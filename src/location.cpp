@@ -25,3 +25,8 @@ Location resolve_location(const LocationRef &ref) {
   auto cache = _location_cache();
   return cache->at(ref.index);
 }
+std::string location_to_string(const LocationRef &ref) {
+  Location loc = resolve_location(ref);
+  return std::string(loc.filename) + "/" + std::to_string(loc.row) + "/" +
+         std::to_string(loc.col) ;
+}
