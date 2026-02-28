@@ -61,7 +61,6 @@ void test_if1(T *t) {
                         "PUSH_INT 3\n"
                         "PUSH_INT 3\n"
                         "ADD\n"
-                        "JMP conditional_end_0\n"
                         "LABEL conditional_end_0\n");
 }
 
@@ -69,12 +68,13 @@ void test_if2(T *t) {
   string code = "if(#true) { #ok } else { #notok }";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
-                        "JMPIFN conditional_end_1\n"
+                        "JMPIFN skip_label_0_2\n"
                         "PUSH_SYMBOL #ok\n"
-                        "JMP conditional_end_1\n"
+                        "LABEL skip_label_0_2\n"
                         "PUSH_SYMBOL #notok\n"
                         "LABEL conditional_end_1\n");
 }
+
 void test_if3(T *t) {
   string code = "if(#true) { \n"
                 "   #ifcase \n"
@@ -84,19 +84,21 @@ void test_if3(T *t) {
                 "   #elsecase }";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
-                        "JMPIFN conditional_end_2\n"
+                        "JMPIFN skip_label_0_4\n"
                         "PUSH_SYMBOL #ifcase\n"
-                        "JMP conditional_end_2\n"
+                        "LABEL skip_label_0_4\n"
                         "PUSH_SYMBOL #false\n"
-                        "JMPIFN conditional_end_2\n"
+                        "JMPIFN skip_label_1_5\n"
                         "PUSH_SYMBOL #elifcase\n"
-                        "JMP conditional_end_2\n"
+                        "LABEL skip_label_1_5\n"
                         "PUSH_SYMBOL #elsecase\n"
-                        "LABEL conditional_end_2\n");
+                        "LABEL conditional_end_3\n");
 }
 
 } // namespace
 int main() {
+  // the order here matters because the label index is static
+  // and will increase between tests
   T t("IR Compiler");
   t.test("operator expression 1", test_op1);
   t.test("operator expression 2", test_op2);

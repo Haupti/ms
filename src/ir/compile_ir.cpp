@@ -192,69 +192,80 @@ void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
 // TODO this is not done yet
 // implementation plan:
 // 1. create skip-labels for all conditionals except first and last (n-2)
-// 2. while not-default (else) 
+// 2. while not-default (else)
 //    a) if not first insert skip-label n
 //    b) compile condition
 //    c) jump to next-skip label (n+1) if not true
 //    d) compile body
-//    e) jump to end 
+//    e) jump to end
 // 3. if default (else)
 //    a) insert skip label n
 //    b) compile body
+void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
+  node_idx curr = body_head;
+  while (!curr.is_null()) {
+    compile_one(ctx, ns, curr);
+    curr = ns->next_child(curr);
+  }
+}
 void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   Label label_end = create_next_label("conditional_end");
-
-  // init loop
-  uint64_t i = 0;
-  node_idx partial_cond = ns->nth_child(curr_idx, i);
-  // create all case labels
-  std::  vector<Label> case_labels;
-  for(uint64_t n = 0; n < ns->list_length(partial_cond); n++){
-    case_labels.push_back(create_next_label("case"));
+  std::vector<Label> skip_labels;
+  for (uint64_t i = 0; i < ns->list_length(ns->nth_child(curr_idx, 0)); i++) {
+    skip_labels.push_back(create_next_label("skip_label_" + std::to_string(i)));
   }
-  // compile conditionals
-  while (!partial_cond.is_null() and
-         ns->at(partial_cond).tag !=
-             NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
-    // case skip target label
-    IRInstr jmp_this_case = ir_new_label(curr.start, create_next_label("case"));
-    ctx->add(jmp_this_case);
-    
-    // condition
-    node_idx partial_cond_condition = ns->first_child(partial_cond);
-    compile_one(ctx, ns, partial_cond_condition);
-    IRInstr instr = ir_new_jump(curr.start, IRTag::JMPIFN, label_end);
-    ctx->add(instr);
 
-    // body
-    uint64_t j = 1;
-    node_idx partial_cond_body_idx = ns->nth_child(partial_cond, j);
-    while (!partial_cond_body_idx.is_null()) {
-      compile_one(ctx, ns, partial_cond_body_idx);
-      j++;
-      partial_cond_body_idx = ns->nth_child(partial_cond, j);
+  node_idx if_cond = ns->nth_child(curr_idx, 0);
+  node_idx if_cond_condition = ns->nth_child(if_cond, 0);
+  compile_one(ctx, ns, if_cond_condition);
+  if (skip_labels.size() > 0) {
+    IRInstr ifjmp = ir_new_jump(curr.start, IRTag::JMPIFN, skip_labels[0]);
+    ctx->add(ifjmp);
+  } else {
+    IRInstr ifjmp = ir_new_jump(curr.start, IRTag::JMPIFN, label_end);
+    ctx->add(ifjmp);
+  }
+  compile_condition_body(ctx, ns, ns->nth_child(if_cond, 1));
+
+  uint32_t i = 1;
+  node_idx elif_cond = ns->nth_child(curr_idx, i);
+  while (!elif_cond.is_null() &&
+         ns->at(elif_cond).tag != NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
+    // insert skip label for previous condition
+    IRInstr elif_skip_label =
+        ir_new_jump(curr.start, IRTag::LABEL, skip_labels.at(i - 1));
+    ctx->add(elif_skip_label);
+
+    // actual condition
+    node_idx elif_cond_condition = ns->nth_child(elif_cond, 0);
+    compile_one(ctx, ns, elif_cond_condition);
+
+    // jmp to next/end if false
+    IRInstr elifjmp;
+    if (skip_labels.size() > i) {
+      elifjmp = ir_new_jump(curr.start, IRTag::JMPIFN, skip_labels.at(i));
+    } else {
+      elifjmp = ir_new_jump(curr.start, IRTag::JMPIFN, label_end);
     }
+    ctx->add(elifjmp);
 
-    // if body is evaluated, jump to end to skip other non-hit conditionals
-    IRInstr jmp_end = ir_new_jump(curr.start, IRTag::JMP, label_end);
-    ctx->add(jmp_end);
-
-    // advance
+    // actual body
+    compile_condition_body(ctx, ns, ns->nth_child(elif_cond, 1));
     i++;
-    partial_cond = ns->nth_child(curr_idx, i);
+    elif_cond = ns->nth_child(curr_idx, i);
   }
 
-  if (!partial_cond.is_null() and
-      ns->at(partial_cond).tag == NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
-    // else body
-    uint64_t j = 0;
-    node_idx partial_cond_body_idx = ns->nth_child(partial_cond, j);
-    while (!partial_cond_body_idx.is_null()) {
-      compile_one(ctx, ns, partial_cond_body_idx);
-      j++;
-      partial_cond_body_idx = ns->nth_child(partial_cond, j);
-    }
+  if (!elif_cond.is_null() &&
+      ns->at(elif_cond).tag == NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
+    // insert skip label for previous condition
+    IRInstr else_skip_label =
+        ir_new_jump(curr.start, IRTag::LABEL, skip_labels.back());
+    ctx->add(else_skip_label);
+
+    // actual body
+    compile_condition_body(ctx, ns, ns->nth_child(elif_cond, 0));
   }
+
   ctx->add(ir_new_label(curr.start, label_end));
 }
 
