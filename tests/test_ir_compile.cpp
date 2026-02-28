@@ -24,14 +24,85 @@ string compile_and_show(string code) {
 void test_op1(T *t) {
   string code = "1 + 2";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "[test.msl/0/2] PUSH_INT 1\n"
-                        "[test.msl/0/6] PUSH_INT 2\n"
-                        "[test.msl/0/4] ADD\n");
+  t->assert_str_eq(out, "PUSH_INT 1\n"
+                        "PUSH_INT 2\n"
+                        "ADD\n");
+}
+void test_op2(T *t) {
+  string code = "1 + 2 * -1";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "PUSH_INT 1\n"
+                        "PUSH_INT 2\n"
+                        "ADD\n"
+                        "PUSH_INT 1\n"
+                        "INVERT\n"
+                        "MUL\n");
+}
+
+void test_op3(T *t) {
+  string code = "not a and b or not c";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "LOAD a\n"
+                        "NOT\n"
+                        "LOAD b\n"
+                        "AND\n"
+                        "LOAD c\n"
+                        "NOT\n"
+                        "OR\n");
+}
+void test_if1(T *t) {
+  string code = "if(#true) { 2+2 3+3 }";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
+                        "JMPIFN conditional_end_0\n"
+                        "PUSH_INT 2\n"
+                        "PUSH_INT 2\n"
+                        "ADD\n"
+                        "PUSH_INT 3\n"
+                        "PUSH_INT 3\n"
+                        "ADD\n"
+                        "JMP conditional_end_0\n"
+                        "LABEL conditional_end_0\n");
+}
+
+void test_if2(T *t) {
+  string code = "if(#true) { #ok } else { #notok }";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
+                        "JMPIFN conditional_end_1\n"
+                        "PUSH_SYMBOL #ok\n"
+                        "JMP conditional_end_1\n"
+                        "PUSH_SYMBOL #notok\n"
+                        "LABEL conditional_end_1\n");
+}
+void test_if3(T *t) {
+  string code = "if(#true) { \n"
+                "   #ifcase \n"
+                "} elif (#false) {\n"
+                "   #elifcase \n"
+                "} else {\n"
+                "   #elsecase }";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
+                        "JMPIFN conditional_end_2\n"
+                        "PUSH_SYMBOL #ifcase\n"
+                        "JMP conditional_end_2\n"
+                        "PUSH_SYMBOL #false\n"
+                        "JMPIFN conditional_end_2\n"
+                        "PUSH_SYMBOL #elifcase\n"
+                        "JMP conditional_end_2\n"
+                        "PUSH_SYMBOL #elsecase\n"
+                        "LABEL conditional_end_2\n");
 }
 
 } // namespace
 int main() {
   T t("IR Compiler");
-  t.test("operator expression", test_op1);
+  t.test("operator expression 1", test_op1);
+  t.test("operator expression 2", test_op2);
+  t.test("operator expression 3", test_op3);
+  t.test("if condition 1", test_if1);
+  t.test("if condition 2", test_if2);
+  t.test("if condition 3", test_if3);
   return 0;
 }

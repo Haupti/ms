@@ -188,21 +188,74 @@ void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
   compile_one(ctx, ns, ns->nth_child(curr, 1));
   ctx->add(instr);
 }
+
+// TODO this is not done yet
+// implementation plan:
+// 1. create skip-labels for all conditionals except first and last (n-2)
+// 2. while not-default (else) 
+//    a) if not first insert skip-label n
+//    b) compile condition
+//    c) jump to next-skip label (n+1) if not true
+//    d) compile body
+//    e) jump to end 
+// 3. if default (else)
+//    a) insert skip label n
+//    b) compile body
 void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
-  node_idx first_conditional = ns->first_child(curr_idx);
+  Label label_end = create_next_label("conditional_end");
 
-  node_idx first_condition = ns->first_child(first_conditional);
-  compile_one(ctx, ns, first_condition);
-  Label first_cond_end = create_next_label("if");
-  IRInstr instr = ir_new_jump(curr.start, IRTag::JMPIFN, first_cond_end);
-  ctx->add(instr);
+  // init loop
+  uint64_t i = 0;
+  node_idx partial_cond = ns->nth_child(curr_idx, i);
+  // create all case labels
+  std::  vector<Label> case_labels;
+  for(uint64_t n = 0; n < ns->list_length(partial_cond); n++){
+    case_labels.push_back(create_next_label("case"));
+  }
+  // compile conditionals
+  while (!partial_cond.is_null() and
+         ns->at(partial_cond).tag !=
+             NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
+    // case skip target label
+    IRInstr jmp_this_case = ir_new_label(curr.start, create_next_label("case"));
+    ctx->add(jmp_this_case);
+    
+    // condition
+    node_idx partial_cond_condition = ns->first_child(partial_cond);
+    compile_one(ctx, ns, partial_cond_condition);
+    IRInstr instr = ir_new_jump(curr.start, IRTag::JMPIFN, label_end);
+    ctx->add(instr);
 
-  Node condition_node = ns->at(first_condition);
-  node_idx condition_body_idx = ns->nth_child(condition_node, 1);
-  compile_one(ctx, ns, condition_body_idx);
+    // body
+    uint64_t j = 1;
+    node_idx partial_cond_body_idx = ns->nth_child(partial_cond, j);
+    while (!partial_cond_body_idx.is_null()) {
+      compile_one(ctx, ns, partial_cond_body_idx);
+      j++;
+      partial_cond_body_idx = ns->nth_child(partial_cond, j);
+    }
 
-  ctx->add(ir_new_label(curr.start, first_cond_end));
-  // TODO compile rest of the partial conditional nodes
+    // if body is evaluated, jump to end to skip other non-hit conditionals
+    IRInstr jmp_end = ir_new_jump(curr.start, IRTag::JMP, label_end);
+    ctx->add(jmp_end);
+
+    // advance
+    i++;
+    partial_cond = ns->nth_child(curr_idx, i);
+  }
+
+  if (!partial_cond.is_null() and
+      ns->at(partial_cond).tag == NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
+    // else body
+    uint64_t j = 0;
+    node_idx partial_cond_body_idx = ns->nth_child(partial_cond, j);
+    while (!partial_cond_body_idx.is_null()) {
+      compile_one(ctx, ns, partial_cond_body_idx);
+      j++;
+      partial_cond_body_idx = ns->nth_child(partial_cond, j);
+    }
+  }
+  ctx->add(ir_new_label(curr.start, label_end));
 }
 
 void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {

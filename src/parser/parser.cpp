@@ -775,7 +775,7 @@ node_idx parse_one(Parser *p) {
   case TokenTag::OP_NEQ:
     throw compile_error(token.location, "unexpected token");
   case TokenTag::OP_NOT:
-    return parse_expression_lazy(p);
+    return parse_expression_eager(p);
   case TokenTag::OP_OR:
     throw compile_error(token.location, "unexpected token");
   case TokenTag::OP_AND:

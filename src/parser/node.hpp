@@ -143,6 +143,10 @@ struct nodes {
     }
     return elements.at(idx.idx).next_child;
   }
+  node_idx nth_child(node_idx node_idx, uint64_t n) {
+    Node node = elements.at(node_idx.idx);
+    return nth_child(node, n);
+  }
   node_idx nth_child(Node node, uint64_t n) {
     node_idx curr = node.first_child;
     uint64_t i = 0;
@@ -172,6 +176,15 @@ struct nodes {
       return node_idx{0};
     }
     return elements.at(idx.idx).first_child;
+  }
+  uint64_t list_length(node_idx first) {
+    Node curr = elements.at(first.idx);
+    uint64_t count = 0;
+    while (!curr.next_child.is_null()) {
+      count++;
+      curr = elements.at(curr.next_child.idx);
+    }
+    return count;
   }
   node_idx add_sibling(Node elem) {
     if (last_sibling == 0) {

@@ -5,61 +5,54 @@
 inline std::string ir_to_string(const IRInstr &instr) {
   switch (instr.tag) {
   case IRTag::PUSH_INT:
-    return "[" + location_to_string(instr.where) + "] PUSH_INT " +
-           std::to_string(instr.as.INT);
+    return "PUSH_INT " + std::to_string(instr.as.INT);
   case IRTag::PUSH_FLOAT:
-    return "[" + location_to_string(instr.where) + "] PUSH_FLOAT " +
-           std::to_string(instr.as.FLOAT);
+    return "PUSH_FLOAT " + std::to_string(instr.as.FLOAT);
   case IRTag::PUSH_ALLOC_STRING:
-    return "[" + location_to_string(instr.where) + "] PUSH_ALLOC_STRING " +
-           resolve_interned_string(instr.as.STRING);
+    return "PUSH_ALLOC_STRING " + resolve_interned_string(instr.as.STRING);
   case IRTag::PUSH_SYMBOL:
-    return "[" + location_to_string(instr.where) + "] PUSH_SYMBOL " +
-           resolve_symbol(instr.as.SYMBOL);
+    return "PUSH_SYMBOL " + resolve_symbol(instr.as.SYMBOL);
   case IRTag::STORE:
-    return "[" + location_to_string(instr.where) + "] STORE " +
-           resolve_interned_string(instr.as.VAR);
+    return "STORE " + resolve_interned_string(instr.as.VAR);
   case IRTag::LOAD:
-    return "[" + location_to_string(instr.where) + "] LOAD " +
-           resolve_interned_string(instr.as.VAR);
+    return "LOAD " + resolve_interned_string(instr.as.VAR);
   case IRTag::NOT:
-    return "[" + location_to_string(instr.where) + "] NOT";
+    return "NOT";
   case IRTag::INVERT:
-    return "[" + location_to_string(instr.where) + "] INVERT";
+    return "INVERT";
   case IRTag::ADD:
-    return "[" + location_to_string(instr.where) + "] ADD";
+    return "ADD";
   case IRTag::SUB:
-    return "[" + location_to_string(instr.where) + "] SUB";
+    return "SUB";
   case IRTag::MUL:
-    return "[" + location_to_string(instr.where) + "] MUL";
+    return "MUL";
   case IRTag::DIV:
-    return "[" + location_to_string(instr.where) + "] DIV";
+    return "DIV";
   case IRTag::MOD:
-    return "[" + location_to_string(instr.where) + "] MOD";
+    return "MOD";
   case IRTag::LT:
-    return "[" + location_to_string(instr.where) + "] LT";
+    return "LT";
   case IRTag::LTE:
-    return "[" + location_to_string(instr.where) + "] LTE";
+    return "LTE";
   case IRTag::GT:
-    return "[" + location_to_string(instr.where) + "] GT";
+    return "GT";
   case IRTag::GTE:
-    return "[" + location_to_string(instr.where) + "] GTE";
+    return "GTE";
   case IRTag::EQ:
-    return "[" + location_to_string(instr.where) + "] EQ";
+    return "EQ";
   case IRTag::NEQ:
-    return "[" + location_to_string(instr.where) + "] NEQ";
+    return "NEQ";
   case IRTag::STR_CONCAT:
-    return "[" + location_to_string(instr.where) + "] STR_CONCAT";
+    return "STR_CONCAT";
   case IRTag::AND:
-    return "[" + location_to_string(instr.where) + "] AND";
+    return "AND";
   case IRTag::OR:
-    return "[" + location_to_string(instr.where) + "] OR";
+    return "OR";
   case IRTag::JMPIFN:
-    return "[" + location_to_string(instr.where) + "] JMPIFN" +
-           resolve_label(instr.as.LABEL);
+    return "JMPIFN " + resolve_label(instr.as.LABEL);
   case IRTag::LABEL:
-    return "[" + location_to_string(instr.where) + "] LABEL" +
-           resolve_label(instr.as.LABEL);
-    break;
+    return "LABEL " + resolve_label(instr.as.LABEL);
+  case IRTag::JMP:
+    return "JMP " + resolve_label(instr.as.LABEL);
   }
 }

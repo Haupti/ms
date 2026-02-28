@@ -29,6 +29,7 @@ enum class IRTag : uint8_t {
   STR_CONCAT,
   AND,
   OR,
+  JMP,
   JMPIFN,
   LABEL,
 };

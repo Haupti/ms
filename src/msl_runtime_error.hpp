@@ -5,20 +5,16 @@
 namespace {
 inline std::runtime_error __msl_runtime_error(LocationRef location,
                                               std::string message) {
-  Location loc = resolve_location(location);
-  return std::runtime_error("ERROR [at " + std::string(loc.filename) + "/" +
-                            std::to_string(loc.row) + "/" +
-                            std::to_string(loc.col) + "]: " + message + "\n");
+  return std::runtime_error("ERROR [at " + location_to_string(location) +
+                            "]: " + message + "\n");
 }
 inline std::runtime_error __msl_runtime_error_debug(LocationRef location,
                                                     std::string message,
                                                     int cppline,
                                                     std::string cppfile) {
-  Location loc = resolve_location(location);
   return std::runtime_error("<" + cppfile + "|" + std::to_string(cppline) +
-                            "> ERROR [at " + std::string(loc.filename) + "/" +
-                            std::to_string(loc.row) + "/" +
-                            std::to_string(loc.col) + "]: " + message + "\n");
+                            "> ERROR [at " + location_to_string(location) +
+                            "]: " + message + "\n");
 }
 } // namespace
 

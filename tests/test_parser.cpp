@@ -300,6 +300,55 @@ void test_if(T *t) {
                         "-----------------------\n"
                         "MASK: $ $ $ $ $ $ $ \n");
 }
+void test_if_else(T *t) {
+  string code = "if(#true) { #ok } else { #notok }";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "0 Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "1 Node  IF:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "2 Node  PARTIAL_CONDITION:\n"
+                        "    Start = test.msl/0/2\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 5\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "3 Node  LITERAL_SYMBOL = #true:\n"
+                        "    Start = test.msl/0/5\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "4 Node  LITERAL_SYMBOL = #ok:\n"
+                        "    Start = test.msl/0/14\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "5 Node  PARTIAL_DEFAULT_CONDITION:\n"
+                        "    Start = test.msl/0/20\n"
+                        "    First_Child = 6\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "6 Node  LITERAL_SYMBOL = #notok:\n"
+                        "    Start = test.msl/0/27\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ $ \n");
+}
 void test_if_elif_elif_else(T *t) {
   string code = "if(#true) { #if_block }\n"
                 "elif(#false) { #first_elif_block }\n"
@@ -1003,6 +1052,7 @@ int main() {
   t.test("add", test_add);
   t.test("fn-call", test_fn_call);
   t.test("if", test_if);
+  t.test("if-else", test_if_else);
   t.test("if-elif-elif-else", test_if_elif_elif_else);
   t.test("function", test_function);
   t.test("function no args", test_function_no_args);
