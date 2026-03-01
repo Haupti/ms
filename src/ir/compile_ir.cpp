@@ -537,8 +537,6 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
 
 } // namespace
 
-// TODO function defintions should not be put where they are found
-// instead collect them and put in at the end of the compilation
 std::vector<IRInstr> compile_ir(nodes ns) {
   IRContext ctx;
 

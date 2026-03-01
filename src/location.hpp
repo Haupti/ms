@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 struct LocationRef {
-  uint64_t index;
+  uint32_t index;
 };
 struct Location {
   std::filesystem::path filename;
