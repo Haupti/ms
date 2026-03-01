@@ -76,6 +76,13 @@ IRInstr ir_new_call(LocationRef where, InternedString name) {
   ir.tag = IRTag::CALL;
   return ir;
 }
+IRInstr ir_new_vm_call(LocationRef where, InternedString name) {
+  IRInstr ir;
+  ir.as.VAR = name;
+  ir.where = where;
+  ir.tag = IRTag::VMCALL;
+  return ir;
+}
 IRInstr ir_new_fn_init(LocationRef where, InternedString name) {
   IRInstr ir;
   ir.as.VAR = name;
@@ -198,6 +205,47 @@ void compile_ir_return(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::RETURN);
   ctx->add(instr);
 }
+void compile_ir_try(IRContext *ctx, nodes *ns, Node curr) {
+  compile_one(ctx, ns, ns->nth_child(curr, 0));
+  IRInstr dup = ir_new(curr.start, IRTag::DUP);
+  ctx->add(dup);
+  IRInstr typeof_instr = ir_new(curr.start, IRTag::TYPEOF);
+  ctx->add(typeof_instr);
+  IRInstr compare_value_push =
+      ir_new_push_symbol(curr.start, create_symbol("#error"));
+  ctx->add(compare_value_push);
+  IRInstr compare_result = ir_new(curr.start, IRTag::EQ);
+  ctx->add(compare_result);
+  Label label_skip_return = create_next_label("TRY");
+  IRInstr skip_return =
+      ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_return);
+  ctx->add(skip_return);
+  IRInstr instr = ir_new(curr.start, IRTag::RETURN);
+  ctx->add(instr);
+  IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_return);
+  ctx->add(label_skip_return_instr);
+}
+void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
+  compile_one(ctx, ns, ns->nth_child(curr, 0));
+  IRInstr dup = ir_new(curr.start, IRTag::DUP);
+  ctx->add(dup);
+  IRInstr typeof_instr = ir_new(curr.start, IRTag::TYPEOF);
+  ctx->add(typeof_instr);
+  IRInstr compare_value_push =
+      ir_new_push_symbol(curr.start, create_symbol("#error"));
+  ctx->add(compare_value_push);
+  IRInstr compare_result = ir_new(curr.start, IRTag::EQ);
+  ctx->add(compare_result);
+  Label label_skip_error = create_next_label("EXPECT");
+  IRInstr skip_return =
+      ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_error);
+  ctx->add(skip_return);
+  IRInstr instr = ir_new_vm_call(curr.start, create_interned_string("panic"));
+  ctx->add(instr);
+  IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_error);
+  ctx->add(label_skip_return_instr);
+}
+
 void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
   // compile args left to right
   uint64_t i = 1;
@@ -419,9 +467,11 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
       compile_ir_return(ctx, ns, curr);
       break;
     case NodeTag::TRY:
-      throw msl_runtime_error(curr.start, "NOT YET IMPLEMENTED");
+      compile_ir_try(ctx, ns, curr);
+      break;
     case NodeTag::EXPECT:
-      throw msl_runtime_error(curr.start, "NOT YET IMPLEMENTED");
+      compile_ir_expect(ctx, ns, curr);
+      break;
     case NodeTag::IF:
       compile_ir_if(ctx, ns, curr_idx, curr);
       break;

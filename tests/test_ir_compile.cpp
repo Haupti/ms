@@ -116,6 +116,49 @@ void test_fn1(T *t) {
                         "PUSH_NONE\n"
                         "RETURN\n");
 }
+void test_try(T *t) {
+  string code = "function addone(a) {\n"
+                "return try a + 1\n"
+                "}";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "INIT_FRAME addone\n"
+                        "STORE a\n"
+                        "LOAD a\n"
+                        "DUP\n"
+                        "TYPEOF\n"
+                        "PUSH_SYMBOL #error\n"
+                        "EQ\n"
+                        "JMPIFN TRY_8\n"
+                        "RETURN\n"
+                        "LABEL TRY_8\n"
+                        "PUSH_INT 1\n"
+                        "ADD\n"
+                        "RETURN\n"
+                        "PUSH_NONE\n"
+                        "RETURN\n");
+}
+
+void test_expect(T *t) {
+  string code = "function addone(a) {\n"
+                "return expect a + 1\n"
+                "}";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "INIT_FRAME addone\n"
+                        "STORE a\n"
+                        "LOAD a\n"
+                        "DUP\n"
+                        "TYPEOF\n"
+                        "PUSH_SYMBOL #error\n"
+                        "EQ\n"
+                        "JMPIFN EXPECT_9\n"
+                        "VMCALL panic\n"
+                        "LABEL EXPECT_9\n"
+                        "PUSH_INT 1\n"
+                        "ADD\n"
+                        "RETURN\n"
+                        "PUSH_NONE\n"
+                        "RETURN\n");
+}
 
 } // namespace
 int main() {
@@ -129,5 +172,7 @@ int main() {
   t.test("if condition 2", test_if2);
   t.test("if condition 3", test_if3);
   t.test("function 1", test_fn1);
+  t.test("try", test_try);
+  t.test("expect", test_expect);
   return 0;
 }
