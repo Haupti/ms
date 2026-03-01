@@ -1,7 +1,6 @@
-#include "../../lib/asap/util.hpp"
-#include "../interpret/constants.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
+#include "../vm/constants.hpp"
 #include "ir_instr.hpp"
 #include <vector>
 
@@ -56,6 +55,13 @@ IRInstr ir_new_store(LocationRef where, InternedString varname) {
   ir.tag = IRTag::STORE;
   return ir;
 }
+IRInstr ir_new_store_new_var(LocationRef where, InternedString varname) {
+  IRInstr ir;
+  ir.as.VAR = varname;
+  ir.where = where;
+  ir.tag = IRTag::ALLOC_STORE;
+  return ir;
+}
 IRInstr ir_new_load(LocationRef where, InternedString varname) {
   IRInstr ir;
   ir.as.VAR = varname;
@@ -91,6 +97,18 @@ IRInstr ir_new_fn_init(LocationRef where, InternedString name) {
   ir.tag = IRTag::INIT_FRAME;
   return ir;
 }
+IRInstr ir_new_anonymous_frame() {
+  IRInstr ir;
+  ir.as.NONE = false;
+  ir.tag = IRTag::INIT_ANON_FRAME;
+  return ir;
+}
+IRInstr ir_new_destroy_frame() {
+  IRInstr ir;
+  ir.as.NONE = false;
+  ir.tag = IRTag::DESTROY_FRAME;
+  return ir;
+}
 IRInstr ir_new_jump(LocationRef where, IRTag tag, Label target) {
   IRInstr ir;
   ir.as.LABEL = target;
@@ -110,6 +128,12 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx);
 void compile_ir_var_set(IRContext *ctx, nodes *ns, node_idx curr_idx,
                         Node curr) {
   IRInstr instr = ir_new_store(curr.start, curr.as.IDENTIFIER);
+  compile_one(ctx, ns, ns->first_child(curr_idx));
+  ctx->add(instr);
+}
+void compile_ir_var_def(IRContext *ctx, nodes *ns, node_idx curr_idx,
+                        Node curr) {
+  IRInstr instr = ir_new_store_new_var(curr.start, curr.as.IDENTIFIER);
   compile_one(ctx, ns, ns->first_child(curr_idx));
   ctx->add(instr);
 }
@@ -326,11 +350,13 @@ void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
 }
 
 void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
+  ctx->add(ir_new_anonymous_frame());
   node_idx curr = body_head;
   while (!curr.is_null()) {
     compile_one(ctx, ns, curr);
     curr = ns->next_child(curr);
   }
+  ctx->add(ir_new_destroy_frame());
 }
 void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   Label label_end = create_next_label("CONDITIONAL_END");
@@ -414,7 +440,7 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
       ctx->add(ir_new_push_alloc_string(curr.start, curr.as.STRING));
       break;
     case NodeTag::VAR_DEF:
-      compile_ir_var_set(ctx, ns, curr_idx, curr);
+      compile_ir_var_def(ctx, ns, curr_idx, curr);
       break;
     case NodeTag::VAR_SET:
       compile_ir_var_set(ctx, ns, curr_idx, curr);
@@ -504,6 +530,8 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
 
 } // namespace
 
+// TODO function defintions should not be put where they are found
+// instead collect them and put in at the end of the compilation
 std::vector<IRInstr> compile_ir(nodes ns) {
   IRContext ctx;
 

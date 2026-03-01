@@ -10,7 +10,7 @@
 
 #define INVALID 0
 
-typedef uint64_t ILHIDX;
+typedef uint64_t VMHIDX;
 typedef uint64_t StringIdx;
 enum class ValueTag : uint8_t {
   INT,
@@ -28,8 +28,8 @@ struct Value {
     double FLOAT;
     StringIdx STRING;
     Symbol SYMBOL;
-    ILHIDX LIST;
-    ILHIDX ERROR;
+    VMHIDX LIST;
+    VMHIDX ERROR;
     int64_t NONE;
   } as;
   ValueTag tag;
@@ -64,7 +64,7 @@ struct Value {
     val.tag = ValueTag::LIST;
     return val;
   }
-  static Value Error(ILHIDX boxed_value) {
+  static Value Error(VMHIDX boxed_value) {
     Value val;
     val.as.ERROR = boxed_value;
     val.tag = ValueTag::ERROR;
@@ -72,18 +72,18 @@ struct Value {
   }
 };
 
-struct ILHNode {
+struct VMHNode {
   Value value;
-  ILHIDX first_child;
-  ILHIDX next_child;
-  ILHIDX last_child;
-  ILHNode() {
+  VMHIDX first_child;
+  VMHIDX next_child;
+  VMHIDX last_child;
+  VMHNode() {
     first_child = 0;
     last_child = 0;
     next_child = 0;
   }
-  ILHNode(Value value) {
-    ILHNode node;
+  VMHNode(Value value) {
+    VMHNode node;
     node.value = value;
     first_child = 0;
     last_child = 0;
@@ -91,23 +91,23 @@ struct ILHNode {
   }
 };
 
-struct ILHeap {
+struct VMHeap {
 private:
-  std::vector<ILHNode> elements;
-  std::vector<ILHIDX> free_list;
+  std::vector<VMHNode> elements;
+  std::vector<VMHIDX> free_list;
 
   std::unordered_map<uint64_t, StringIdx> static_strings;
   std::vector<std::string> strings;
   std::vector<StringIdx> free_strings;
 
-  ILHNode *node_at(ILHIDX idx) { return &elements.at(idx); }
+  VMHNode *node_at(VMHIDX idx) { return &elements.at(idx); }
 
 public:
-  ILHeap(uint64_t capacity, uint64_t string_capacity) {
+  VMHeap(uint64_t capacity, uint64_t string_capacity) {
     elements.reserve(capacity);
     strings.reserve(string_capacity);
   }
-  ILHIDX add_string(InternedString str) {
+  VMHIDX add_string(InternedString str) {
     if (static_strings.count(str.index) > 0) {
       return add(Value::String(static_strings[str.index]));
     }
@@ -116,35 +116,35 @@ public:
     return add(Value::String(strings.size() - 1));
   }
 
-  ILHIDX add_string(std::string str) {
+  VMHIDX add_string(std::string str) {
     strings.push_back(str);
     return add(Value::String(strings.size() - 1));
   }
 
-  ILHIDX add(Value value) {
+  VMHIDX add(Value value) {
     if (free_list.size() == 0) {
       elements.emplace_back();
       elements.back().value = value;
       return elements.size() - 1;
     }
     uint64_t idx = free_list.back();
-    elements[idx] = ILHNode(value);
+    elements[idx] = VMHNode(value);
     free_list.pop_back();
     return idx;
   }
 
-  ILHIDX add_child(ILHIDX list_head, Value value) {
+  VMHIDX add_child(VMHIDX list_head, Value value) {
     if (elements.size() <= list_head) {
       warn("attempt to access out of bounds element " +
            std::to_string(list_head));
       return INVALID;
     }
-    ILHNode *list_node = &elements.at(list_head);
+    VMHNode *list_node = &elements.at(list_head);
     if (list_node->value.tag != ValueTag::LIST) {
       warn("attempt to add child to non-list value");
       return INVALID;
     }
-    ILHIDX value_idx = add(value);
+    VMHIDX value_idx = add(value);
     if (list_node->last_child == 0) {
       list_node->last_child = value_idx;
       list_node->first_child = value_idx;
@@ -154,43 +154,43 @@ public:
     }
     return value_idx;
   }
-  ILHIDX add_child_front(ILHIDX list_head, Value value) {
+  VMHIDX add_child_front(VMHIDX list_head, Value value) {
     if (elements.size() <= list_head) {
       warn("attempt to access out of bounds element " +
            std::to_string(list_head));
       return INVALID;
     }
-    ILHNode *list_node = &elements.at(list_head);
+    VMHNode *list_node = &elements.at(list_head);
     if (list_node->value.tag != ValueTag::LIST) {
       warn("attempt to add child to non-list value");
       return INVALID;
     }
-    ILHIDX value_idx = add(value);
+    VMHIDX value_idx = add(value);
     if (list_node->first_child == 0) {
       list_node->first_child = value_idx;
       list_node->last_child = value_idx;
     } else {
-      ILHIDX curr_first = list_node->first_child;
+      VMHIDX curr_first = list_node->first_child;
       list_node->first_child = value_idx;
       elements.at(list_node->first_child).next_child = curr_first;
     }
     return value_idx;
   }
 
-  Value at(ILHIDX idx) {
+  Value at(VMHIDX idx) {
     if (elements.size() <= idx) {
       return Value();
     }
     return elements.at(idx).value;
   }
 
-  ILHIDX nth_child_idx(ILHIDX list_head, uint64_t n) {
-    ILHNode *head = node_at(list_head);
+  VMHIDX nth_child_idx(VMHIDX list_head, uint64_t n) {
+    VMHNode *head = node_at(list_head);
     if (head->value.tag != ValueTag::LIST) {
       warn("attempt to get " + std::to_string(n) + "'th child of non-list");
       return INVALID;
     }
-    ILHIDX curr = head->first_child;
+    VMHIDX curr = head->first_child;
     uint64_t i = 0;
     while (i != n) {
       curr = node_at(curr)->next_child;
@@ -198,12 +198,12 @@ public:
     }
     return curr;
   }
-  Value nth_child(ILHIDX list_head, uint64_t n) {
-    ILHIDX idx = nth_child_idx(list_head, n);
+  Value nth_child(VMHIDX list_head, uint64_t n) {
+    VMHIDX idx = nth_child_idx(list_head, n);
     return elements.at(idx).value;
   }
 
-  ILHIDX replace(ILHIDX idx, Value value) {
+  VMHIDX replace(VMHIDX idx, Value value) {
     if (elements.size() <= idx) {
       warn("attempt to overwrite out of bounds index " + std::to_string(idx));
       return INVALID;
