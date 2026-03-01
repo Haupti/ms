@@ -258,8 +258,21 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
 
   // call
   InternedString fn_name = ns->at(ns->nth_child(curr, 0)).as.IDENTIFIER;
-  IRInstr instr = ir_new_call(curr.start, fn_name);
-  ctx->add(instr);
+  bool is_vm_fn = fn_name.index == _BUILDIN_FN_PANIC.index ||
+                  fn_name.index == _BUILDIN_FN_PUT.index ||
+                  fn_name.index == _BUILDIN_FN_AT.index ||
+                  fn_name.index == _BUILDIN_FN_LIST.index ||
+                  fn_name.index == _BUILDIN_FN_CONCAT.index ||
+                  fn_name.index == _BUILDIN_FN_APPEND.index ||
+                  fn_name.index == _BUILDIN_FN_PRINT.index ||
+                  fn_name.index == _BUILDIN_FN_PREPEND.index;
+  IRInstr call_instr;
+  if (is_vm_fn) {
+    call_instr = ir_new_vm_call(curr.start, fn_name);
+  } else {
+    call_instr = ir_new_call(curr.start, fn_name);
+  }
+  ctx->add(call_instr);
 }
 void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
 
