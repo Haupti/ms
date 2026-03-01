@@ -1,4 +1,5 @@
 #include "../../lib/asap/util.hpp"
+#include "../interpret/constants.hpp"
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
 #include "ir_instr.hpp"
@@ -231,8 +232,7 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(dup);
   IRInstr typeof_instr = ir_new(curr.start, IRTag::TYPEOF);
   ctx->add(typeof_instr);
-  IRInstr compare_value_push =
-      ir_new_push_symbol(curr.start, create_symbol("#error"));
+  IRInstr compare_value_push = ir_new_push_symbol(curr.start, _SYM_TYPE_ERROR);
   ctx->add(compare_value_push);
   IRInstr compare_result = ir_new(curr.start, IRTag::EQ);
   ctx->add(compare_result);
@@ -240,7 +240,7 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr skip_return =
       ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_error);
   ctx->add(skip_return);
-  IRInstr instr = ir_new_vm_call(curr.start, create_interned_string("panic"));
+  IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_PANIC);
   ctx->add(instr);
   IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_error);
   ctx->add(label_skip_return_instr);
