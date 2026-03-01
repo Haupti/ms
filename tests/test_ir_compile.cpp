@@ -44,35 +44,42 @@ void test_op3(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "LOAD a\n"
                         "NOT\n"
+                        "ISTRUE_PEEK_JMPIFN AND_END_1\n"
+                        "POP\n"
                         "LOAD b\n"
-                        "AND\n"
+                        "ISTRUE\n"
+                        "LABEL AND_END_1\n"
+                        "ISTRUE_PEEK_JMPIF OR_END_0\n"
+                        "POP\n"
                         "LOAD c\n"
                         "NOT\n"
-                        "OR\n");
+                        "ISTRUE\n"
+                        "LABEL OR_END_0\n");
 }
+
 void test_if1(T *t) {
   string code = "if(#true) { 2+2 3+3 }";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
-                        "JMPIFN conditional_end_0\n"
+                        "JMPIFN CONDITIONAL_END_2\n"
                         "PUSH_INT 2\n"
                         "PUSH_INT 2\n"
                         "ADD\n"
                         "PUSH_INT 3\n"
                         "PUSH_INT 3\n"
                         "ADD\n"
-                        "LABEL conditional_end_0\n");
+                        "LABEL CONDITIONAL_END_2\n");
 }
 
 void test_if2(T *t) {
   string code = "if(#true) { #ok } else { #notok }";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
-                        "JMPIFN skip_label_0_2\n"
+                        "JMPIFN SKIP_LABEL_0_4\n"
                         "PUSH_SYMBOL #ok\n"
-                        "LABEL skip_label_0_2\n"
+                        "LABEL SKIP_LABEL_0_4\n"
                         "PUSH_SYMBOL #notok\n"
-                        "LABEL conditional_end_1\n");
+                        "LABEL CONDITIONAL_END_3\n");
 }
 
 void test_if3(T *t) {
@@ -84,15 +91,30 @@ void test_if3(T *t) {
                 "   #elsecase }";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
-                        "JMPIFN skip_label_0_4\n"
+                        "JMPIFN SKIP_LABEL_0_6\n"
                         "PUSH_SYMBOL #ifcase\n"
-                        "LABEL skip_label_0_4\n"
+                        "LABEL SKIP_LABEL_0_6\n"
                         "PUSH_SYMBOL #false\n"
-                        "JMPIFN skip_label_1_5\n"
+                        "JMPIFN SKIP_LABEL_1_7\n"
                         "PUSH_SYMBOL #elifcase\n"
-                        "LABEL skip_label_1_5\n"
+                        "LABEL SKIP_LABEL_1_7\n"
                         "PUSH_SYMBOL #elsecase\n"
-                        "LABEL conditional_end_3\n");
+                        "LABEL CONDITIONAL_END_5\n");
+}
+void test_fn1(T *t) {
+  string code = "function add(a,b) {\n"
+                "return a + b\n"
+                "}";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "INIT_FRAME add\n"
+                        "STORE b\n"
+                        "STORE a\n"
+                        "LOAD a\n"
+                        "LOAD b\n"
+                        "ADD\n"
+                        "RETURN\n"
+                        "PUSH_NONE\n"
+                        "RETURN\n");
 }
 
 } // namespace
@@ -106,5 +128,6 @@ int main() {
   t.test("if condition 1", test_if1);
   t.test("if condition 2", test_if2);
   t.test("if condition 3", test_if3);
+  t.test("function 1", test_fn1);
   return 0;
 }

@@ -11,6 +11,7 @@ enum class IRTag : uint8_t {
   PUSH_FLOAT,
   PUSH_ALLOC_STRING,
   PUSH_SYMBOL,
+  PUSH_NONE,
   STORE,
   LOAD,
   NOT,
@@ -27,10 +28,16 @@ enum class IRTag : uint8_t {
   EQ,
   NEQ,
   STR_CONCAT,
-  AND,
-  OR,
+  RETURN,
+  CALL,
+  INIT_FRAME,
+  POP,
+  ISTRUE,
+  ISTRUE_PEEK_JMPIF,
+  ISTRUE_PEEK_JMPIFN,
   JMP,
   JMPIFN,
+  JMPIF,
   LABEL,
 };
 
@@ -42,8 +49,14 @@ struct IRInstr {
     Symbol SYMBOL;
     InternedString STRING;
     InternedString VAR;
-    bool NOTHING;
     Label LABEL;
+
+    // the boolean indicates if wether its explicitly set as a value or
+    // represents a undefined value
+    // true -> explicit NONE value
+    // false -> undefined
+    bool NONE;
+
   } as;
   IRTag tag;
 };

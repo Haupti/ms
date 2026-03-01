@@ -13,6 +13,13 @@ struct IRContext {
   void add(const IRInstr &instr) { instructions.push_back(instr); }
 };
 
+IRInstr ir_new_push_none(LocationRef where) {
+  IRInstr ir;
+  ir.as.NONE = true;
+  ir.where = where;
+  ir.tag = IRTag::PUSH_NONE;
+  return ir;
+}
 IRInstr ir_new_push_int(LocationRef where, int64_t val) {
   IRInstr ir;
   ir.as.INT = val;
@@ -57,9 +64,23 @@ IRInstr ir_new_load(LocationRef where, InternedString varname) {
 }
 IRInstr ir_new(LocationRef where, IRTag tag) {
   IRInstr ir;
-  ir.as.NOTHING = false;
+  ir.as.NONE = false;
   ir.where = where;
   ir.tag = tag;
+  return ir;
+}
+IRInstr ir_new_call(LocationRef where, InternedString name) {
+  IRInstr ir;
+  ir.as.VAR = name;
+  ir.where = where;
+  ir.tag = IRTag::CALL;
+  return ir;
+}
+IRInstr ir_new_fn_init(LocationRef where, InternedString name) {
+  IRInstr ir;
+  ir.as.VAR = name;
+  ir.where = where;
+  ir.tag = IRTag::INIT_FRAME;
   return ir;
 }
 IRInstr ir_new_jump(LocationRef where, IRTag tag, Label target) {
@@ -172,35 +193,77 @@ void compile_ir_infix_str_concat(IRContext *ctx, nodes *ns, Node curr) {
   compile_one(ctx, ns, ns->nth_child(curr, 1));
   ctx->add(instr);
 }
-void compile_ir_infix_and(IRContext *ctx, nodes *ns, Node curr) {
-  // TODO change that so it only evaluates right hand side if the first one is
-  // true
-  IRInstr instr = ir_new(curr.start, IRTag::AND);
+void compile_ir_return(IRContext *ctx, nodes *ns, Node curr) {
   compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  IRInstr instr = ir_new(curr.start, IRTag::RETURN);
   ctx->add(instr);
+}
+void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
+  // compile args left to right
+  uint64_t i = 1;
+  node_idx arg_idx = ns->nth_child(curr, i);
+  while (!arg_idx.is_null()) {
+    compile_one(ctx, ns, arg_idx);
+    i++;
+    arg_idx = ns->nth_child(curr, i);
+  }
+
+  // call
+  InternedString fn_name = ns->at(ns->nth_child(curr, 0)).as.IDENTIFIER;
+  IRInstr instr = ir_new_call(curr.start, fn_name);
+  ctx->add(instr);
+}
+void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
+
+  InternedString fn_name = curr.as.IDENTIFIER;
+  IRInstr frame_init = ir_new_fn_init(curr.start, fn_name);
+  ctx->add(frame_init);
+
+  node_idx args_list_head = ns->nth_child(curr, 0);
+  uint64_t args_i = 0;
+  node_idx arg_idx = ns->nth_child(args_list_head, args_i);
+  std::vector<IRInstr> arg_stores;
+  while (!arg_idx.is_null()) {
+    Node arg = ns->at(arg_idx);
+    arg_stores.push_back(ir_new_store(arg.start, arg.as.IDENTIFIER));
+    ++args_i;
+    arg_idx = ns->nth_child(args_list_head, args_i);
+  }
+  for (auto it = arg_stores.rbegin(); it != arg_stores.rend(); ++it) {
+    ctx->add(*it);
+  }
+
+  uint64_t i = 1;
+  node_idx body_idx = ns->nth_child(curr, 1);
+  while (!body_idx.is_null()) {
+    compile_one(ctx, ns, body_idx);
+    ++i;
+    body_idx = ns->nth_child(curr, i);
+  }
+  IRInstr push_default = ir_new_push_none(curr.start);
+  ctx->add(push_default);
+  IRInstr default_return = ir_new(curr.start, IRTag::RETURN);
+  ctx->add(default_return);
+}
+void compile_ir_infix_and(IRContext *ctx, nodes *ns, Node curr) {
+  Label label_end = create_next_label("AND_END");
+  compile_one(ctx, ns, ns->nth_child(curr, 0));
+  ctx->add(ir_new_jump(curr.start, IRTag::ISTRUE_PEEK_JMPIFN, label_end));
+  ctx->add(ir_new(curr.start, IRTag::POP));
+  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  ctx->add(ir_new(curr.start, IRTag::ISTRUE));
+  ctx->add(ir_new_label(curr.start, label_end));
 }
 void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
-  // TODO change that so it only evaluates right hand side if the first one is
-  // false
-  IRInstr instr = ir_new(curr.start, IRTag::OR);
+  Label label_end = create_next_label("OR_END");
   compile_one(ctx, ns, ns->nth_child(curr, 0));
+  ctx->add(ir_new_jump(curr.start, IRTag::ISTRUE_PEEK_JMPIF, label_end));
+  ctx->add(ir_new(curr.start, IRTag::POP));
   compile_one(ctx, ns, ns->nth_child(curr, 1));
-  ctx->add(instr);
+  ctx->add(ir_new(curr.start, IRTag::ISTRUE));
+  ctx->add(ir_new_label(curr.start, label_end));
 }
 
-// TODO this is not done yet
-// implementation plan:
-// 1. create skip-labels for all conditionals except first and last (n-2)
-// 2. while not-default (else)
-//    a) if not first insert skip-label n
-//    b) compile condition
-//    c) jump to next-skip label (n+1) if not true
-//    d) compile body
-//    e) jump to end
-// 3. if default (else)
-//    a) insert skip label n
-//    b) compile body
 void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
   node_idx curr = body_head;
   while (!curr.is_null()) {
@@ -209,10 +272,10 @@ void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
   }
 }
 void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
-  Label label_end = create_next_label("conditional_end");
+  Label label_end = create_next_label("CONDITIONAL_END");
   std::vector<Label> skip_labels;
   for (uint64_t i = 0; i < ns->list_length(ns->nth_child(curr_idx, 0)); i++) {
-    skip_labels.push_back(create_next_label("skip_label_" + std::to_string(i)));
+    skip_labels.push_back(create_next_label("SKIP_LABEL_" + std::to_string(i)));
   }
 
   node_idx if_cond = ns->nth_child(curr_idx, 0);
@@ -347,11 +410,14 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
       compile_ir_infix_str_concat(ctx, ns, curr);
       break;
     case NodeTag::FN_CALL:
-      throw msl_runtime_error(curr.start, "NOT YET IMPLEMENTED");
+      compile_ir_fn_call(ctx, ns, curr);
+      break;
     case NodeTag::FN_DEF:
-      throw msl_runtime_error(curr.start, "NOT YET IMPLEMENTED");
+      compile_ir_fn_def(ctx, ns, curr);
+      break;
     case NodeTag::RETURN:
-      throw msl_runtime_error(curr.start, "NOT YET IMPLEMENTED");
+      compile_ir_return(ctx, ns, curr);
+      break;
     case NodeTag::TRY:
       throw msl_runtime_error(curr.start, "NOT YET IMPLEMENTED");
     case NodeTag::EXPECT:
@@ -366,7 +432,8 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
       throw msl_runtime_error(curr.start,
                               "unexpected partial condition encountered");
     case NodeTag::INTERNAL_LIST:
-      throw msl_runtime_error(curr.start, "NOT YET IMPLEMENTED");
+      throw msl_runtime_error(curr.start,
+                              "unexpected internal list encountered");
       break;
     }
   }
