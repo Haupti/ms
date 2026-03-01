@@ -62,12 +62,14 @@ void test_if1(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
                         "JMPIFN CONDITIONAL_END_2\n"
+                        "INIT_ANON_FRAME\n"
                         "PUSH_INT 2\n"
                         "PUSH_INT 2\n"
                         "ADD\n"
                         "PUSH_INT 3\n"
                         "PUSH_INT 3\n"
                         "ADD\n"
+                        "DESTROY_FRAME\n"
                         "LABEL CONDITIONAL_END_2\n");
 }
 
@@ -76,9 +78,13 @@ void test_if2(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
                         "JMPIFN SKIP_LABEL_0_4\n"
+                        "INIT_ANON_FRAME\n"
                         "PUSH_SYMBOL #ok\n"
+                        "DESTROY_FRAME\n"
                         "LABEL SKIP_LABEL_0_4\n"
+                        "INIT_ANON_FRAME\n"
                         "PUSH_SYMBOL #notok\n"
+                        "DESTROY_FRAME\n"
                         "LABEL CONDITIONAL_END_3\n");
 }
 
@@ -92,15 +98,22 @@ void test_if3(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
                         "JMPIFN SKIP_LABEL_0_6\n"
+                        "INIT_ANON_FRAME\n"
                         "PUSH_SYMBOL #ifcase\n"
+                        "DESTROY_FRAME\n"
                         "LABEL SKIP_LABEL_0_6\n"
                         "PUSH_SYMBOL #false\n"
                         "JMPIFN SKIP_LABEL_1_7\n"
+                        "INIT_ANON_FRAME\n"
                         "PUSH_SYMBOL #elifcase\n"
+                        "DESTROY_FRAME\n"
                         "LABEL SKIP_LABEL_1_7\n"
+                        "INIT_ANON_FRAME\n"
                         "PUSH_SYMBOL #elsecase\n"
+                        "DESTROY_FRAME\n"
                         "LABEL CONDITIONAL_END_5\n");
 }
+
 void test_fn1(T *t) {
   string code = "function add(a,b) {\n"
                 "return a + b\n"
@@ -159,6 +172,17 @@ void test_expect(T *t) {
                         "PUSH_NONE\n"
                         "RETURN\n");
 }
+void test_ordering(T *t) {
+  string code = "let x =1 \n"
+                "function void(a) {}\n";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "PUSH_INT 1\n"
+                        "ALLOC_STORE x\n"
+                        "INIT_FRAME void\n"
+                        "STORE a\n"
+                        "PUSH_NONE\n"
+                        "RETURN\n");
+}
 
 } // namespace
 int main() {
@@ -174,5 +198,6 @@ int main() {
   t.test("function 1", test_fn1);
   t.test("try", test_try);
   t.test("expect", test_expect);
+  t.test("functions come after rest", test_ordering);
   return 0;
 }

@@ -8,9 +8,13 @@ namespace {
 struct IRContext {
   uint64_t jmp_label_counter = 0;
   std::vector<IRInstr> instructions;
+  std::vector<std::vector<IRInstr>> functions;
 
   uint64_t next_jmp_idx() { return jmp_label_counter++; }
   void add(const IRInstr &instr) { instructions.push_back(instr); }
+  void add_function(const std::vector<IRInstr> &instr) {
+    functions.push_back(instr);
+  }
 };
 
 IRInstr ir_new_push_none(LocationRef where) {
@@ -300,9 +304,11 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
 }
 void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
 
+  IRContext fn_ctx = IRContext();
+
   InternedString fn_name = curr.as.IDENTIFIER;
   IRInstr frame_init = ir_new_fn_init(curr.start, fn_name);
-  ctx->add(frame_init);
+  fn_ctx.add(frame_init);
 
   node_idx args_list_head = ns->nth_child(curr, 0);
   uint64_t args_i = 0;
@@ -315,20 +321,21 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
     arg_idx = ns->nth_child(args_list_head, args_i);
   }
   for (auto it = arg_stores.rbegin(); it != arg_stores.rend(); ++it) {
-    ctx->add(*it);
+    fn_ctx.add(*it);
   }
 
   uint64_t i = 1;
   node_idx body_idx = ns->nth_child(curr, 1);
   while (!body_idx.is_null()) {
-    compile_one(ctx, ns, body_idx);
+    compile_one(&fn_ctx, ns, body_idx);
     ++i;
     body_idx = ns->nth_child(curr, i);
   }
   IRInstr push_default = ir_new_push_none(curr.start);
-  ctx->add(push_default);
+  fn_ctx.add(push_default);
   IRInstr default_return = ir_new(curr.start, IRTag::RETURN);
-  ctx->add(default_return);
+  fn_ctx.add(default_return);
+  ctx->add_function(fn_ctx.instructions);
 }
 void compile_ir_infix_and(IRContext *ctx, nodes *ns, Node curr) {
   Label label_end = create_next_label("AND_END");
@@ -539,6 +546,10 @@ std::vector<IRInstr> compile_ir(nodes ns) {
   while (!curr_idx.is_null()) {
     compile_one(&ctx, &ns, curr_idx);
     curr_idx = ns.next_sibling(curr_idx);
+  }
+  // append all functions to main instruction vector
+  for (auto fn : ctx.functions) {
+    ctx.instructions.insert(ctx.instructions.end(), fn.begin(), fn.end());
   }
 
   return ctx.instructions;
