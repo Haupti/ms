@@ -28,15 +28,12 @@ enum class IRTag : uint8_t {
   GTE,
   EQ,
   NEQ,
-  STR_CONCAT,
   RETURN,
   DUP,
   TYPEOF,
   CALL,
   VMCALL,
   INIT_FRAME,
-  INIT_ANON_FRAME,
-  DESTROY_FRAME,
   POP,
   ISTRUE,
   ISTRUE_PEEK_JMPIF,
@@ -48,7 +45,6 @@ enum class IRTag : uint8_t {
 };
 
 struct IRInstr {
-  LocationRef where;
   union {
     int64_t INT;
     double FLOAT;
@@ -56,13 +52,17 @@ struct IRInstr {
     InternedString STRING;
     InternedString VAR;
     Label LABEL;
-
     // the boolean indicates if wether its explicitly set as a value or
     // represents a undefined value
     // true -> explicit NONE value
     // false -> undefined
     bool NONE;
-
-  } as;
-  IRTag tag;
+  } as;              // 64 bit
+  LocationRef where; // 32 bit
+  union {            // extra information for e.g. vmfncall or frame_init
+    uint16_t args;   //
+    uint16_t locals; //
+  } extra;           // 16 bit
+  IRTag tag;         // 8 bit
+                     // 8 bit padding
 };

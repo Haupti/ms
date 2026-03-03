@@ -22,6 +22,7 @@ IRInstr ir_new_push_none(LocationRef where) {
   ir.as.NONE = true;
   ir.where = where;
   ir.tag = IRTag::PUSH_NONE;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_push_int(LocationRef where, int64_t val) {
@@ -29,6 +30,7 @@ IRInstr ir_new_push_int(LocationRef where, int64_t val) {
   ir.as.INT = val;
   ir.where = where;
   ir.tag = IRTag::PUSH_INT;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_push_float(LocationRef where, double val) {
@@ -36,6 +38,7 @@ IRInstr ir_new_push_float(LocationRef where, double val) {
   ir.as.FLOAT = val;
   ir.where = where;
   ir.tag = IRTag::PUSH_FLOAT;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_push_symbol(LocationRef where, Symbol val) {
@@ -43,6 +46,7 @@ IRInstr ir_new_push_symbol(LocationRef where, Symbol val) {
   ir.as.SYMBOL = val;
   ir.where = where;
   ir.tag = IRTag::PUSH_SYMBOL;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_push_alloc_string(LocationRef where, InternedString val) {
@@ -50,6 +54,7 @@ IRInstr ir_new_push_alloc_string(LocationRef where, InternedString val) {
   ir.as.STRING = val;
   ir.where = where;
   ir.tag = IRTag::PUSH_ALLOC_STRING;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_store(LocationRef where, InternedString varname) {
@@ -57,6 +62,7 @@ IRInstr ir_new_store(LocationRef where, InternedString varname) {
   ir.as.VAR = varname;
   ir.where = where;
   ir.tag = IRTag::STORE;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_store_new_var(LocationRef where, InternedString varname) {
@@ -64,6 +70,7 @@ IRInstr ir_new_store_new_var(LocationRef where, InternedString varname) {
   ir.as.VAR = varname;
   ir.where = where;
   ir.tag = IRTag::ALLOC_STORE;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_load(LocationRef where, InternedString varname) {
@@ -71,6 +78,7 @@ IRInstr ir_new_load(LocationRef where, InternedString varname) {
   ir.as.VAR = varname;
   ir.where = where;
   ir.tag = IRTag::LOAD;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new(LocationRef where, IRTag tag) {
@@ -78,6 +86,7 @@ IRInstr ir_new(LocationRef where, IRTag tag) {
   ir.as.NONE = false;
   ir.where = where;
   ir.tag = tag;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_call(LocationRef where, InternedString name) {
@@ -85,32 +94,24 @@ IRInstr ir_new_call(LocationRef where, InternedString name) {
   ir.as.VAR = name;
   ir.where = where;
   ir.tag = IRTag::CALL;
+  ir.extra.args = 0;
   return ir;
 }
-IRInstr ir_new_vm_call(LocationRef where, InternedString name) {
+IRInstr ir_new_vm_call(LocationRef where, InternedString name, uint16_t args) {
   IRInstr ir;
   ir.as.VAR = name;
   ir.where = where;
   ir.tag = IRTag::VMCALL;
+  ir.extra.args = args;
   return ir;
 }
-IRInstr ir_new_fn_init(LocationRef where, InternedString name) {
+IRInstr ir_new_fn_init(LocationRef where, InternedString name,
+                       uint16_t locals) {
   IRInstr ir;
   ir.as.VAR = name;
   ir.where = where;
   ir.tag = IRTag::INIT_FRAME;
-  return ir;
-}
-IRInstr ir_new_anonymous_frame() {
-  IRInstr ir;
-  ir.as.NONE = false;
-  ir.tag = IRTag::INIT_ANON_FRAME;
-  return ir;
-}
-IRInstr ir_new_destroy_frame() {
-  IRInstr ir;
-  ir.as.NONE = false;
-  ir.tag = IRTag::DESTROY_FRAME;
+  ir.extra.locals = locals;
   return ir;
 }
 IRInstr ir_new_jump(LocationRef where, IRTag tag, Label target) {
@@ -118,6 +119,7 @@ IRInstr ir_new_jump(LocationRef where, IRTag tag, Label target) {
   ir.as.LABEL = target;
   ir.where = where;
   ir.tag = tag;
+  ir.extra.args = 0;
   return ir;
 }
 IRInstr ir_new_label(LocationRef where, Label label) {
@@ -125,6 +127,7 @@ IRInstr ir_new_label(LocationRef where, Label label) {
   ir.as.LABEL = label;
   ir.where = where;
   ir.tag = IRTag::LABEL;
+  ir.extra.args = 0;
   return ir;
 }
 
@@ -224,7 +227,7 @@ void compile_ir_infix_neq(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(instr);
 }
 void compile_ir_infix_str_concat(IRContext *ctx, nodes *ns, Node curr) {
-  IRInstr instr = ir_new(curr.start, IRTag::STR_CONCAT);
+  IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_STR_CONCAT, 2);
   compile_one(ctx, ns, ns->nth_child(curr, 0));
   compile_one(ctx, ns, ns->nth_child(curr, 1));
   ctx->add(instr);
@@ -265,10 +268,11 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr compare_result = ir_new(curr.start, IRTag::EQ);
   ctx->add(compare_result);
   Label label_skip_error = create_next_label("EXPECT");
-  IRInstr skip_return =
-      ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_error);
-  ctx->add(skip_return);
-  IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_PANIC);
+  IRInstr push_panic_msg =
+      ir_new_push_alloc_string(curr.start, _EXPECT_ERROR_MSG);
+  IRInstr skip_panic = ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_error);
+  ctx->add(skip_panic);
+  IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_PANIC, 1);
   ctx->add(instr);
   IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_error);
   ctx->add(label_skip_return_instr);
@@ -283,6 +287,7 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
     i++;
     arg_idx = ns->nth_child(curr, i);
   }
+  uint16_t args_count = i - 1;
 
   // call
   InternedString fn_name = ns->at(ns->nth_child(curr, 0)).as.IDENTIFIER;
@@ -296,7 +301,7 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
                   fn_name.index == _BUILDIN_FN_PREPEND.index;
   IRInstr call_instr;
   if (is_vm_fn) {
-    call_instr = ir_new_vm_call(curr.start, fn_name);
+    call_instr = ir_new_vm_call(curr.start, fn_name, args_count);
   } else {
     call_instr = ir_new_call(curr.start, fn_name);
   }
@@ -307,6 +312,8 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   IRContext fn_ctx = IRContext();
 
   InternedString fn_name = curr.as.IDENTIFIER;
+  // TODO find out how many locals are in the function
+  // that is: locally defined variables + function arguments
   IRInstr frame_init = ir_new_fn_init(curr.start, fn_name);
   fn_ctx.add(frame_init);
 
@@ -357,13 +364,11 @@ void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
 }
 
 void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
-  ctx->add(ir_new_anonymous_frame());
   node_idx curr = body_head;
   while (!curr.is_null()) {
     compile_one(ctx, ns, curr);
     curr = ns->next_child(curr);
   }
-  ctx->add(ir_new_destroy_frame());
 }
 void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   Label label_end = create_next_label("CONDITIONAL_END");
