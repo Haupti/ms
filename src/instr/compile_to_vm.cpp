@@ -4,15 +4,24 @@
 #include <unordered_map>
 #include <vector>
 
+// this has the following assumptions for the IR:
+// * all variable names are unique per frame
+// * all labels are unique
+// * all functions are placed at the end of the IR instruction vector with
+//    nothing in between
+
 std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
   std::vector<VMInstr> instructions;
   instructions.reserve(ir.size());
 
   // uint64_t of interned string
-  std::unordered_map<uint64_t, StkAddr> var_map;
+  std::unordered_map<uint64_t, StkAddr> global_var_map;
+  // uint64_t of interned string
+  std::unordered_map<uint64_t, StkAddr> local_var_map;
   // uint64_t of interned string
   std::unordered_map<uint64_t, InstrAddr> label_map;
-  StkAddr current_stack_ptr;
+  StkAddr global_stkvars_ptr;
+  StkAddr local_stkvars_ptr;
   InstrAddr current_instr_ptr;
 
   for (auto instr : ir) {
@@ -65,19 +74,40 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     case IRTag::STORE: {
       VMInstr o;
       o.where = instr.where;
-      o.as.STKADR = var_map.at(instr.as.VAR.index);
+      o.as.STKADR = local_var_map.at(instr.as.VAR.index);
       o.tag = VMTag::STORE;
       o.extra.args = 0;
       instructions.push_back(o);
       ++current_instr_ptr.addr;
     } break;
-    case IRTag::ALLOC_STORE: {
-      var_map.at(instr.as.VAR.index) = current_stack_ptr;
-      current_stack_ptr.addr += 1;
+    case IRTag::STORE_GLOBAL: {
+      VMInstr o;
+      o.where = instr.where;
+      o.as.STKADR = global_var_map.at(instr.as.VAR.index);
+      o.tag = VMTag::STORE;
+      o.extra.args = 0;
+      instructions.push_back(o);
+      ++current_instr_ptr.addr;
+    } break;
+    case IRTag::STORE_NEW: {
+      local_var_map.at(instr.as.VAR.index) = local_stkvars_ptr;
+      local_stkvars_ptr.addr += 1;
 
       VMInstr o;
       o.where = instr.where;
-      o.as.STKADR = var_map.at(instr.as.VAR.index);
+      o.as.STKADR = local_var_map.at(instr.as.VAR.index);
+      o.tag = VMTag::STORE;
+      o.extra.args = 0;
+      instructions.push_back(o);
+      ++current_instr_ptr.addr;
+    } break;
+    case IRTag::STORE_NEW_GLOBAL: {
+      global_var_map.at(instr.as.VAR.index) = global_stkvars_ptr;
+      local_stkvars_ptr.addr += 1;
+
+      VMInstr o;
+      o.where = instr.where;
+      o.as.STKADR = global_var_map.at(instr.as.VAR.index);
       o.tag = VMTag::STORE;
       o.extra.args = 0;
       instructions.push_back(o);
@@ -86,7 +116,16 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     case IRTag::LOAD: {
       VMInstr o;
       o.where = instr.where;
-      o.as.STKADR = var_map.at(instr.as.VAR.index);
+      o.as.STKADR = local_var_map.at(instr.as.VAR.index);
+      o.tag = VMTag::LOAD;
+      o.extra.args = 0;
+      instructions.push_back(o);
+      ++current_instr_ptr.addr;
+    } break;
+    case IRTag::LOAD_GLOBAL: {
+      VMInstr o;
+      o.where = instr.where;
+      o.as.STKADR = global_var_map.at(instr.as.VAR.index);
       o.tag = VMTag::LOAD;
       o.extra.args = 0;
       instructions.push_back(o);
@@ -279,7 +318,12 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       o.tag = VMTag::INIT_FRAME;
       o.extra.locals = instr.extra.locals;
       instructions.push_back(o);
+      global_stkvars_ptr = local_stkvars_ptr;
+      local_stkvars_ptr.addr = 0;
       ++current_instr_ptr.addr;
+    } break;
+    case IRTag::FRAME_END: {
+      local_stkvars_ptr = global_stkvars_ptr;
     } break;
     case IRTag::ISTRUE_PEEK_JMPIF: {
       VMInstr o;

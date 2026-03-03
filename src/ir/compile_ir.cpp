@@ -69,7 +69,7 @@ IRInstr ir_new_store_new_var(LocationRef where, InternedString varname) {
   IRInstr ir;
   ir.as.VAR = varname;
   ir.where = where;
-  ir.tag = IRTag::ALLOC_STORE;
+  ir.tag = IRTag::STORE_NEW;
   ir.extra.args = 0;
   return ir;
 }
@@ -307,15 +307,17 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
   }
   ctx->add(call_instr);
 }
+
 void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
 
   IRContext fn_ctx = IRContext();
 
   InternedString fn_name = curr.as.IDENTIFIER;
-  // TODO find out how many locals are in the function
-  // that is: locally defined variables + function arguments
-  IRInstr frame_init = ir_new_fn_init(curr.start, fn_name);
+  // SET LOCALS COUNT TO 0
+  IRInstr frame_init = ir_new_fn_init(curr.start, fn_name, 0);
   fn_ctx.add(frame_init);
+  // SAVE POSITION FOR LATER PATCHING OF LOCALS COUNT
+  uint64_t frame_init_relative_position = fn_ctx.instructions.size() - 1;
 
   node_idx args_list_head = ns->nth_child(curr, 0);
   uint64_t args_i = 0;
@@ -343,6 +345,17 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr default_return = ir_new(curr.start, IRTag::RETURN);
   fn_ctx.add(default_return);
   ctx->add_function(fn_ctx.instructions);
+
+  // PATCH LOCALS COUNT
+  // every fn arg and local variable are placed via a store_new instruction
+  // thus the number of store_new instructions is the number of fn args + locals
+  uint16_t VARS = 0;
+  for (auto instr : fn_ctx.instructions) {
+    if (instr.tag == IRTag::STORE_NEW) {
+      ++VARS;
+    }
+  }
+  fn_ctx.instructions.at(frame_init_relative_position).extra.locals = VARS;
 }
 void compile_ir_infix_and(IRContext *ctx, nodes *ns, Node curr) {
   Label label_end = create_next_label("AND_END");

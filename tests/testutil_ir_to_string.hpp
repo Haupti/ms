@@ -14,8 +14,14 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "PUSH_SYMBOL " + resolve_symbol(instr.as.SYMBOL);
   case IRTag::STORE:
     return "STORE " + resolve_interned_string(instr.as.VAR);
+  case IRTag::STORE_GLOBAL:
+    return "STORE_GLOBAL " + resolve_interned_string(instr.as.VAR);
+  case IRTag::STORE_NEW_GLOBAL:
+    return "STORE_NEW_GLOBAL " + resolve_interned_string(instr.as.VAR);
   case IRTag::LOAD:
     return "LOAD " + resolve_interned_string(instr.as.VAR);
+  case IRTag::LOAD_GLOBAL:
+    return "LOAD_GLOBAL " + resolve_interned_string(instr.as.VAR);
   case IRTag::NOT:
     return "NOT";
   case IRTag::INVERT:
@@ -42,8 +48,6 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "EQ";
   case IRTag::NEQ:
     return "NEQ";
-  case IRTag::STR_CONCAT:
-    return "STR_CONCAT";
   case IRTag::ISTRUE:
     return "ISTRUE";
   case IRTag::POP:
@@ -75,11 +79,9 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "DUP";
   case IRTag::TYPEOF:
     return "TYPEOF";
-  case IRTag::ALLOC_STORE:
-    return "ALLOC_STORE " + resolve_interned_string(instr.as.VAR);
-  case IRTag::INIT_ANON_FRAME:
-    return "INIT_ANON_FRAME";
-  case IRTag::DESTROY_FRAME:
-    return "DESTROY_FRAME";
+  case IRTag::STORE_NEW:
+    return "STORE_NEW " + resolve_interned_string(instr.as.VAR);
+  case IRTag::FRAME_END:
+    return "FRAME_END";
   }
 }
