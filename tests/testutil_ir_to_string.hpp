@@ -14,14 +14,8 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "PUSH_SYMBOL " + resolve_symbol(instr.as.SYMBOL);
   case IRTag::STORE:
     return "STORE " + resolve_interned_string(instr.as.VAR);
-  case IRTag::STORE_GLOBAL:
-    return "STORE_GLOBAL " + resolve_interned_string(instr.as.VAR);
-  case IRTag::STORE_NEW_GLOBAL:
-    return "STORE_NEW_GLOBAL " + resolve_interned_string(instr.as.VAR);
   case IRTag::LOAD:
     return "LOAD " + resolve_interned_string(instr.as.VAR);
-  case IRTag::LOAD_GLOBAL:
-    return "LOAD_GLOBAL " + resolve_interned_string(instr.as.VAR);
   case IRTag::NOT:
     return "NOT";
   case IRTag::INVERT:
@@ -66,8 +60,8 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "CALL " + resolve_interned_string(instr.as.VAR);
   case IRTag::VMCALL:
     return "VMCALL " + resolve_interned_string(instr.as.VAR);
-  case IRTag::INIT_FRAME:
-    return "INIT_FRAME " + resolve_interned_string(instr.as.VAR);
+  case IRTag::FUNCTION_START:
+    return "FUNCTION_START " + resolve_interned_string(instr.as.VAR);
   case IRTag::ISTRUE_PEEK_JMPIF:
     return "ISTRUE_PEEK_JMPIF " + resolve_label(instr.as.LABEL);
   case IRTag::ISTRUE_PEEK_JMPIFN:
@@ -81,7 +75,11 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "TYPEOF";
   case IRTag::STORE_NEW:
     return "STORE_NEW " + resolve_interned_string(instr.as.VAR);
-  case IRTag::FRAME_END:
-    return "FRAME_END";
+  case IRTag::FUNCTION_END:
+    return "FUNCTION_END";
+  case IRTag::SCOPE_START:
+    return "SCOPE_START";
+  case IRTag::SCOPE_END:
+    return "SCOPE_END";
   }
 }

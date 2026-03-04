@@ -62,14 +62,14 @@ void test_if1(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
                         "JMPIFN CONDITIONAL_END_2\n"
-                        "INIT_ANON_FRAME\n"
+                        "SCOPE_START\n"
                         "PUSH_INT 2\n"
                         "PUSH_INT 2\n"
                         "ADD\n"
                         "PUSH_INT 3\n"
                         "PUSH_INT 3\n"
                         "ADD\n"
-                        "DESTROY_FRAME\n"
+                        "SCOPE_END\n"
                         "LABEL CONDITIONAL_END_2\n");
 }
 
@@ -78,13 +78,13 @@ void test_if2(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
                         "JMPIFN SKIP_LABEL_0_4\n"
-                        "INIT_ANON_FRAME\n"
+                        "SCOPE_START\n"
                         "PUSH_SYMBOL #ok\n"
-                        "DESTROY_FRAME\n"
+                        "SCOPE_END\n"
                         "LABEL SKIP_LABEL_0_4\n"
-                        "INIT_ANON_FRAME\n"
+                        "SCOPE_START\n"
                         "PUSH_SYMBOL #notok\n"
-                        "DESTROY_FRAME\n"
+                        "SCOPE_END\n"
                         "LABEL CONDITIONAL_END_3\n");
 }
 
@@ -98,19 +98,19 @@ void test_if3(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
                         "JMPIFN SKIP_LABEL_0_6\n"
-                        "INIT_ANON_FRAME\n"
+                        "SCOPE_START\n"
                         "PUSH_SYMBOL #ifcase\n"
-                        "DESTROY_FRAME\n"
+                        "SCOPE_END\n"
                         "LABEL SKIP_LABEL_0_6\n"
                         "PUSH_SYMBOL #false\n"
                         "JMPIFN SKIP_LABEL_1_7\n"
-                        "INIT_ANON_FRAME\n"
+                        "SCOPE_START\n"
                         "PUSH_SYMBOL #elifcase\n"
-                        "DESTROY_FRAME\n"
+                        "SCOPE_END\n"
                         "LABEL SKIP_LABEL_1_7\n"
-                        "INIT_ANON_FRAME\n"
+                        "SCOPE_START\n"
                         "PUSH_SYMBOL #elsecase\n"
-                        "DESTROY_FRAME\n"
+                        "SCOPE_END\n"
                         "LABEL CONDITIONAL_END_5\n");
 }
 
@@ -119,7 +119,7 @@ void test_fn1(T *t) {
                 "return a + b\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "INIT_FRAME add\n"
+  t->assert_str_eq(out, "FUNCTION_START add\n"
                         "STORE b\n"
                         "STORE a\n"
                         "LOAD a\n"
@@ -127,16 +127,19 @@ void test_fn1(T *t) {
                         "ADD\n"
                         "RETURN\n"
                         "PUSH_NONE\n"
-                        "RETURN\n");
+                        "RETURN\n"
+                        "FUNCTION_END\n");
 }
 void test_try(T *t) {
-  string code = "function addone(a) {\n"
-                "return try a + 1\n"
+  string code = "function addone(b) {\n"
+                "return try (b + 1)\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "INIT_FRAME addone\n"
-                        "STORE a\n"
-                        "LOAD a\n"
+  t->assert_str_eq(out, "FUNCTION_START addone\n"
+                        "STORE b\n"
+                        "LOAD b\n"
+                        "PUSH_INT 1\n"
+                        "ADD\n"
                         "DUP\n"
                         "TYPEOF\n"
                         "PUSH_SYMBOL #error\n"
@@ -144,44 +147,48 @@ void test_try(T *t) {
                         "JMPIFN TRY_8\n"
                         "RETURN\n"
                         "LABEL TRY_8\n"
-                        "PUSH_INT 1\n"
-                        "ADD\n"
                         "RETURN\n"
                         "PUSH_NONE\n"
-                        "RETURN\n");
-}
+                        "RETURN\n"
+                        "FUNCTION_END\n"
 
+  );
+}
 void test_expect(T *t) {
   string code = "function addone(a) {\n"
-                "return expect a + 1\n"
+                "return expect (a + 1)\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "INIT_FRAME addone\n"
+  t->assert_str_eq(out, "FUNCTION_START addone\n"
                         "STORE a\n"
                         "LOAD a\n"
+                        "PUSH_INT 1\n"
+                        "ADD\n"
                         "DUP\n"
                         "TYPEOF\n"
                         "PUSH_SYMBOL #error\n"
                         "EQ\n"
+                        "PUSH_ALLOC_STRING expected non-error value\n"
                         "JMPIFN EXPECT_9\n"
                         "VMCALL panic\n"
                         "LABEL EXPECT_9\n"
-                        "PUSH_INT 1\n"
-                        "ADD\n"
                         "RETURN\n"
                         "PUSH_NONE\n"
-                        "RETURN\n");
+                        "RETURN\n"
+                        "FUNCTION_END\n");
 }
+
 void test_ordering(T *t) {
   string code = "let x =1 \n"
                 "function void(a) {}\n";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_INT 1\n"
-                        "ALLOC_STORE x\n"
-                        "INIT_FRAME void\n"
+                        "STORE_NEW x\n"
+                        "FUNCTION_START void\n"
                         "STORE a\n"
                         "PUSH_NONE\n"
-                        "RETURN\n");
+                        "RETURN\n"
+                        "FUNCTION_END\n");
 }
 
 } // namespace

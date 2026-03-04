@@ -311,7 +311,7 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       instructions.push_back(o);
       ++current_instr_ptr.addr;
     } break;
-    case IRTag::INIT_FRAME: {
+    case IRTag::FUNCTION_START: {
       VMInstr o;
       o.where = instr.where;
       o.as.NONE = false;
@@ -322,7 +322,7 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       local_stkvars_ptr.addr = 0;
       ++current_instr_ptr.addr;
     } break;
-    case IRTag::FRAME_END: {
+    case IRTag::FUNCTION_END: {
       local_stkvars_ptr = global_stkvars_ptr;
     } break;
     case IRTag::ISTRUE_PEEK_JMPIF: {

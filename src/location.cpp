@@ -1,4 +1,5 @@
 #include "location.hpp"
+#include "../lib/asap/util.hpp"
 #include <filesystem>
 #include <vector>
 
@@ -12,14 +13,18 @@ std::vector<Location> *_location_cache() {
 LocationRef create_location(const std::filesystem::path &filename, uint64_t row,
                             uint64_t col) {
   auto cache = _location_cache();
-  for (uint64_t i = 0; i < cache->size(); i++) {
+  for (uint32_t i = 0; i < cache->size(); i++) {
     auto l = cache->at(i);
     if (l.filename == filename && l.row == row && l.col == col) {
       return LocationRef{i};
     }
   }
   cache->push_back(Location{.filename = filename, .row = row, .col = col});
-  return LocationRef{.index = cache->size() - 1};
+  if (cache->size() - 1 > UINT32_MAX) {
+    panic("location at index " + std::to_string(cache->size() - 1) +
+          "out of limit");
+  }
+  return LocationRef{.index = static_cast<uint32_t>(cache->size() - 1)};
 }
 Location resolve_location(const LocationRef &ref) {
   auto cache = _location_cache();
@@ -28,5 +33,5 @@ Location resolve_location(const LocationRef &ref) {
 std::string location_to_string(const LocationRef &ref) {
   Location loc = resolve_location(ref);
   return std::string(loc.filename) + "/" + std::to_string(loc.row) + "/" +
-         std::to_string(loc.col) ;
+         std::to_string(loc.col);
 }

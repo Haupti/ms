@@ -110,7 +110,7 @@ IRInstr ir_new_fn_init(LocationRef where, InternedString name,
   IRInstr ir;
   ir.as.VAR = name;
   ir.where = where;
-  ir.tag = IRTag::INIT_FRAME;
+  ir.tag = IRTag::FUNCTION_START;
   ir.extra.locals = locals;
   return ir;
 }
@@ -270,6 +270,7 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   Label label_skip_error = create_next_label("EXPECT");
   IRInstr push_panic_msg =
       ir_new_push_alloc_string(curr.start, _EXPECT_ERROR_MSG);
+  ctx->add(push_panic_msg);
   IRInstr skip_panic = ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_error);
   ctx->add(skip_panic);
   IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_PANIC, 1);
@@ -344,7 +345,6 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   fn_ctx.add(push_default);
   IRInstr default_return = ir_new(curr.start, IRTag::RETURN);
   fn_ctx.add(default_return);
-  ctx->add_function(fn_ctx.instructions);
 
   // PATCH LOCALS COUNT
   // every fn arg and local variable are placed via a store_new instruction
@@ -356,6 +356,8 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
     }
   }
   fn_ctx.instructions.at(frame_init_relative_position).extra.locals = VARS;
+  fn_ctx.add(ir_new(curr.start, IRTag::FUNCTION_END));
+  ctx->add_function(fn_ctx.instructions);
 }
 void compile_ir_infix_and(IRContext *ctx, nodes *ns, Node curr) {
   Label label_end = create_next_label("AND_END");
@@ -377,11 +379,13 @@ void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
 }
 
 void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
+  ctx->add(ir_new(ns->at(body_head).start, IRTag::SCOPE_START));
   node_idx curr = body_head;
   while (!curr.is_null()) {
     compile_one(ctx, ns, curr);
     curr = ns->next_child(curr);
   }
+  ctx->add(ir_new(ns->at(body_head).start, IRTag::SCOPE_END));
 }
 void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   Label label_end = create_next_label("CONDITIONAL_END");
