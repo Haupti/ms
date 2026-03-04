@@ -57,7 +57,7 @@ struct VMInstr {
     Symbol SYMBOL;
     InternedString STRING;
     InstrAddr INSTRADDR;
-    StkAddr STKADR;
+    StkAddr STKADDR;
     // the boolean indicates if wether its explicitly set as a value or
     // represents a undefined value
     // true -> explicit NONE value

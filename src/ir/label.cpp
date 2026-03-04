@@ -10,7 +10,8 @@ std::vector<std::string> *_label_cache() {
 }; // namespace
 Label create_next_label(const std::string &prefix) {
   auto cache = _label_cache();
-  cache->push_back(prefix + "_" + std::to_string(_label_counter++));
+  // tilde prefix so it cannot accidently be the same as a function name or something else
+  cache->push_back("~" + prefix + "_" + std::to_string(_label_counter++));
   return Label{.idx = cache->size() - 1};
 }
 std::string resolve_label(const Label &label) {
