@@ -68,7 +68,6 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "ISTRUE_PEEK_JMPIFN " + resolve_label(instr.as.LABEL);
   case IRTag::JMPIF:
     return "JMPIF " + resolve_label(instr.as.LABEL);
-    break;
   case IRTag::DUP:
     return "DUP";
   case IRTag::TYPEOF:

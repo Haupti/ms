@@ -44,24 +44,24 @@ void test_op3(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "LOAD a\n"
                         "NOT\n"
-                        "ISTRUE_PEEK_JMPIFN AND_END_1\n"
+                        "ISTRUE_PEEK_JMPIFN $AND_END_1\n"
                         "POP\n"
                         "LOAD b\n"
                         "ISTRUE\n"
-                        "LABEL AND_END_1\n"
-                        "ISTRUE_PEEK_JMPIF OR_END_0\n"
+                        "LABEL $AND_END_1\n"
+                        "ISTRUE_PEEK_JMPIF $OR_END_0\n"
                         "POP\n"
                         "LOAD c\n"
                         "NOT\n"
                         "ISTRUE\n"
-                        "LABEL OR_END_0\n");
+                        "LABEL $OR_END_0\n");
 }
 
 void test_if1(T *t) {
   string code = "if(#true) { 2+2 3+3 }";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
-                        "JMPIFN CONDITIONAL_END_2\n"
+                        "JMPIFN $CONDITIONAL_END_2\n"
                         "SCOPE_START\n"
                         "PUSH_INT 2\n"
                         "PUSH_INT 2\n"
@@ -70,22 +70,22 @@ void test_if1(T *t) {
                         "PUSH_INT 3\n"
                         "ADD\n"
                         "SCOPE_END\n"
-                        "LABEL CONDITIONAL_END_2\n");
+                        "LABEL $CONDITIONAL_END_2\n");
 }
 
 void test_if2(T *t) {
   string code = "if(#true) { #ok } else { #notok }";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
-                        "JMPIFN SKIP_LABEL_0_4\n"
+                        "JMPIFN $SKIP_LABEL_0_4\n"
                         "SCOPE_START\n"
                         "PUSH_SYMBOL #ok\n"
                         "SCOPE_END\n"
-                        "LABEL SKIP_LABEL_0_4\n"
+                        "LABEL $SKIP_LABEL_0_4\n"
                         "SCOPE_START\n"
                         "PUSH_SYMBOL #notok\n"
                         "SCOPE_END\n"
-                        "LABEL CONDITIONAL_END_3\n");
+                        "LABEL $CONDITIONAL_END_3\n");
 }
 
 void test_if3(T *t) {
@@ -97,21 +97,21 @@ void test_if3(T *t) {
                 "   #elsecase }";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
-                        "JMPIFN SKIP_LABEL_0_6\n"
+                        "JMPIFN $SKIP_LABEL_0_6\n"
                         "SCOPE_START\n"
                         "PUSH_SYMBOL #ifcase\n"
                         "SCOPE_END\n"
-                        "LABEL SKIP_LABEL_0_6\n"
+                        "LABEL $SKIP_LABEL_0_6\n"
                         "PUSH_SYMBOL #false\n"
-                        "JMPIFN SKIP_LABEL_1_7\n"
+                        "JMPIFN $SKIP_LABEL_1_7\n"
                         "SCOPE_START\n"
                         "PUSH_SYMBOL #elifcase\n"
                         "SCOPE_END\n"
-                        "LABEL SKIP_LABEL_1_7\n"
+                        "LABEL $SKIP_LABEL_1_7\n"
                         "SCOPE_START\n"
                         "PUSH_SYMBOL #elsecase\n"
                         "SCOPE_END\n"
-                        "LABEL CONDITIONAL_END_5\n");
+                        "LABEL $CONDITIONAL_END_5\n");
 }
 
 void test_fn1(T *t) {
@@ -144,9 +144,9 @@ void test_try(T *t) {
                         "TYPEOF\n"
                         "PUSH_SYMBOL #error\n"
                         "EQ\n"
-                        "JMPIFN TRY_8\n"
+                        "JMPIFN $TRY_8\n"
                         "RETURN\n"
-                        "LABEL TRY_8\n"
+                        "LABEL $TRY_8\n"
                         "RETURN\n"
                         "PUSH_NONE\n"
                         "RETURN\n"
@@ -169,9 +169,9 @@ void test_expect(T *t) {
                         "PUSH_SYMBOL #error\n"
                         "EQ\n"
                         "PUSH_ALLOC_STRING expected non-error value\n"
-                        "JMPIFN EXPECT_9\n"
+                        "JMPIFN $EXPECT_9\n"
                         "VMCALL panic\n"
-                        "LABEL EXPECT_9\n"
+                        "LABEL $EXPECT_9\n"
                         "RETURN\n"
                         "PUSH_NONE\n"
                         "RETURN\n"

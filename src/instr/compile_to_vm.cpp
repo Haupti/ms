@@ -1,3 +1,4 @@
+#include "../../lib/asap/util.hpp"
 #include "../ir/ir_instr.hpp"
 #include "../vm/vm_instr.hpp"
 #include <cassert>
@@ -10,6 +11,22 @@
 // * all functions are placed at the end of the IR instruction vector with
 //    nothing in between
 namespace {
+VMInstr build_init_template() {
+  VMInstr o;
+  o.where = LocationRef{0};
+  o.as.NONE = false;
+  o.tag = VMTag::PROGRAM_INIT;
+  o.extra.globals = 0;
+  return o;
+}
+VMInstr build_halt() {
+  VMInstr o;
+  o.where = LocationRef{0};
+  o.as.NONE = false;
+  o.tag = VMTag::HALT;
+  o.extra.args = 0;
+  return o;
+}
 VMInstr build(LocationRef where, VMTag tag) {
   VMInstr o;
   o.where = where;
@@ -91,235 +108,289 @@ VMInstr build_jump(LocationRef where, VMTag tag, InstrAddr addr) {
   return o;
 }
 
+struct StackVar {
+  uint64_t depth;
+  InternedString name;
+  StkAddr offset;
+};
+
+std::vector<InstrAddr>
+make_instraddr_mask(std::unordered_map<uint64_t, InstrAddr> *labels,
+                    std::vector<IRInstr> *ir) {
+  std::vector<InstrAddr> mask;
+  mask.reserve(ir->size());
+  // because there is a program init instruction prepended at the very beginning
+  // thus all addresses must be shifted 1 up
+  uint64_t addr = 1;
+  uint64_t i = 0;
+  for (i = 0; i < ir->size(); ++i) {
+    switch (ir->at(i).tag) {
+    case IRTag::PUSH_INT:
+    case IRTag::PUSH_FLOAT:
+    case IRTag::PUSH_ALLOC_STRING:
+    case IRTag::PUSH_SYMBOL:
+    case IRTag::PUSH_NONE:
+    case IRTag::STORE:
+    case IRTag::STORE_NEW:
+    case IRTag::LOAD:
+    case IRTag::NOT:
+    case IRTag::INVERT:
+    case IRTag::ADD:
+    case IRTag::SUB:
+    case IRTag::MUL:
+    case IRTag::DIV:
+    case IRTag::MOD:
+    case IRTag::LT:
+    case IRTag::LTE:
+    case IRTag::GT:
+    case IRTag::GTE:
+    case IRTag::EQ:
+    case IRTag::NEQ:
+    case IRTag::RETURN:
+    case IRTag::DUP:
+    case IRTag::TYPEOF:
+    case IRTag::CALL:
+    case IRTag::VMCALL:
+    case IRTag::FUNCTION_START:
+    case IRTag::POP:
+    case IRTag::ISTRUE:
+    case IRTag::ISTRUE_PEEK_JMPIF:
+    case IRTag::ISTRUE_PEEK_JMPIFN:
+    case IRTag::JMP:
+    case IRTag::JMPIFN:
+    case IRTag::JMPIF:
+      mask.push_back(InstrAddr{addr});
+      ++addr;
+      break;
+    case IRTag::FUNCTION_END:
+    case IRTag::SCOPE_START:
+    case IRTag::SCOPE_END:
+      break;
+    case IRTag::LABEL:
+      (*labels)[ir->at(i).as.LABEL.idx] = InstrAddr{addr};
+      break;
+    }
+  }
+  return mask;
+}
+
+// TODO that is not entirely correct.
+// the issue is that stack vars must be dropped again from the stack when the
+// scope exits, i.e. all stack vars at a given depth larger than the current are
+// discarded. add a separate struct object thing that only keeps track of the stack var depth etc.
+StackVar get_var(std::vector<StackVar> *vars, InternedString varname) {
+
+  for (uint64_t i = vars->size(); i > 0; --i) {
+  }
+}
+StackVar set_var(std::vector<StackVar> *vars, uint64_t depth,
+                 InternedString varname) {
+  uint64_t offset = 0;
+  for (auto var : *vars) {
+    if (var.depth == depth) {
+      ++offset;
+    }
+  }
+  auto stkvar = StackVar{depth, varname, offset};
+  vars->push_back(stkvar);
+  return stkvar;
+}
 } // namespace
 
 std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
   std::vector<VMInstr> instructions;
   instructions.reserve(ir.size());
+  instructions.push_back(build_init_template());
 
-  // uint64_t of interned string
-  std::unordered_map<uint64_t, StkAddr> global_var_map;
-  // uint64_t of interned string
-  std::unordered_map<uint64_t, StkAddr> local_var_map;
-  // uint64_t of interned string, maps to functions and labels
-  std::unordered_map<uint64_t, InstrAddr> label_map;
-  StkAddr global_stkvars_ptr;
-  StkAddr local_stkvars_ptr;
-  InstrAddr current_instr_ptr;
+  uint64_t globals = 0;
+  uint64_t depth = 0;
+  std::vector<StackVar> vars;
 
+  // var interned string index -> instr addr
+  std::unordered_map<uint64_t, InstrAddr> functions;
+  // label name index -> instr addr
+  std::unordered_map<uint64_t, InstrAddr> labels;
+
+  std::vector<InstrAddr> mask = make_instraddr_mask(&labels, &ir);
   // TODO
-  // new plan for finding local/global load/store, and resolving which variable to choose
-  // make a vector of depth marked variables (depth + varname + stack address)
-  // remember depth
-  // on store_new push one back at current depth
-  // on load search from back of that array, first matching is the one
-  // on scope_start/function_start increase depth
-  // on scope_end/function_end decrease depth
-  // on depth 0 and load/store its a global load/store -> use 0 offset
-  // otherwise its a local one -> use the current offset
+  // new plan for finding local/global load/store, and resolving which
+  // variable to choose make a vector of depth marked variables (depth +
+  // varname + stack address) remember depth on store_new push one back at
+  // current depth on load search from back of that array, first matching is
+  // the one on scope_start/function_start increase depth on
+  // scope_end/function_end decrease depth on depth 0 and load/store its a
+  // global load/store -> use 0 offset otherwise its a local one -> use the
+  // current offset
 
-  for (auto instr : ir) {
+  IRInstr instr;
+  for (uint64_t i = 0; i < ir.size(); ++i) {
+
+    instr = ir.at(i);
     LocationRef where = instr.where;
+
     switch (instr.tag) {
     case IRTag::PUSH_INT: {
       auto o = build_int(where, VMTag::PUSH_INT, instr.as.INT);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::PUSH_FLOAT: {
       auto o = build_float(where, VMTag::PUSH_FLOAT, instr.as.FLOAT);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::PUSH_ALLOC_STRING: {
       auto o = build_string(where, VMTag::PUSH_ALLOC_STRING, instr.as.STRING);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::PUSH_SYMBOL: {
       VMInstr o = build_symbol(where, VMTag::PUSH_SYMBOL, instr.as.SYMBOL);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::PUSH_NONE: {
-      VMInstr o = build_none(where);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build_none(where));
     } break;
     case IRTag::STORE: {
-      StkAddr addr = local_var_map.at(instr.as.VAR.index);
-      VMInstr o = build_addr_acc(where, VMTag::STORE, addr);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      StackVar var = get_var(&vars, instr.as.VAR);
+      if (var.depth == 0) {
+        VMInstr o = build_addr_acc(where, VMTag::STORE_GLOBAL, var.offset);
+        instructions.push_back(o);
+      } else {
+        VMInstr o = build_addr_acc(where, VMTag::STORE, var.offset);
+        instructions.push_back(o);
+      }
     } break;
     case IRTag::STORE_NEW: {
-      local_var_map.at(instr.as.VAR.index) = local_stkvars_ptr;
-      local_stkvars_ptr.addr += 1;
-
-      StkAddr addr = local_var_map.at(instr.as.VAR.index);
-      VMInstr o = build_addr_acc(where, VMTag::STORE, addr);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      StackVar var = set_var(&vars, depth, instr.as.VAR);
+      if (depth == 0) {
+        ++globals;
+        VMInstr o = build_addr_acc(where, VMTag::STORE_GLOBAL, var.offset);
+        instructions.push_back(o);
+      } else {
+        VMInstr o = build_addr_acc(where, VMTag::STORE, var.offset);
+        instructions.push_back(o);
+      }
     } break;
     case IRTag::LOAD: {
-      StkAddr addr = local_var_map.at(instr.as.VAR.index);
-      VMInstr o = build_addr_acc(where, VMTag::LOAD, addr);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      StackVar var = get_var(&vars, instr.as.VAR);
+      if (depth == 0) {
+        VMInstr o = build_addr_acc(where, VMTag::LOAD_GLOBAL, var.offset);
+        instructions.push_back(o);
+      } else {
+        VMInstr o = build_addr_acc(where, VMTag::LOAD, var.offset);
+        instructions.push_back(o);
+      }
     } break;
     case IRTag::NOT: {
-      VMInstr o = build(where, VMTag::NOT);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::NOT));
     } break;
     case IRTag::INVERT: {
-      VMInstr o = build(where, VMTag::INVERT);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::INVERT));
     } break;
     case IRTag::ADD: {
-      VMInstr o = build(where, VMTag::ADD);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::ADD));
     } break;
     case IRTag::SUB: {
-      VMInstr o = build(where, VMTag::SUB);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::SUB));
     } break;
     case IRTag::MUL: {
-      VMInstr o = build(where, VMTag::MUL);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::MUL));
     } break;
     case IRTag::DIV: {
-      VMInstr o = build(where, VMTag::DIV);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::DIV));
     } break;
     case IRTag::MOD: {
-      VMInstr o = build(where, VMTag::MOD);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::MOD));
     } break;
     case IRTag::LT: {
-      VMInstr o = build(where, VMTag::LT);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::LT));
     } break;
     case IRTag::LTE: {
-      VMInstr o = build(where, VMTag::LTE);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::LTE));
     } break;
     case IRTag::GT: {
-      VMInstr o = build(where, VMTag::GT);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::GT));
     } break;
     case IRTag::GTE: {
-      VMInstr o = build(where, VMTag::GTE);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::GTE));
     } break;
     case IRTag::EQ: {
-      VMInstr o = build(where, VMTag::EQ);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::EQ));
     } break;
     case IRTag::NEQ: {
-      VMInstr o = build(where, VMTag::NEQ);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::NEQ));
     } break;
     case IRTag::RETURN: {
-      VMInstr o = build(where, VMTag::RETURN);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::RETURN));
     } break;
     case IRTag::DUP: {
-      VMInstr o = build(where, VMTag::DUP);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::DUP));
     } break;
     case IRTag::TYPEOF: {
-      VMInstr o = build(where, VMTag::TYPEOF);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::TYPEOF));
     } break;
     case IRTag::POP: {
-      VMInstr o = build(where, VMTag::POP);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::POP));
     } break;
     case IRTag::ISTRUE: {
-      VMInstr o = build(where, VMTag::ISTRUE);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build(where, VMTag::ISTRUE));
     } break;
     case IRTag::CALL: {
       VMInstr o;
       o.where = instr.where;
-      o.as.INSTRADDR = label_map.at(instr.as.VAR.index);
+      o.as.INSTRADDR = labels.at(instr.as.VAR.index);
       o.tag = VMTag::CALL;
       o.extra.args = 0;
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::VMCALL: {
-      VMInstr o = build_vmcall(instr.where, instr.extra.args);
-      instructions.push_back(o);
-      ++current_instr_ptr.addr;
+      instructions.push_back(build_vmcall(instr.where, instr.extra.args));
     } break;
     case IRTag::FUNCTION_START: {
+      ++depth;
       VMInstr o = build_init_frame(instr.where, instr.extra.locals);
       instructions.push_back(o);
-      label_map[instr.as.VAR.index] = current_instr_ptr;
-      global_stkvars_ptr = local_stkvars_ptr;
-      local_stkvars_ptr.addr = 0;
-      ++current_instr_ptr.addr;
+      functions[instr.as.VAR.index] = mask.at(i);
     } break;
-    case IRTag::FUNCTION_END: {
-      local_stkvars_ptr = global_stkvars_ptr;
-    } break;
+    case IRTag::FUNCTION_END:
+      --depth;
+      break;
     case IRTag::ISTRUE_PEEK_JMPIF: {
-      InstrAddr addr = label_map.at(instr.as.LABEL.idx);
+      InstrAddr addr = labels.at(instr.as.LABEL.idx);
       VMInstr o = build_jump(where, VMTag::ISTRUE_PEEK_JMPIF, addr);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::ISTRUE_PEEK_JMPIFN: {
-      InstrAddr addr = label_map.at(instr.as.LABEL.idx);
+      InstrAddr addr = labels.at(instr.as.LABEL.idx);
       VMInstr o = build_jump(where, VMTag::ISTRUE_PEEK_JMPIFN, addr);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::JMP: {
-      InstrAddr addr = label_map.at(instr.as.LABEL.idx);
+      InstrAddr addr = labels.at(instr.as.LABEL.idx);
       VMInstr o = build_jump(where, VMTag::JMP, addr);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::JMPIFN: {
-      InstrAddr addr = label_map.at(instr.as.LABEL.idx);
+      InstrAddr addr = labels.at(instr.as.LABEL.idx);
       VMInstr o = build_jump(where, VMTag::JMPIFN, addr);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::JMPIF: {
-      InstrAddr addr = label_map.at(instr.as.LABEL.idx);
+      InstrAddr addr = labels.at(instr.as.LABEL.idx);
       VMInstr o = build_jump(where, VMTag::JMPIF, addr);
       instructions.push_back(o);
-      ++current_instr_ptr.addr;
     } break;
     case IRTag::LABEL:
-      label_map[instr.as.VAR.index] = InstrAddr{(current_instr_ptr.addr + 1)};
+      panic("unexpected label in label-free IR");
       break;
     case IRTag::SCOPE_START:
+      ++depth;
+      break;
     case IRTag::SCOPE_END:
+      --depth;
       break;
     }
   }
-  assert(current_instr_ptr.addr == instructions.size());
+
+  instructions.at(0).extra.globals = globals;
+  instructions.push_back(build_halt());
   return instructions;
 }

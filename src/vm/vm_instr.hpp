@@ -12,7 +12,9 @@ enum class VMTag : uint8_t {
   PUSH_SYMBOL,
   PUSH_NONE,
   STORE,
+  STORE_GLOBAL,
   LOAD,
+  LOAD_GLOBAL,
   NOT,
   INVERT,
   ADD,
@@ -40,6 +42,8 @@ enum class VMTag : uint8_t {
   JMP,
   JMPIFN,
   JMPIF,
+  PROGRAM_INIT,
+  HALT,
 };
 
 struct StkAddr {
@@ -68,6 +72,7 @@ struct VMInstr {
   union {            //
     uint16_t args;   //
     uint16_t locals; //
+    uint16_t globals; //
   } extra;           // 16 bit
   uint8_t padding2;  // 8 bit
   VMTag tag;         // 8 bit
