@@ -26,7 +26,8 @@ void test_op1(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_INT 1\n"
                         "PUSH_INT 2\n"
-                        "ADD\n");
+                        "ADD\n"
+                        "POP\n");
 }
 void test_op2(T *t) {
   string code = "1 + 2 * -1";
@@ -36,7 +37,8 @@ void test_op2(T *t) {
                         "ADD\n"
                         "PUSH_INT 1\n"
                         "INVERT\n"
-                        "MUL\n");
+                        "MUL\n"
+                        "POP\n");
 }
 
 void test_op3(T *t) {
@@ -54,7 +56,8 @@ void test_op3(T *t) {
                         "LOAD c\n"
                         "NOT\n"
                         "ISTRUE\n"
-                        "LABEL $OR_END_0\n");
+                        "LABEL $OR_END_0\n"
+                        "POP\n");
 }
 
 void test_if1(T *t) {
@@ -66,9 +69,11 @@ void test_if1(T *t) {
                         "PUSH_INT 2\n"
                         "PUSH_INT 2\n"
                         "ADD\n"
+                        "POP\n"
                         "PUSH_INT 3\n"
                         "PUSH_INT 3\n"
                         "ADD\n"
+                        "POP\n"
                         "SCOPE_END\n"
                         "LABEL $CONDITIONAL_END_2\n");
 }
@@ -79,11 +84,9 @@ void test_if2(T *t) {
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
                         "JMPIFN $SKIP_LABEL_0_4\n"
                         "SCOPE_START\n"
-                        "PUSH_SYMBOL #ok\n"
                         "SCOPE_END\n"
                         "LABEL $SKIP_LABEL_0_4\n"
                         "SCOPE_START\n"
-                        "PUSH_SYMBOL #notok\n"
                         "SCOPE_END\n"
                         "LABEL $CONDITIONAL_END_3\n");
 }
@@ -99,17 +102,14 @@ void test_if3(T *t) {
   t->assert_str_eq(out, "PUSH_SYMBOL #true\n"
                         "JMPIFN $SKIP_LABEL_0_6\n"
                         "SCOPE_START\n"
-                        "PUSH_SYMBOL #ifcase\n"
                         "SCOPE_END\n"
                         "LABEL $SKIP_LABEL_0_6\n"
                         "PUSH_SYMBOL #false\n"
                         "JMPIFN $SKIP_LABEL_1_7\n"
                         "SCOPE_START\n"
-                        "PUSH_SYMBOL #elifcase\n"
                         "SCOPE_END\n"
                         "LABEL $SKIP_LABEL_1_7\n"
                         "SCOPE_START\n"
-                        "PUSH_SYMBOL #elsecase\n"
                         "SCOPE_END\n"
                         "LABEL $CONDITIONAL_END_5\n");
 }

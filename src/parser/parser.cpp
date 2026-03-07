@@ -565,7 +565,7 @@ node_idx parse_let(Parser *p) {
   var_def.tag = NodeTag::VAR_DEF;
   node_idx myself = p->nodes.add_dangling(var_def);
   // hook up child
-  node_idx first_child = parse_expression_lazy(p);
+  node_idx first_child = parse_expression_eager(p);
   p->nodes.add_child(myself, first_child);
   return myself;
 }
@@ -585,7 +585,7 @@ node_idx parse_set(Parser *p) {
   var_def.tag = NodeTag::VAR_SET;
   node_idx myself = p->nodes.add_dangling(var_def);
   // hook up child
-  node_idx first_child = parse_expression_lazy(p);
+  node_idx first_child = parse_expression_eager(p);
   p->nodes.add_child(myself, first_child);
   return myself;
 }

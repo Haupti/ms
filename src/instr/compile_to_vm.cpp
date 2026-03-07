@@ -83,10 +83,10 @@ VMInstr build_none(LocationRef where) {
   o.extra.args = 0;
   return o;
 }
-VMInstr build_vmcall(LocationRef where, uint16_t args) {
+VMInstr build_vmcall(LocationRef where, InternedString vmfn, uint16_t args) {
   VMInstr o;
   o.where = where;
-  o.as.NONE = false;
+  o.as.VMFN = vmfn;
   o.tag = VMTag::VMCALL;
   o.extra.args = args;
   return o;
@@ -114,9 +114,8 @@ struct StackVar {
   StkAddr offset;
 };
 
-std::vector<InstrAddr>
-make_instraddr_mask(std::unordered_map<uint64_t, InstrAddr> *labels,
-                    std::vector<IRInstr> *ir) {
+std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
+    std::unordered_map<uint64_t, InstrAddr> *labels, std::vector<IRInstr> *ir) {
   std::vector<InstrAddr> mask;
   mask.reserve(ir->size());
   // because there is a program init instruction prepended at the very beginning
@@ -165,24 +164,28 @@ make_instraddr_mask(std::unordered_map<uint64_t, InstrAddr> *labels,
     case IRTag::FUNCTION_END:
     case IRTag::SCOPE_START:
     case IRTag::SCOPE_END:
+      // omitted in the output -> don't contribute to output address counter
       break;
     case IRTag::LABEL:
       (*labels)[ir->at(i).as.LABEL.idx] = InstrAddr{addr};
+      // omitted in the output -> doesn't contribute to output address counter
       break;
     }
   }
   return mask;
 }
 
-// TODO that is not entirely correct.
-// the issue is that stack vars must be dropped again from the stack when the
-// scope exits, i.e. all stack vars at a given depth larger than the current are
-// discarded. add a separate struct object thing that only keeps track of the stack var depth etc.
 StackVar get_var(std::vector<StackVar> *vars, InternedString varname) {
-
+  for (auto i = vars->rbegin(); i != vars->rend(); ++i) {
+    if (i->name.index == varname.index) {
+      return *i;
+    }
+  }
   for (uint64_t i = vars->size(); i > 0; --i) {
   }
+  panic("unexpected unmatched var in IR");
 }
+
 StackVar set_var(std::vector<StackVar> *vars, uint64_t depth,
                  InternedString varname) {
   uint64_t offset = 0;
@@ -191,9 +194,16 @@ StackVar set_var(std::vector<StackVar> *vars, uint64_t depth,
       ++offset;
     }
   }
-  auto stkvar = StackVar{depth, varname, offset};
+  auto stkvar =
+      StackVar{.depth = depth, .name = varname, .offset = StkAddr{offset}};
   vars->push_back(stkvar);
   return stkvar;
+}
+
+void remove_min_depth_vars(std::vector<StackVar> *vars, uint64_t depth) {
+  while (vars->size() > 0 and vars->back().depth >= depth) {
+    vars->pop_back();
+  }
 }
 } // namespace
 
@@ -211,16 +221,8 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
   // label name index -> instr addr
   std::unordered_map<uint64_t, InstrAddr> labels;
 
-  std::vector<InstrAddr> mask = make_instraddr_mask(&labels, &ir);
-  // TODO
-  // new plan for finding local/global load/store, and resolving which
-  // variable to choose make a vector of depth marked variables (depth +
-  // varname + stack address) remember depth on store_new push one back at
-  // current depth on load search from back of that array, first matching is
-  // the one on scope_start/function_start increase depth on
-  // scope_end/function_end decrease depth on depth 0 and load/store its a
-  // global load/store -> use 0 offset otherwise its a local one -> use the
-  // current offset
+  std::vector<InstrAddr> mask =
+      make_instraddr_mask_and_set_labels(&labels, &ir);
 
   IRInstr instr;
   for (uint64_t i = 0; i < ir.size(); ++i) {
@@ -342,7 +344,8 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       instructions.push_back(o);
     } break;
     case IRTag::VMCALL: {
-      instructions.push_back(build_vmcall(instr.where, instr.extra.args));
+      instructions.push_back(
+          build_vmcall(instr.where, instr.as.VAR, instr.extra.args));
     } break;
     case IRTag::FUNCTION_START: {
       ++depth;
@@ -351,6 +354,7 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       functions[instr.as.VAR.index] = mask.at(i);
     } break;
     case IRTag::FUNCTION_END:
+      remove_min_depth_vars(&vars, depth);
       --depth;
       break;
     case IRTag::ISTRUE_PEEK_JMPIF: {
@@ -379,12 +383,13 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       instructions.push_back(o);
     } break;
     case IRTag::LABEL:
-      panic("unexpected label in label-free IR");
+      // handled in pre-flight
       break;
     case IRTag::SCOPE_START:
       ++depth;
       break;
     case IRTag::SCOPE_END:
+      remove_min_depth_vars(&vars, depth);
       --depth;
       break;
     }

@@ -131,17 +131,18 @@ IRInstr ir_new_label(LocationRef where, Label label) {
   return ir;
 }
 
-void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx);
+void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
+                 bool is_standalone);
 void compile_ir_var_set(IRContext *ctx, nodes *ns, node_idx curr_idx,
                         Node curr) {
   IRInstr instr = ir_new_store(curr.start, curr.as.IDENTIFIER);
-  compile_one(ctx, ns, ns->first_child(curr_idx));
+  compile_one(ctx, ns, ns->first_child(curr_idx), false);
   ctx->add(instr);
 }
 void compile_ir_var_def(IRContext *ctx, nodes *ns, node_idx curr_idx,
                         Node curr) {
   IRInstr instr = ir_new_store_new_var(curr.start, curr.as.IDENTIFIER);
-  compile_one(ctx, ns, ns->first_child(curr_idx));
+  compile_one(ctx, ns, ns->first_child(curr_idx), false);
   ctx->add(instr);
 }
 void compile_ir_var_ref(IRContext *ctx, Node curr) {
@@ -151,94 +152,94 @@ void compile_ir_var_ref(IRContext *ctx, Node curr) {
 void compile_ir_boolean_not(IRContext *ctx, nodes *ns, node_idx curr_idx,
                             Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::NOT);
-  compile_one(ctx, ns, ns->first_child(curr_idx));
+  compile_one(ctx, ns, ns->first_child(curr_idx), false);
   ctx->add(instr);
 }
 void compile_ir_invert(IRContext *ctx, nodes *ns, node_idx curr_idx,
                        Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::INVERT);
-  compile_one(ctx, ns, ns->first_child(curr_idx));
+  compile_one(ctx, ns, ns->first_child(curr_idx), false);
   ctx->add(instr);
 }
 void compile_ir_infix_add(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::ADD);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_sub(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::SUB);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_mul(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::MUL);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_div(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::DIV);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_mod(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::MOD);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_lt(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::LT);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_lte(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::LTE);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_gt(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::GT);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_gte(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::GTE);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_eq(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::EQ);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_neq(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::NEQ);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_infix_str_concat(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_STR_CONCAT, 2);
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
 }
 void compile_ir_return(IRContext *ctx, nodes *ns, Node curr) {
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   IRInstr instr = ir_new(curr.start, IRTag::RETURN);
   ctx->add(instr);
 }
 void compile_ir_try(IRContext *ctx, nodes *ns, Node curr) {
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   IRInstr dup = ir_new(curr.start, IRTag::DUP);
   ctx->add(dup);
   IRInstr typeof_instr = ir_new(curr.start, IRTag::TYPEOF);
@@ -258,7 +259,7 @@ void compile_ir_try(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(label_skip_return_instr);
 }
 void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   IRInstr dup = ir_new(curr.start, IRTag::DUP);
   ctx->add(dup);
   IRInstr typeof_instr = ir_new(curr.start, IRTag::TYPEOF);
@@ -284,7 +285,7 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
   uint64_t i = 1;
   node_idx arg_idx = ns->nth_child(curr, i);
   while (!arg_idx.is_null()) {
-    compile_one(ctx, ns, arg_idx);
+    compile_one(ctx, ns, arg_idx, false);
     i++;
     arg_idx = ns->nth_child(curr, i);
   }
@@ -337,7 +338,7 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   uint64_t i = 1;
   node_idx body_idx = ns->nth_child(curr, 1);
   while (!body_idx.is_null()) {
-    compile_one(&fn_ctx, ns, body_idx);
+    compile_one(&fn_ctx, ns, body_idx, true);
     ++i;
     body_idx = ns->nth_child(curr, i);
   }
@@ -361,19 +362,19 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
 }
 void compile_ir_infix_and(IRContext *ctx, nodes *ns, Node curr) {
   Label label_end = create_next_label("AND_END");
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   ctx->add(ir_new_jump(curr.start, IRTag::ISTRUE_PEEK_JMPIFN, label_end));
   ctx->add(ir_new(curr.start, IRTag::POP));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(ir_new(curr.start, IRTag::ISTRUE));
   ctx->add(ir_new_label(curr.start, label_end));
 }
 void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
   Label label_end = create_next_label("OR_END");
-  compile_one(ctx, ns, ns->nth_child(curr, 0));
+  compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   ctx->add(ir_new_jump(curr.start, IRTag::ISTRUE_PEEK_JMPIF, label_end));
   ctx->add(ir_new(curr.start, IRTag::POP));
-  compile_one(ctx, ns, ns->nth_child(curr, 1));
+  compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(ir_new(curr.start, IRTag::ISTRUE));
   ctx->add(ir_new_label(curr.start, label_end));
 }
@@ -382,7 +383,7 @@ void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
   ctx->add(ir_new(ns->at(body_head).start, IRTag::SCOPE_START));
   node_idx curr = body_head;
   while (!curr.is_null()) {
-    compile_one(ctx, ns, curr);
+    compile_one(ctx, ns, curr, true);
     curr = ns->next_child(curr);
   }
   ctx->add(ir_new(ns->at(body_head).start, IRTag::SCOPE_END));
@@ -396,7 +397,7 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
 
   node_idx if_cond = ns->nth_child(curr_idx, 0);
   node_idx if_cond_condition = ns->nth_child(if_cond, 0);
-  compile_one(ctx, ns, if_cond_condition);
+  compile_one(ctx, ns, if_cond_condition, false);
   if (skip_labels.size() > 0) {
     IRInstr ifjmp = ir_new_jump(curr.start, IRTag::JMPIFN, skip_labels[0]);
     ctx->add(ifjmp);
@@ -417,7 +418,7 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
 
     // actual condition
     node_idx elif_cond_condition = ns->nth_child(elif_cond, 0);
-    compile_one(ctx, ns, elif_cond_condition);
+    compile_one(ctx, ns, elif_cond_condition, false);
 
     // jmp to next/end if false
     IRInstr elifjmp;
@@ -448,7 +449,8 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   ctx->add(ir_new_label(curr.start, label_end));
 }
 
-void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
+void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
+                 bool is_standalone) {
   if (curr_idx.is_null()) {
     throw std::runtime_error("attempt to compile NIL node");
   } else {
@@ -457,16 +459,24 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
     case NodeTag::NIL:
       break;
     case NodeTag::LITERAL_INT:
-      ctx->add(ir_new_push_int(curr.start, curr.as.INT));
+      if (!is_standalone) {
+        ctx->add(ir_new_push_int(curr.start, curr.as.INT));
+      }
       break;
     case NodeTag::LITERAL_FLOAT:
-      ctx->add(ir_new_push_float(curr.start, curr.as.FLOAT));
+      if (!is_standalone) {
+        ctx->add(ir_new_push_float(curr.start, curr.as.FLOAT));
+      }
       break;
     case NodeTag::LITERAL_SYMBOL:
-      ctx->add(ir_new_push_symbol(curr.start, curr.as.SYMBOL));
+      if (!is_standalone) {
+        ctx->add(ir_new_push_symbol(curr.start, curr.as.SYMBOL));
+      }
       break;
     case NodeTag::LITERAL_STRING:
-      ctx->add(ir_new_push_alloc_string(curr.start, curr.as.STRING));
+      if (!is_standalone) {
+        ctx->add(ir_new_push_alloc_string(curr.start, curr.as.STRING));
+      }
       break;
     case NodeTag::VAR_DEF:
       compile_ir_var_def(ctx, ns, curr_idx, curr);
@@ -475,58 +485,111 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
       compile_ir_var_set(ctx, ns, curr_idx, curr);
       break;
     case NodeTag::VAR_REF:
-      compile_ir_var_ref(ctx, curr);
+      if (!is_standalone) {
+        compile_ir_var_ref(ctx, curr);
+      }
       break;
     case NodeTag::PREFIX_NOT:
       compile_ir_boolean_not(ctx, ns, curr_idx, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::PREFIX_INVERS:
       compile_ir_invert(ctx, ns, curr_idx, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_ADD:
       compile_ir_infix_add(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_SUB:
       compile_ir_infix_sub(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_MUL:
       compile_ir_infix_mul(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_DIV:
       compile_ir_infix_div(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_MOD:
       compile_ir_infix_mod(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_AND:
       compile_ir_infix_and(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_OR:
       compile_ir_infix_or(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_LT:
       compile_ir_infix_lt(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_LTE:
       compile_ir_infix_lte(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_GT:
       compile_ir_infix_gt(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_GTE:
       compile_ir_infix_gte(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_EQ:
       compile_ir_infix_eq(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_NEQ:
       compile_ir_infix_neq(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::INFIX_STR_CONCAT:
       compile_ir_infix_str_concat(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::FN_CALL:
       compile_ir_fn_call(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::FN_DEF:
       compile_ir_fn_def(ctx, ns, curr);
@@ -536,9 +599,15 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx) {
       break;
     case NodeTag::TRY:
       compile_ir_try(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::EXPECT:
       compile_ir_expect(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
       break;
     case NodeTag::IF:
       compile_ir_if(ctx, ns, curr_idx, curr);
@@ -564,7 +633,7 @@ std::vector<IRInstr> compile_ir(nodes ns) {
 
   node_idx curr_idx = node_idx{ns.first_elem};
   while (!curr_idx.is_null()) {
-    compile_one(&ctx, &ns, curr_idx);
+    compile_one(&ctx, &ns, curr_idx, true);
     curr_idx = ns.next_sibling(curr_idx);
   }
   // append all functions to main instruction vector
