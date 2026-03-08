@@ -641,6 +641,10 @@ std::vector<IRInstr> compile_ir(nodes ns) {
     compile_one(&ctx, &ns, curr_idx, true);
     curr_idx = ns.next_sibling(curr_idx);
   }
+  // stop program execution before reaching functions
+  if (ctx.functions.size() != 0) {
+    ctx.add(ir_new({0}, IRTag::HALT));
+  }
   // append all functions to main instruction vector
   for (auto fn : ctx.functions) {
     ctx.instructions.insert(ctx.instructions.end(), fn.begin(), fn.end());

@@ -148,16 +148,17 @@ void test_fn1(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
-                        "1 INIT_FRAME 2\n"
-                        "2 STORE mem(0)\n"
-                        "3 STORE mem(1)\n"
-                        "4 LOAD mem(1)\n"
-                        "5 LOAD mem(0)\n"
-                        "6 ADD\n"
-                        "7 RETURN\n"
-                        "8 PUSH_NONE \n"
-                        "9 RETURN\n"
-                        "10 HALT\n");
+                        "1 HALT\n"
+                        "2 INIT_FRAME 2\n"
+                        "3 STORE mem(0)\n"
+                        "4 STORE mem(1)\n"
+                        "5 LOAD mem(1)\n"
+                        "6 LOAD mem(0)\n"
+                        "7 ADD\n"
+                        "8 RETURN\n"
+                        "9 PUSH_NONE \n"
+                        "10 RETURN\n"
+                        "11 HALT\n");
 }
 
 void test_try(T *t) {
@@ -166,21 +167,22 @@ void test_try(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
-                        "1 INIT_FRAME 1\n"
-                        "2 STORE mem(0)\n"
-                        "3 LOAD mem(0)\n"
-                        "4 PUSH_INT 1\n"
-                        "5 ADD\n"
-                        "6 DUP\n"
-                        "7 TYPEOF\n"
-                        "8 PUSH_SYMBOL #error\n"
-                        "9 EQ\n"
-                        "10 JMPIFN addr(12)\n"
-                        "11 RETURN\n"
+                        "1 HALT\n"
+                        "2 INIT_FRAME 1\n"
+                        "3 STORE mem(0)\n"
+                        "4 LOAD mem(0)\n"
+                        "5 PUSH_INT 1\n"
+                        "6 ADD\n"
+                        "7 DUP\n"
+                        "8 TYPEOF\n"
+                        "9 PUSH_SYMBOL #error\n"
+                        "10 EQ\n"
+                        "11 JMPIFN addr(13)\n"
                         "12 RETURN\n"
-                        "13 PUSH_NONE \n"
-                        "14 RETURN\n"
-                        "15 HALT\n");
+                        "13 RETURN\n"
+                        "14 PUSH_NONE \n"
+                        "15 RETURN\n"
+                        "16 HALT\n");
 }
 
 void test_expect(T *t) {
@@ -189,22 +191,23 @@ void test_expect(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
-                        "1 INIT_FRAME 1\n"
-                        "2 STORE mem(0)\n"
-                        "3 LOAD mem(0)\n"
-                        "4 PUSH_INT 1\n"
-                        "5 ADD\n"
-                        "6 DUP\n"
-                        "7 TYPEOF\n"
-                        "8 PUSH_SYMBOL #error\n"
-                        "9 EQ\n"
-                        "10 JMPIFN addr(13)\n"
-                        "11 PUSH_ALLOC_STRING 'expected non-error value'\n"
-                        "12 VMCALL panic 1\n"
-                        "13 RETURN\n"
-                        "14 PUSH_NONE \n"
-                        "15 RETURN\n"
-                        "16 HALT\n");
+                        "1 HALT\n"
+                        "2 INIT_FRAME 1\n"
+                        "3 STORE mem(0)\n"
+                        "4 LOAD mem(0)\n"
+                        "5 PUSH_INT 1\n"
+                        "6 ADD\n"
+                        "7 DUP\n"
+                        "8 TYPEOF\n"
+                        "9 PUSH_SYMBOL #error\n"
+                        "10 EQ\n"
+                        "11 JMPIFN addr(14)\n"
+                        "12 PUSH_ALLOC_STRING 'expected non-error value'\n"
+                        "13 VMCALL panic 1\n"
+                        "14 RETURN\n"
+                        "15 PUSH_NONE \n"
+                        "16 RETURN\n"
+                        "17 HALT\n");
 }
 
 void test_ordering(T *t) {
@@ -214,11 +217,44 @@ void test_ordering(T *t) {
   t->assert_str_eq(out, "0 PROGRAM_INIT 1\n"
                         "1 PUSH_INT 1\n"
                         "2 STORE_GLOBAL mem(0)\n"
-                        "3 INIT_FRAME 1\n"
-                        "4 STORE mem(0)\n"
-                        "5 PUSH_NONE \n"
-                        "6 RETURN\n"
-                        "7 HALT\n");
+                        "3 HALT\n"
+                        "4 INIT_FRAME 1\n"
+                        "5 STORE mem(0)\n"
+                        "6 PUSH_NONE \n"
+                        "7 RETURN\n"
+                        "8 HALT\n");
+}
+void test_complex(T *t) {
+  string code = "let x = 1\n"
+                "function void(a) {\n"
+                "  return x + a\n"
+                "}\n"
+                "if (x == 1) {\n"
+                "  let x = 2\n"
+                "  set x = 3\n"
+                "}\n";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "0 PROGRAM_INIT 2\n"
+                        "1 PUSH_INT 1\n"
+                        "2 STORE_GLOBAL mem(0)\n"
+                        "3 LOAD_GLOBAL mem(0)\n"
+                        "4 PUSH_INT 1\n"
+                        "5 EQ\n"
+                        "6 JMPIFN addr(11)\n"
+                        "7 PUSH_INT 2\n"
+                        "8 STORE mem(1)\n"
+                        "9 PUSH_INT 3\n"
+                        "10 STORE mem(1)\n"
+                        "11 HALT\n"
+                        "12 INIT_FRAME 1\n"
+                        "13 STORE mem(0)\n"
+                        "14 LOAD_GLOBAL mem(0)\n"
+                        "15 LOAD mem(0)\n"
+                        "16 ADD\n"
+                        "17 RETURN\n"
+                        "18 PUSH_NONE \n"
+                        "19 RETURN\n"
+                        "20 HALT\n");
 }
 
 } // namespace
@@ -237,5 +273,6 @@ int main() {
   t.test("try", test_try);
   t.test("expect", test_expect);
   t.test("functions come after rest", test_ordering);
+  t.test("complex", test_complex);
   return 0;
 }

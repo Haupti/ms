@@ -122,7 +122,8 @@ void test_fn1(T *t) {
                 "return a + b\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "FUNCTION_START add\n"
+  t->assert_str_eq(out, "HALT\n"
+                        "FUNCTION_START add\n"
                         "STORE_NEW b\n"
                         "STORE_NEW a\n"
                         "LOAD a\n"
@@ -138,7 +139,8 @@ void test_try(T *t) {
                 "return try (b + 1)\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "FUNCTION_START addone\n"
+  t->assert_str_eq(out, "HALT\n"
+                        "FUNCTION_START addone\n"
                         "STORE_NEW b\n"
                         "LOAD b\n"
                         "PUSH_INT 1\n"
@@ -162,7 +164,8 @@ void test_expect(T *t) {
                 "return expect (a + 1)\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "FUNCTION_START addone\n"
+  t->assert_str_eq(out, "HALT\n"
+                        "FUNCTION_START addone\n"
                         "STORE_NEW a\n"
                         "LOAD a\n"
                         "PUSH_INT 1\n"
@@ -187,6 +190,7 @@ void test_ordering(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "PUSH_INT 1\n"
                         "STORE_NEW x\n"
+                        "HALT\n"
                         "FUNCTION_START void\n"
                         "STORE_NEW a\n"
                         "PUSH_NONE\n"

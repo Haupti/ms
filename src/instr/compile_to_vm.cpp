@@ -167,6 +167,7 @@ std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
     case IRTag::JMP:
     case IRTag::JMPIFN:
     case IRTag::JMPIF:
+    case IRTag::HALT:
       mask.push_back(InstrAddr{addr});
       ++addr;
       break;
@@ -311,7 +312,7 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     } break;
     case IRTag::LOAD: {
       VarTrackingEntry var = get_var(&vars, depth, instr.as.VAR);
-      if (depth == 0) {
+      if (var.depth == 0) {
         VMInstr o = build_addr_acc(where, VMTag::LOAD_GLOBAL, var.offset);
         instructions.push_back(o);
       } else {
@@ -431,6 +432,9 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     case IRTag::SCOPE_END:
       exit_scope(&vars);
       --depth;
+      break;
+    case IRTag::HALT:
+      instructions.push_back(build_halt());
       break;
     }
   }

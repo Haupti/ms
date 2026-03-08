@@ -45,6 +45,7 @@ enum class IRTag : uint8_t {
   JMPIFN,
   JMPIF,
   LABEL,
+  HALT,
 };
 
 struct IRInstr {
