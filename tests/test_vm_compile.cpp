@@ -108,12 +108,20 @@ void test_if1(T *t) {
 }
 
 void test_if2(T *t) {
-  string code = "if(#true) { #ok } else { #notok }";
+  string code = "let x = 1\n"
+                "if(#true) { set x = 2 } else { set x = 3 }";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
-                        "1 PUSH_SYMBOL #true\n"
-                        "2 JMPIFN addr(3)\n"
-                        "3 HALT\n");
+  t->assert_str_eq(out, "0 PROGRAM_INIT 1\n"
+                        "1 PUSH_INT 1\n"
+                        "2 STORE_GLOBAL mem(0)\n"
+                        "3 PUSH_SYMBOL #true\n"
+                        "4 JMPIFN addr(8)\n"
+                        "5 PUSH_INT 2\n"
+                        "6 STORE_GLOBAL mem(0)\n"
+                        "7 JMP addr(10)\n"
+                        "8 PUSH_INT 3\n"
+                        "9 STORE_GLOBAL mem(0)\n"
+                        "10 HALT\n");
 }
 
 void test_if3(T *t) {
@@ -126,10 +134,12 @@ void test_if3(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
                         "1 PUSH_SYMBOL #true\n"
-                        "2 JMPIFN addr(3)\n"
-                        "3 PUSH_SYMBOL #false\n"
-                        "4 JMPIFN addr(5)\n"
-                        "5 HALT\n");
+                        "2 JMPIFN addr(4)\n"
+                        "3 JMP addr(7)\n"
+                        "4 PUSH_SYMBOL #false\n"
+                        "5 JMPIFN addr(7)\n"
+                        "6 JMP addr(7)\n"
+                        "7 HALT\n");
 }
 
 void test_fn1(T *t) {

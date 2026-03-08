@@ -407,13 +407,15 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   }
   compile_condition_body(ctx, ns, ns->nth_child(if_cond, 1));
 
-  uint32_t i = 1;
-  node_idx elif_cond = ns->nth_child(curr_idx, i);
+  uint32_t cond_idx = 1;
+  node_idx elif_cond = ns->nth_child(curr_idx, cond_idx);
   while (!elif_cond.is_null() &&
          ns->at(elif_cond).tag != NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
+    // skip rest for previous hit
+    ctx->add(ir_new_jump(curr.start, IRTag::JMP, label_end));
     // insert skip label for previous condition
     IRInstr elif_skip_label =
-        ir_new_jump(curr.start, IRTag::LABEL, skip_labels.at(i - 1));
+        ir_new_jump(curr.start, IRTag::LABEL, skip_labels.at(cond_idx - 1));
     ctx->add(elif_skip_label);
 
     // actual condition
@@ -422,8 +424,9 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
 
     // jmp to next/end if false
     IRInstr elifjmp;
-    if (skip_labels.size() > i) {
-      elifjmp = ir_new_jump(curr.start, IRTag::JMPIFN, skip_labels.at(i));
+    if (skip_labels.size() > cond_idx) {
+      elifjmp =
+          ir_new_jump(curr.start, IRTag::JMPIFN, skip_labels.at(cond_idx));
     } else {
       elifjmp = ir_new_jump(curr.start, IRTag::JMPIFN, label_end);
     }
@@ -431,12 +434,14 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
 
     // actual body
     compile_condition_body(ctx, ns, ns->nth_child(elif_cond, 1));
-    i++;
-    elif_cond = ns->nth_child(curr_idx, i);
+    cond_idx++;
+    elif_cond = ns->nth_child(curr_idx, cond_idx);
   }
 
   if (!elif_cond.is_null() &&
       ns->at(elif_cond).tag == NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION) {
+    // skip rest for previous hit
+    ctx->add(ir_new_jump(curr.start, IRTag::JMP, label_end));
     // insert skip label for previous condition
     IRInstr else_skip_label =
         ir_new_jump(curr.start, IRTag::LABEL, skip_labels.back());

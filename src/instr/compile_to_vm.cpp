@@ -108,10 +108,19 @@ VMInstr build_jump(LocationRef where, VMTag tag, InstrAddr addr) {
   return o;
 }
 
-struct StackVar {
+enum class EntryTag : uint8_t {
+  FN_BEGIN,
+  FN_END,
+  SCOPE_BEGIN,
+  SCOPE_END,
+  VAR,
+};
+
+struct VarTrackingEntry {
   uint64_t depth;
   InternedString name;
   StkAddr offset;
+  EntryTag tag;
 };
 
 std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
@@ -175,36 +184,67 @@ std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
   return mask;
 }
 
-StackVar get_var(std::vector<StackVar> *vars, InternedString varname) {
+VarTrackingEntry get_var(std::vector<VarTrackingEntry> *vars, uint64_t depth,
+                         InternedString varname) {
+
+  // search within current function
   for (auto i = vars->rbegin(); i != vars->rend(); ++i) {
-    if (i->name.index == varname.index) {
+    if (i->tag == EntryTag::FN_BEGIN) {
+      break;
+    }
+    if (i->depth <= depth and i->name.index == varname.index) {
       return *i;
     }
   }
-  for (uint64_t i = vars->size(); i > 0; --i) {
+  // search within global scope
+  for (auto i = vars->rbegin(); i != vars->rend(); ++i) {
+    if (i->depth == 0 and i->name.index == varname.index) {
+      return *i;
+    }
   }
-  panic("unexpected unmatched var in IR");
+  panic("undefined variable referenced '" + resolve_interned_string(varname) +
+        "'");
 }
 
-StackVar set_var(std::vector<StackVar> *vars, uint64_t depth,
-                 InternedString varname) {
+VarTrackingEntry set_var(std::vector<VarTrackingEntry> *vars, uint64_t depth,
+                         InternedString varname) {
+
   uint64_t offset = 0;
-  for (auto var : *vars) {
-    if (var.depth == depth) {
+  for (auto i = vars->rbegin(); i != vars->rend(); ++i) {
+    if (i->tag == EntryTag::FN_BEGIN) {
+      break;
+    } else if (i->tag == EntryTag::VAR) {
       ++offset;
     }
   }
-  auto stkvar =
-      StackVar{.depth = depth, .name = varname, .offset = StkAddr{offset}};
-  vars->push_back(stkvar);
-  return stkvar;
+  vars->push_back(
+      VarTrackingEntry{depth, varname, StkAddr{offset}, EntryTag::VAR});
+  return vars->back();
+}
+void enter_fn(std::vector<VarTrackingEntry> *vars) {
+  vars->push_back(VarTrackingEntry{0, {0}, {0}, EntryTag::FN_BEGIN});
+}
+void exit_fn(std::vector<VarTrackingEntry> *vars) {
+  vars->push_back(VarTrackingEntry{0, {0}, {0}, EntryTag::FN_END});
+}
+void enter_scope(std::vector<VarTrackingEntry> *vars) {
+  vars->push_back(VarTrackingEntry{0, {0}, {0}, EntryTag::SCOPE_BEGIN});
+}
+void exit_scope(std::vector<VarTrackingEntry> *vars) {
+  vars->push_back(VarTrackingEntry{0, {0}, {0}, EntryTag::SCOPE_END});
+}
+uint64_t count_globals(std::vector<VarTrackingEntry> *vars) {
+  uint64_t globals = 0;
+  for (auto i = vars->begin(); i != vars->end(); ++i) {
+    if (i->tag == EntryTag::FN_BEGIN) {
+      break;
+    } else if (i->tag == EntryTag::VAR) {
+      ++globals;
+    }
+  }
+  return globals;
 }
 
-void remove_min_depth_vars(std::vector<StackVar> *vars, uint64_t depth) {
-  while (vars->size() > 0 and vars->back().depth >= depth) {
-    vars->pop_back();
-  }
-}
 } // namespace
 
 std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
@@ -212,9 +252,8 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
   instructions.reserve(ir.size());
   instructions.push_back(build_init_template());
 
-  uint64_t globals = 0;
   uint64_t depth = 0;
-  std::vector<StackVar> vars;
+  std::vector<VarTrackingEntry> vars;
 
   // var interned string index -> instr addr
   std::unordered_map<uint64_t, InstrAddr> functions;
@@ -251,7 +290,7 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       instructions.push_back(build_none(where));
     } break;
     case IRTag::STORE: {
-      StackVar var = get_var(&vars, instr.as.VAR);
+      VarTrackingEntry var = get_var(&vars, depth, instr.as.VAR);
       if (var.depth == 0) {
         VMInstr o = build_addr_acc(where, VMTag::STORE_GLOBAL, var.offset);
         instructions.push_back(o);
@@ -261,9 +300,8 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       }
     } break;
     case IRTag::STORE_NEW: {
-      StackVar var = set_var(&vars, depth, instr.as.VAR);
+      VarTrackingEntry var = set_var(&vars, depth, instr.as.VAR);
       if (depth == 0) {
-        ++globals;
         VMInstr o = build_addr_acc(where, VMTag::STORE_GLOBAL, var.offset);
         instructions.push_back(o);
       } else {
@@ -272,7 +310,7 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       }
     } break;
     case IRTag::LOAD: {
-      StackVar var = get_var(&vars, instr.as.VAR);
+      VarTrackingEntry var = get_var(&vars, depth, instr.as.VAR);
       if (depth == 0) {
         VMInstr o = build_addr_acc(where, VMTag::LOAD_GLOBAL, var.offset);
         instructions.push_back(o);
@@ -348,13 +386,14 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
           build_vmcall(instr.where, instr.as.VAR, instr.extra.args));
     } break;
     case IRTag::FUNCTION_START: {
+      enter_fn(&vars);
       ++depth;
       VMInstr o = build_init_frame(instr.where, instr.extra.locals);
       instructions.push_back(o);
       functions[instr.as.VAR.index] = mask.at(i);
     } break;
     case IRTag::FUNCTION_END:
-      remove_min_depth_vars(&vars, depth);
+      exit_fn(&vars);
       --depth;
       break;
     case IRTag::ISTRUE_PEEK_JMPIF: {
@@ -386,16 +425,17 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       // handled in pre-flight
       break;
     case IRTag::SCOPE_START:
+      enter_scope(&vars);
       ++depth;
       break;
     case IRTag::SCOPE_END:
-      remove_min_depth_vars(&vars, depth);
+      exit_scope(&vars);
       --depth;
       break;
     }
   }
 
-  instructions.at(0).extra.globals = globals;
+  instructions.at(0).extra.globals = count_globals(&vars);
   instructions.push_back(build_halt());
   return instructions;
 }
