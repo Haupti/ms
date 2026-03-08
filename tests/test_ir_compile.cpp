@@ -123,8 +123,8 @@ void test_fn1(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "FUNCTION_START add\n"
-                        "STORE b\n"
-                        "STORE a\n"
+                        "STORE_NEW b\n"
+                        "STORE_NEW a\n"
                         "LOAD a\n"
                         "LOAD b\n"
                         "ADD\n"
@@ -139,7 +139,7 @@ void test_try(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "FUNCTION_START addone\n"
-                        "STORE b\n"
+                        "STORE_NEW b\n"
                         "LOAD b\n"
                         "PUSH_INT 1\n"
                         "ADD\n"
@@ -163,7 +163,7 @@ void test_expect(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "FUNCTION_START addone\n"
-                        "STORE a\n"
+                        "STORE_NEW a\n"
                         "LOAD a\n"
                         "PUSH_INT 1\n"
                         "ADD\n"
@@ -171,8 +171,8 @@ void test_expect(T *t) {
                         "TYPEOF\n"
                         "PUSH_SYMBOL #error\n"
                         "EQ\n"
-                        "PUSH_ALLOC_STRING expected non-error value\n"
                         "JMPIFN $EXPECT_9\n"
+                        "PUSH_ALLOC_STRING expected non-error value\n"
                         "VMCALL panic\n"
                         "LABEL $EXPECT_9\n"
                         "RETURN\n"
@@ -188,7 +188,7 @@ void test_ordering(T *t) {
   t->assert_str_eq(out, "PUSH_INT 1\n"
                         "STORE_NEW x\n"
                         "FUNCTION_START void\n"
-                        "STORE a\n"
+                        "STORE_NEW a\n"
                         "PUSH_NONE\n"
                         "RETURN\n"
                         "FUNCTION_END\n");

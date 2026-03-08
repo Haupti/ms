@@ -147,30 +147,78 @@ void test_fn1(T *t) {
                 "return a + b\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "");
+  t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
+                        "1 INIT_FRAME 2\n"
+                        "2 STORE mem(0)\n"
+                        "3 STORE mem(1)\n"
+                        "4 LOAD mem(1)\n"
+                        "5 LOAD mem(0)\n"
+                        "6 ADD\n"
+                        "7 RETURN\n"
+                        "8 PUSH_NONE \n"
+                        "9 RETURN\n"
+                        "10 HALT\n");
 }
+
 void test_try(T *t) {
   string code = "function addone(b) {\n"
                 "return try (b + 1)\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, ""
-
-  );
+  t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
+                        "1 INIT_FRAME 1\n"
+                        "2 STORE mem(0)\n"
+                        "3 LOAD mem(0)\n"
+                        "4 PUSH_INT 1\n"
+                        "5 ADD\n"
+                        "6 DUP\n"
+                        "7 TYPEOF\n"
+                        "8 PUSH_SYMBOL #error\n"
+                        "9 EQ\n"
+                        "10 JMPIFN addr(12)\n"
+                        "11 RETURN\n"
+                        "12 RETURN\n"
+                        "13 PUSH_NONE \n"
+                        "14 RETURN\n"
+                        "15 HALT\n");
 }
+
 void test_expect(T *t) {
   string code = "function addone(a) {\n"
                 "return expect (a + 1)\n"
                 "}";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "");
+  t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
+                        "1 INIT_FRAME 1\n"
+                        "2 STORE mem(0)\n"
+                        "3 LOAD mem(0)\n"
+                        "4 PUSH_INT 1\n"
+                        "5 ADD\n"
+                        "6 DUP\n"
+                        "7 TYPEOF\n"
+                        "8 PUSH_SYMBOL #error\n"
+                        "9 EQ\n"
+                        "10 JMPIFN addr(13)\n"
+                        "11 PUSH_ALLOC_STRING 'expected non-error value'\n"
+                        "12 VMCALL panic 1\n"
+                        "13 RETURN\n"
+                        "14 PUSH_NONE \n"
+                        "15 RETURN\n"
+                        "16 HALT\n");
 }
 
 void test_ordering(T *t) {
   string code = "let x =1 \n"
                 "function void(a) {}\n";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "");
+  t->assert_str_eq(out, "0 PROGRAM_INIT 1\n"
+                        "1 PUSH_INT 1\n"
+                        "2 STORE_GLOBAL mem(0)\n"
+                        "3 INIT_FRAME 1\n"
+                        "4 STORE mem(0)\n"
+                        "5 PUSH_NONE \n"
+                        "6 RETURN\n"
+                        "7 HALT\n");
 }
 
 } // namespace

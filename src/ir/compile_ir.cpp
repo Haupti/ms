@@ -65,7 +65,7 @@ IRInstr ir_new_store(LocationRef where, InternedString varname) {
   ir.extra.args = 0;
   return ir;
 }
-IRInstr ir_new_store_new_var(LocationRef where, InternedString varname) {
+IRInstr ir_new_store_new(LocationRef where, InternedString varname) {
   IRInstr ir;
   ir.as.VAR = varname;
   ir.where = where;
@@ -141,7 +141,7 @@ void compile_ir_var_set(IRContext *ctx, nodes *ns, node_idx curr_idx,
 }
 void compile_ir_var_def(IRContext *ctx, nodes *ns, node_idx curr_idx,
                         Node curr) {
-  IRInstr instr = ir_new_store_new_var(curr.start, curr.as.IDENTIFIER);
+  IRInstr instr = ir_new_store_new(curr.start, curr.as.IDENTIFIER);
   compile_one(ctx, ns, ns->first_child(curr_idx), false);
   ctx->add(instr);
 }
@@ -269,11 +269,11 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr compare_result = ir_new(curr.start, IRTag::EQ);
   ctx->add(compare_result);
   Label label_skip_error = create_next_label("EXPECT");
+  IRInstr skip_panic = ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_error);
+  ctx->add(skip_panic);
   IRInstr push_panic_msg =
       ir_new_push_alloc_string(curr.start, _EXPECT_ERROR_MSG);
   ctx->add(push_panic_msg);
-  IRInstr skip_panic = ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_error);
-  ctx->add(skip_panic);
   IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_PANIC, 1);
   ctx->add(instr);
   IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_error);
@@ -327,7 +327,7 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   std::vector<IRInstr> arg_stores;
   while (!arg_idx.is_null()) {
     Node arg = ns->at(arg_idx);
-    arg_stores.push_back(ir_new_store(arg.start, arg.as.IDENTIFIER));
+    arg_stores.push_back(ir_new_store_new(arg.start, arg.as.IDENTIFIER));
     ++args_i;
     arg_idx = ns->nth_child(args_list_head, args_i);
   }
