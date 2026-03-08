@@ -159,7 +159,6 @@ std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
     case IRTag::TYPEOF:
     case IRTag::CALL:
     case IRTag::VMCALL:
-    case IRTag::FUNCTION_START:
     case IRTag::POP:
     case IRTag::ISTRUE:
     case IRTag::ISTRUE_PEEK_JMPIF:
@@ -175,6 +174,10 @@ std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
     case IRTag::SCOPE_START:
     case IRTag::SCOPE_END:
       // omitted in the output -> don't contribute to output address counter
+      break;
+    case IRTag::FUNCTION_START:
+      (*labels)[ir->at(i).as.LABEL.idx] = InstrAddr{addr};
+      ++addr;
       break;
     case IRTag::LABEL:
       (*labels)[ir->at(i).as.LABEL.idx] = InstrAddr{addr};
@@ -375,6 +378,10 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       instructions.push_back(build(where, VMTag::ISTRUE));
     } break;
     case IRTag::CALL: {
+      if (labels.count(instr.as.VAR.index) == 0) {
+        panic("undefined function reference '" +
+              resolve_interned_string(instr.as.VAR) + "'");
+      }
       VMInstr o;
       o.where = instr.where;
       o.as.INSTRADDR = labels.at(instr.as.VAR.index);

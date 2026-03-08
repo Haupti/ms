@@ -256,6 +256,27 @@ void test_complex(T *t) {
                         "19 RETURN\n"
                         "20 HALT\n");
 }
+void test_fn_call(T *t) {
+  string code = "function add(a,b) { return a + b }"
+                "add(1,2)\n";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
+                        "1 PUSH_INT 1\n"
+                        "2 PUSH_INT 2\n"
+                        "3 CALL addr(6)\n"
+                        "4 POP\n"
+                        "5 HALT\n"
+                        "6 INIT_FRAME 2\n"
+                        "7 STORE mem(0)\n"
+                        "8 STORE mem(1)\n"
+                        "9 LOAD mem(1)\n"
+                        "10 LOAD mem(0)\n"
+                        "11 ADD\n"
+                        "12 RETURN\n"
+                        "13 PUSH_NONE \n"
+                        "14 RETURN\n"
+                        "15 HALT\n");
+}
 
 } // namespace
 int main() {
@@ -274,5 +295,6 @@ int main() {
   t.test("expect", test_expect);
   t.test("functions come after rest", test_ordering);
   t.test("complex", test_complex);
+  t.test("fn call", test_fn_call);
   return 0;
 }

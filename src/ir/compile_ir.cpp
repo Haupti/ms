@@ -228,7 +228,7 @@ void compile_ir_infix_neq(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(instr);
 }
 void compile_ir_infix_str_concat(IRContext *ctx, nodes *ns, Node curr) {
-  IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_STR_CONCAT, 2);
+  IRInstr instr = ir_new_vm_call(curr.start, Constants::BUILDIN_FN_STR_CONCAT, 2);
   compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
@@ -264,7 +264,7 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(dup);
   IRInstr typeof_instr = ir_new(curr.start, IRTag::TYPEOF);
   ctx->add(typeof_instr);
-  IRInstr compare_value_push = ir_new_push_symbol(curr.start, _SYM_TYPE_ERROR);
+  IRInstr compare_value_push = ir_new_push_symbol(curr.start, Constants::SYM_TYPE_ERROR);
   ctx->add(compare_value_push);
   IRInstr compare_result = ir_new(curr.start, IRTag::EQ);
   ctx->add(compare_result);
@@ -272,9 +272,9 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr skip_panic = ir_new_jump(curr.start, IRTag::JMPIFN, label_skip_error);
   ctx->add(skip_panic);
   IRInstr push_panic_msg =
-      ir_new_push_alloc_string(curr.start, _EXPECT_ERROR_MSG);
+      ir_new_push_alloc_string(curr.start, Constants::EXPECT_ERROR_MSG);
   ctx->add(push_panic_msg);
-  IRInstr instr = ir_new_vm_call(curr.start, _BUILDIN_FN_PANIC, 1);
+  IRInstr instr = ir_new_vm_call(curr.start, Constants::BUILDIN_FN_PANIC, 1);
   ctx->add(instr);
   IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_error);
   ctx->add(label_skip_return_instr);
@@ -293,14 +293,14 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
 
   // call
   InternedString fn_name = ns->at(ns->nth_child(curr, 0)).as.IDENTIFIER;
-  bool is_vm_fn = fn_name.index == _BUILDIN_FN_PANIC.index ||
-                  fn_name.index == _BUILDIN_FN_PUT.index ||
-                  fn_name.index == _BUILDIN_FN_AT.index ||
-                  fn_name.index == _BUILDIN_FN_LIST.index ||
-                  fn_name.index == _BUILDIN_FN_CONCAT.index ||
-                  fn_name.index == _BUILDIN_FN_APPEND.index ||
-                  fn_name.index == _BUILDIN_FN_PRINT.index ||
-                  fn_name.index == _BUILDIN_FN_PREPEND.index;
+  bool is_vm_fn = fn_name.index == Constants::BUILDIN_FN_PANIC.index ||
+                  fn_name.index == Constants::BUILDIN_FN_PUT.index ||
+                  fn_name.index == Constants::BUILDIN_FN_AT.index ||
+                  fn_name.index == Constants::BUILDIN_FN_LIST.index ||
+                  fn_name.index == Constants::BUILDIN_FN_CONCAT.index ||
+                  fn_name.index == Constants::BUILDIN_FN_APPEND.index ||
+                  fn_name.index == Constants::BUILDIN_FN_PRINT.index ||
+                  fn_name.index == Constants::BUILDIN_FN_PREPEND.index;
   IRInstr call_instr;
   if (is_vm_fn) {
     call_instr = ir_new_vm_call(curr.start, fn_name, args_count);

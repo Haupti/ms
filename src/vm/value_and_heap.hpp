@@ -33,41 +33,55 @@ struct Value {
     int64_t NONE;
   } as;
   ValueTag tag;
-  Value() : tag(ValueTag::NONE) {}
+  bool undefined;
+  Value() : tag(ValueTag::NONE), undefined(true) {}
+  static Value None() {
+    Value val;
+    val.as.NONE = 0;
+    val.tag = ValueTag::NONE;
+    val.undefined = false;
+    return val;
+  }
   static Value String(StringIdx value) {
     Value val;
     val.as.STRING = value;
     val.tag = ValueTag::STRING;
+    val.undefined = false;
     return val;
   }
   static Value Int(int64_t value) {
     Value val;
     val.as.INT = value;
     val.tag = ValueTag::INT;
+    val.undefined = false;
     return val;
   }
   static Value Float(double value) {
     Value val;
     val.as.FLOAT = value;
     val.tag = ValueTag::FLOAT;
+    val.undefined = false;
     return val;
   }
   static Value Symbol(Symbol value) {
     Value val;
     val.as.SYMBOL = value;
     val.tag = ValueTag::SYMBOL;
+    val.undefined = false;
     return val;
   }
   static Value EmptyList() {
     Value val;
     val.as.LIST = 0;
     val.tag = ValueTag::LIST;
+    val.undefined = false;
     return val;
   }
   static Value Error(VMHIDX boxed_value) {
     Value val;
     val.as.ERROR = boxed_value;
     val.tag = ValueTag::ERROR;
+    val.undefined = false;
     return val;
   }
 };
@@ -107,18 +121,24 @@ public:
     elements.reserve(capacity);
     strings.reserve(string_capacity);
   }
-  VMHIDX add_string(InternedString str) {
+  Value add_string(InternedString str) {
     if (static_strings.count(str.index) > 0) {
-      return add(Value::String(static_strings[str.index]));
+      auto new_str = Value::String(static_strings[str.index]);
+      add(new_str);
+      return new_str;
     }
     strings.push_back(resolve_interned_string(str));
     static_strings[str.index] = strings.size() - 1;
-    return add(Value::String(strings.size() - 1));
+    auto new_str = Value::String(strings.size() - 1);
+    add(new_str);
+    return new_str;
   }
 
-  VMHIDX add_string(std::string str) {
+  Value add_string(std::string str) {
     strings.push_back(str);
-    return add(Value::String(strings.size() - 1));
+    auto new_str = Value::String(strings.size() - 1);
+    add(new_str);
+    return new_str;
   }
 
   VMHIDX add(Value value) {
