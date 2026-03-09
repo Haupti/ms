@@ -35,10 +35,9 @@ enum class VMTag : uint8_t {
   INIT_FRAME,
   RETURN, // same as destroy frame but also jump to return address
   POP,
-  ISTRUE,
   // check if value is true without poping it, then conditional jump
-  ISTRUE_PEEK_JMPIF,
-  ISTRUE_PEEK_JMPIFN,
+  PEEK_JMPIF,
+  PEEK_JMPIFN,
   JMP,
   JMPIFN,
   JMPIF,

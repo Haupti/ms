@@ -38,10 +38,8 @@ enum class IRTag : uint8_t {
   SCOPE_START,
   SCOPE_END,
   POP,
-  // TODO this makes no sense if all non '#true' symbols are considered false
-  ISTRUE,
-  ISTRUE_PEEK_JMPIF,
-  ISTRUE_PEEK_JMPIFN,
+  PEEK_JMPIF,
+  PEEK_JMPIFN,
   JMP,
   JMPIFN,
   JMPIF,

@@ -42,8 +42,6 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "EQ";
   case IRTag::NEQ:
     return "NEQ";
-  case IRTag::ISTRUE:
-    return "ISTRUE";
   case IRTag::POP:
     return "POP";
   case IRTag::JMPIFN:
@@ -62,10 +60,10 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "VMCALL " + resolve_interned_string(instr.as.VAR);
   case IRTag::FUNCTION_START:
     return "FUNCTION_START " + resolve_interned_string(instr.as.VAR);
-  case IRTag::ISTRUE_PEEK_JMPIF:
-    return "ISTRUE_PEEK_JMPIF " + resolve_label(instr.as.LABEL);
-  case IRTag::ISTRUE_PEEK_JMPIFN:
-    return "ISTRUE_PEEK_JMPIFN " + resolve_label(instr.as.LABEL);
+  case IRTag::PEEK_JMPIF:
+    return "PEEK_JMPIF " + resolve_label(instr.as.LABEL);
+  case IRTag::PEEK_JMPIFN:
+    return "PEEK_JMPIFN " + resolve_label(instr.as.LABEL);
   case IRTag::JMPIF:
     return "JMPIF " + resolve_label(instr.as.LABEL);
   case IRTag::DUP:

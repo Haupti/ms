@@ -2,6 +2,7 @@
 #include "constants.hpp"
 #include "value_and_heap.hpp"
 #include "vm_instr.hpp"
+#include <functional>
 #include <vector>
 namespace {
 // UTILITIES
@@ -33,7 +34,49 @@ struct Stack {
     ++stkptr;
   }
   Value pop() { return values.at(--stkptr); }
+  void pop_void() { --stkptr; }
+  Value peek() { return values.at(stkptr - 1); }
+  void reserve(uint16_t n) { stkptr += n; }
 };
+
+Value vm_buildin_print(LocationRef where, Stack *stack, uint16_t args) {
+  if (args != 1) {
+    throw msl_runtime_error(where, "expects 1 argument(s)");
+  }
+  Value val = stack->pop();
+  switch (val.tag) {
+  case ValueTag::INT:
+    println(std::to_string(val.as.INT));
+    break;
+  case ValueTag::FLOAT:
+    println(std::to_string(val.as.FLOAT));
+    break;
+  case ValueTag::SYMBOL:
+    println(resolve_symbol(val.as.SYMBOL));
+    break;
+  case ValueTag::STRING:
+  case ValueTag::LIST:
+  case ValueTag::ERROR:
+    panic("NOT YET IMPLEMENTED");
+  case ValueTag::NONE:
+    println("None");
+    break;
+  }
+
+  return Value::None();
+}
+Value vm_buildin_panic(LocationRef where, Stack *stack, uint16_t args) {
+  panic("NOT YET IMPLEMENTED");
+  return Value::None();
+}
+
+static std::unordered_map<
+    uint64_t, std::function<Value(LocationRef where, Stack *, uint16_t)>>
+    vm_fns = {{Constants::BUILDIN_FN_PRINT.index, vm_buildin_print},
+              {Constants::BUILDIN_FN_PANIC.index, vm_buildin_panic}
+
+};
+
 }; // namespace
 int run(std::vector<VMInstr> instrs) {
   VMHeap heap = VMHeap(1000, 1000);
@@ -83,15 +126,36 @@ int run(std::vector<VMInstr> instrs) {
     case VMTag::DUP:
     case VMTag::TYPEOF:
     case VMTag::CALL:
-    case VMTag::VMCALL:
+      panic("NOT YET IMPLEMENTED");
+    case VMTag::VMCALL: {
+      Value val = vm_fns.at(instr.as.VMFN.index)(&stack, instr.extra.args);
+      stack.push(val);
+    } break;
     case VMTag::INIT_FRAME:
     case VMTag::RETURN:
-    case VMTag::POP:
-    case VMTag::ISTRUE:
-    case VMTag::ISTRUE_PEEK_JMPIF:
-    case VMTag::ISTRUE_PEEK_JMPIFN:
-    case VMTag::PROGRAM_INIT:
       panic("NOT YET IMPLEMENTED");
+    case VMTag::POP: {
+      stack.pop_void();
+      ++iptr;
+    } break;
+    case VMTag::PEEK_JMPIF: {
+      if (as_bool(instr.where, stack.peek())) {
+        iptr = instr.as.INSTRADDR.addr;
+      } else {
+        ++iptr;
+      }
+    } break;
+    case VMTag::PEEK_JMPIFN: {
+      if (!as_bool(instr.where, stack.peek())) {
+        iptr = instr.as.INSTRADDR.addr;
+      } else {
+        ++iptr;
+      }
+    } break;
+    case VMTag::PROGRAM_INIT: {
+      stack.reserve(instr.extra.globals);
+      ++iptr;
+    } break;
     case VMTag::JMPIFN: {
       Value val = stack.pop();
       if (!as_bool(instr.where, val)) {
@@ -108,9 +172,9 @@ int run(std::vector<VMInstr> instrs) {
         ++iptr;
       }
     } break;
-    case VMTag::JMP:
+    case VMTag::JMP: {
       iptr = instr.as.INSTRADDR.addr;
-      break;
+    } break;
     case VMTag::HALT:
       return 0;
       break;

@@ -1,5 +1,6 @@
 #include "../../lib/asap/util.hpp"
 #include "../ir/ir_instr.hpp"
+#include "../msl_runtime_error.hpp"
 #include "../vm/vm_instr.hpp"
 #include <cassert>
 #include <unordered_map>
@@ -160,9 +161,8 @@ std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
     case IRTag::CALL:
     case IRTag::VMCALL:
     case IRTag::POP:
-    case IRTag::ISTRUE:
-    case IRTag::ISTRUE_PEEK_JMPIF:
-    case IRTag::ISTRUE_PEEK_JMPIFN:
+    case IRTag::PEEK_JMPIF:
+    case IRTag::PEEK_JMPIFN:
     case IRTag::JMP:
     case IRTag::JMPIFN:
     case IRTag::JMPIF:
@@ -374,13 +374,11 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     case IRTag::POP: {
       instructions.push_back(build(where, VMTag::POP));
     } break;
-    case IRTag::ISTRUE: {
-      instructions.push_back(build(where, VMTag::ISTRUE));
-    } break;
     case IRTag::CALL: {
       if (labels.count(instr.as.VAR.index) == 0) {
-        panic("undefined function reference '" +
-              resolve_interned_string(instr.as.VAR) + "'");
+        throw msl_runtime_error(
+            instr.where, "undefined function reference '" +
+                             resolve_interned_string(instr.as.VAR) + "'");
       }
       VMInstr o;
       o.where = instr.where;
@@ -404,14 +402,14 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       exit_fn(&vars);
       --depth;
       break;
-    case IRTag::ISTRUE_PEEK_JMPIF: {
+    case IRTag::PEEK_JMPIF: {
       InstrAddr addr = labels.at(instr.as.LABEL.idx);
-      VMInstr o = build_jump(where, VMTag::ISTRUE_PEEK_JMPIF, addr);
+      VMInstr o = build_jump(where, VMTag::PEEK_JMPIF, addr);
       instructions.push_back(o);
     } break;
-    case IRTag::ISTRUE_PEEK_JMPIFN: {
+    case IRTag::PEEK_JMPIFN: {
       InstrAddr addr = labels.at(instr.as.LABEL.idx);
-      VMInstr o = build_jump(where, VMTag::ISTRUE_PEEK_JMPIFN, addr);
+      VMInstr o = build_jump(where, VMTag::PEEK_JMPIFN, addr);
       instructions.push_back(o);
     } break;
     case IRTag::JMP: {

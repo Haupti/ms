@@ -363,19 +363,17 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
 void compile_ir_infix_and(IRContext *ctx, nodes *ns, Node curr) {
   Label label_end = create_next_label("AND_END");
   compile_one(ctx, ns, ns->nth_child(curr, 0), false);
-  ctx->add(ir_new_jump(curr.start, IRTag::ISTRUE_PEEK_JMPIFN, label_end));
+  ctx->add(ir_new_jump(curr.start, IRTag::PEEK_JMPIFN, label_end));
   ctx->add(ir_new(curr.start, IRTag::POP));
   compile_one(ctx, ns, ns->nth_child(curr, 1), false);
-  ctx->add(ir_new(curr.start, IRTag::ISTRUE));
   ctx->add(ir_new_label(curr.start, label_end));
 }
 void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
   Label label_end = create_next_label("OR_END");
   compile_one(ctx, ns, ns->nth_child(curr, 0), false);
-  ctx->add(ir_new_jump(curr.start, IRTag::ISTRUE_PEEK_JMPIF, label_end));
+  ctx->add(ir_new_jump(curr.start, IRTag::PEEK_JMPIF, label_end));
   ctx->add(ir_new(curr.start, IRTag::POP));
   compile_one(ctx, ns, ns->nth_child(curr, 1), false);
-  ctx->add(ir_new(curr.start, IRTag::ISTRUE));
   ctx->add(ir_new_label(curr.start, label_end));
 }
 
