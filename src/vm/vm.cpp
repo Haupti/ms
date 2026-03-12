@@ -3,6 +3,7 @@
 #include "value_and_heap.hpp"
 #include "vm_instr.hpp"
 #include <functional>
+#include <stack>
 #include <vector>
 namespace {
 // UTILITIES
@@ -49,41 +50,101 @@ struct Stack {
     Value val = values.at(stkptr - 1);
     push(val);
   }
+  void allocate(uint16_t locals) {
+    uint64_t end = stkptr + locals;
+    uint64_t curr = stkptr;
+    for (uint64_t i = curr; i < end; ++i) {
+      values.at(i).undefined = true;
+      ++stkptr;
+    }
+  }
+  void retreat(uint16_t frame_start) {
+    uint64_t curr = stkptr;
+    for (uint64_t i = curr; i > frame_start; --i) {
+      --stkptr;
+      values.at(i).undefined = true;
+    }
+  }
 };
 
-Value vm_buildin_print(LocationRef where, Stack *stack, uint16_t args) {
+std::string value_to_string(Stack *stack, VMHeap *heap, Value value) {
+  switch (value.tag) {
+  case ValueTag::INT:
+    return std::to_string(value.as.INT);
+  case ValueTag::FLOAT:
+    return std::to_string(value.as.FLOAT);
+  case ValueTag::SYMBOL:
+    return resolve_symbol(value.as.SYMBOL);
+  case ValueTag::STRING:
+    return heap->get_string(value.as.STRING);
+  case ValueTag::LIST:
+    panic("NOT YET IMPLEMENTED");
+  case ValueTag::ERROR:
+    return "error(" + value_to_string(stack, heap, heap->at(value.as.ERROR)) +
+           ")";
+  case ValueTag::NONE:
+    return "None";
+  }
+}
+
+bool values_equal(VMHeap *heap, Value left, Value right) {
+  switch (left.tag) {
+  case ValueTag::INT:
+    switch (right.tag) {
+    case ValueTag::INT:
+      return left.as.INT == right.as.INT;
+    case ValueTag::FLOAT:
+      return left.as.INT == right.as.FLOAT;
+    default:
+      return false;
+    }
+  case ValueTag::FLOAT:
+    switch (right.tag) {
+    case ValueTag::INT:
+      return left.as.FLOAT == right.as.INT;
+    case ValueTag::FLOAT:
+      return left.as.FLOAT == right.as.FLOAT;
+    default:
+      return false;
+    }
+  case ValueTag::SYMBOL:
+    return right.tag == ValueTag::SYMBOL &&
+           left.as.SYMBOL.index == right.as.SYMBOL.index;
+  case ValueTag::STRING:
+    return right.tag == ValueTag::STRING &&
+           (left.as.STRING == right.as.STRING ||
+            (heap->get_string(left.as.STRING) ==
+             heap->get_string(right.as.STRING)));
+  case ValueTag::LIST:
+    return right.tag == ValueTag::LIST && left.as.LIST == right.as.LIST;
+  case ValueTag::ERROR:
+    return right.tag == ValueTag::ERROR &&
+           values_equal(heap, heap->at(left.as.ERROR),
+                        heap->at(right.as.ERROR));
+  case ValueTag::NONE:
+    return right.tag == ValueTag::NONE;
+  }
+}
+
+Value vm_buildin_print(LocationRef where, Stack *stack, VMHeap *heap,
+                       uint16_t args) {
   if (args != 1) {
     throw msl_runtime_error(where, "expects 1 argument(s)");
   }
-  Value val = stack->pop();
-  switch (val.tag) {
-  case ValueTag::INT:
-    println(std::to_string(val.as.INT));
-    break;
-  case ValueTag::FLOAT:
-    println(std::to_string(val.as.FLOAT));
-    break;
-  case ValueTag::SYMBOL:
-    println(resolve_symbol(val.as.SYMBOL));
-    break;
-  case ValueTag::STRING:
-  case ValueTag::LIST:
-  case ValueTag::ERROR:
-    panic("NOT YET IMPLEMENTED");
-  case ValueTag::NONE:
-    println("None");
-    break;
-  }
-
+  println(value_to_string(stack, heap, stack->pop()));
   return Value::None();
 }
-Value vm_buildin_panic(LocationRef where, Stack *stack, uint16_t args) {
-  panic("NOT YET IMPLEMENTED");
-  return Value::None();
+[[noreturn]] Value vm_buildin_panic(LocationRef where, Stack *stack,
+                                    VMHeap *heap, uint16_t args) {
+  if (args != 1) {
+    throw msl_runtime_error(where, "expects 1 argument(s)");
+  }
+  throw msl_runtime_error(where, value_to_string(stack, heap, stack->pop()));
 }
 
 static std::unordered_map<
-    uint64_t, std::function<Value(LocationRef where, Stack *, uint16_t)>>
+    uint64_t,
+    std::function<Value(LocationRef where, Stack *, VMHeap *, uint16_t)>>
     vm_fns = {{Constants::BUILDIN_FN_PRINT.index, vm_buildin_print},
               {Constants::BUILDIN_FN_PANIC.index, vm_buildin_panic}
 
@@ -372,106 +433,20 @@ void vm_gte(LocationRef where, Stack *stack) {
     stack->push(Value::Symbol(Constants::SYM_FALSE));
   }
 }
-void vm_eq(LocationRef where, Stack *stack, VMHeap *heap) {
+void vm_eq(Stack *stack, VMHeap *heap) {
   Value right = stack->pop();
   Value left = stack->pop();
-  bool is_true = false;
-  switch (left.tag) {
-  case ValueTag::INT:
-    switch (right.tag) {
-    case ValueTag::INT:
-      is_true = left.as.INT == right.as.INT;
-      break;
-    case ValueTag::FLOAT:
-      is_true = left.as.INT == right.as.FLOAT;
-      break;
-    default:
-      break;
-    }
-  case ValueTag::FLOAT:
-    switch (right.tag) {
-    case ValueTag::INT:
-      is_true = left.as.FLOAT == right.as.INT;
-      break;
-    case ValueTag::FLOAT:
-      is_true = left.as.FLOAT == right.as.FLOAT;
-      break;
-    default:
-      break;
-    }
-  case ValueTag::SYMBOL:
-    is_true = right.tag == ValueTag::SYMBOL &&
-              left.as.SYMBOL.index == right.as.SYMBOL.index;
-    break;
-  case ValueTag::STRING:
-    is_true =
-        right.tag == ValueTag::STRING && (left.as.STRING == right.as.STRING ||
-                                          (heap->get_string(left.as.STRING) ==
-                                           heap->get_string(right.as.STRING)));
-    break;
-  case ValueTag::LIST:
-    is_true = right.tag == ValueTag::LIST && left.as.LIST == right.as.LIST;
-    break;
-  case ValueTag::ERROR:
-    panic("NOT YET IMPLEMENTED");
-    break;
-  case ValueTag::NONE:
-    is_true = right.tag == ValueTag::NONE;
-    break;
-  }
+  bool is_true = values_equal(heap, left, right);
   if (is_true) {
     stack->push(Value::Symbol(Constants::SYM_TRUE));
   } else {
     stack->push(Value::Symbol(Constants::SYM_FALSE));
   }
 }
-void vm_neq(LocationRef where, Stack *stack, VMHeap *heap) {
+void vm_neq(Stack *stack, VMHeap *heap) {
   Value right = stack->pop();
   Value left = stack->pop();
-  bool is_true = false;
-  switch (left.tag) {
-  case ValueTag::INT:
-    switch (right.tag) {
-    case ValueTag::INT:
-      is_true = left.as.INT == right.as.INT;
-      break;
-    case ValueTag::FLOAT:
-      is_true = left.as.INT == right.as.FLOAT;
-      break;
-    default:
-      break;
-    }
-  case ValueTag::FLOAT:
-    switch (right.tag) {
-    case ValueTag::INT:
-      is_true = left.as.FLOAT == right.as.INT;
-      break;
-    case ValueTag::FLOAT:
-      is_true = left.as.FLOAT == right.as.FLOAT;
-      break;
-    default:
-      break;
-    }
-  case ValueTag::SYMBOL:
-    is_true = right.tag == ValueTag::SYMBOL &&
-              left.as.SYMBOL.index == right.as.SYMBOL.index;
-    break;
-  case ValueTag::STRING:
-    is_true =
-        right.tag == ValueTag::STRING && (left.as.STRING == right.as.STRING ||
-                                          (heap->get_string(left.as.STRING) ==
-                                           heap->get_string(right.as.STRING)));
-    break;
-  case ValueTag::LIST:
-    is_true = right.tag == ValueTag::LIST && left.as.LIST == right.as.LIST;
-    break;
-  case ValueTag::ERROR:
-    panic("NOT YET IMPLEMENTED");
-    break;
-  case ValueTag::NONE:
-    is_true = right.tag == ValueTag::NONE;
-    break;
-  }
+  bool is_true = values_equal(heap, left, right);
   if (!is_true) {
     stack->push(Value::Symbol(Constants::SYM_TRUE));
   } else {
@@ -481,6 +456,10 @@ void vm_neq(LocationRef where, Stack *stack, VMHeap *heap) {
 }; // namespace
 int run(std::vector<VMInstr> instrs) {
   VMHeap heap = VMHeap(1000, 1000);
+  // return addresses
+  std::stack<uint64_t> ret;
+  // frame pointers
+  std::stack<uint64_t> fps;
   Stack stack = Stack(10000);
   uint64_t iptr = 0;
   uint64_t fptr = 0;
@@ -588,11 +567,11 @@ int run(std::vector<VMInstr> instrs) {
       ++iptr;
       break;
     case VMTag::EQ:
-      vm_eq(instr.where, &stack, &heap);
+      vm_eq(&stack, &heap);
       ++iptr;
       break;
     case VMTag::NEQ:
-      vm_neq(instr.where, &stack, &heap);
+      vm_neq(&stack, &heap);
       ++iptr;
       break;
     case VMTag::DUP:
@@ -626,15 +605,27 @@ int run(std::vector<VMInstr> instrs) {
       ++iptr;
     } break;
     case VMTag::CALL:
-      panic("NOT YET IMPLEMENTED");
+      ret.push(iptr + 1);
+      iptr = instr.as.INSTRADDR.addr;
+      break;
     case VMTag::VMCALL: {
-      Value val =
-          vm_fns.at(instr.as.VMFN.index)(instr.where, &stack, instr.extra.args);
+      Value val = vm_fns.at(instr.as.VMFN.index)(instr.where, &stack, &heap,
+                                                 instr.extra.args);
       stack.push(val);
     } break;
-    case VMTag::INIT_FRAME:
-    case VMTag::RETURN:
-      panic("NOT YET IMPLEMENTED");
+    case VMTag::INIT_FRAME: {
+      fps.push(stack.stkptr);
+      stack.allocate(instr.extra.locals);
+    } break;
+    case VMTag::RETURN: {
+      uint64_t prev_frame = fps.top();
+      fps.pop();
+      Value return_value = stack.pop();
+      stack.retreat(prev_frame);
+      stack.push(return_value);
+      iptr = ret.top();
+      ret.pop();
+    } break;
     case VMTag::POP: {
       stack.pop_void();
       ++iptr;

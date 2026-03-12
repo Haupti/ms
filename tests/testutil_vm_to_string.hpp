@@ -94,16 +94,11 @@ inline std::string vminstr_to_string(uint64_t pos, const VMInstr &instr) {
   case VMTag::POP:
     str += "POP";
     break;
-  case VMTag::ISTRUE:
-    str += "ISTRUE";
+  case VMTag::PEEK_JMPIF:
+    str += "PEEK_JMPIF addr(" + std::to_string(instr.as.INSTRADDR.addr) + ")";
     break;
-  case VMTag::ISTRUE_PEEK_JMPIF:
-    str += "ISTRUE_PEEK_JMPIF addr(" + std::to_string(instr.as.INSTRADDR.addr) +
-           ")";
-    break;
-  case VMTag::ISTRUE_PEEK_JMPIFN:
-    str += "ISTRUE_PEEK_JMPIFN addr(" +
-           std::to_string(instr.as.INSTRADDR.addr) + ")";
+  case VMTag::PEEK_JMPIFN:
+    str += "PEEK_JMPIFN addr(" + std::to_string(instr.as.INSTRADDR.addr) + ")";
     break;
   case VMTag::JMP:
     str += "JMP addr(" + std::to_string(instr.as.INSTRADDR.addr) + ")";

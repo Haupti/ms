@@ -228,7 +228,8 @@ void compile_ir_infix_neq(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(instr);
 }
 void compile_ir_infix_str_concat(IRContext *ctx, nodes *ns, Node curr) {
-  IRInstr instr = ir_new_vm_call(curr.start, Constants::BUILDIN_FN_STR_CONCAT, 2);
+  IRInstr instr =
+      ir_new_vm_call(curr.start, Constants::BUILDIN_FN_STR_CONCAT, 2);
   compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
@@ -264,7 +265,8 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(dup);
   IRInstr typeof_instr = ir_new(curr.start, IRTag::TYPEOF);
   ctx->add(typeof_instr);
-  IRInstr compare_value_push = ir_new_push_symbol(curr.start, Constants::SYM_TYPE_ERROR);
+  IRInstr compare_value_push =
+      ir_new_push_symbol(curr.start, Constants::SYM_T_ERROR);
   ctx->add(compare_value_push);
   IRInstr compare_result = ir_new(curr.start, IRTag::EQ);
   ctx->add(compare_result);

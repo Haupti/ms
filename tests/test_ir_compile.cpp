@@ -46,16 +46,14 @@ void test_op3(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "LOAD a\n"
                         "NOT\n"
-                        "ISTRUE_PEEK_JMPIFN $AND_END_1\n"
+                        "PEEK_JMPIFN $AND_END_1\n"
                         "POP\n"
                         "LOAD b\n"
-                        "ISTRUE\n"
                         "LABEL $AND_END_1\n"
-                        "ISTRUE_PEEK_JMPIF $OR_END_0\n"
+                        "PEEK_JMPIF $OR_END_0\n"
                         "POP\n"
                         "LOAD c\n"
                         "NOT\n"
-                        "ISTRUE\n"
                         "LABEL $OR_END_0\n"
                         "POP\n");
 }

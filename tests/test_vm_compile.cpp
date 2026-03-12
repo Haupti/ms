@@ -74,17 +74,15 @@ void test_op3(T *t) {
                         "6 STORE_GLOBAL mem(2)\n"
                         "7 LOAD_GLOBAL mem(0)\n"
                         "8 NOT\n"
-                        "9 ISTRUE_PEEK_JMPIFN addr(13)\n"
+                        "9 PEEK_JMPIFN addr(12)\n"
                         "10 POP\n"
                         "11 LOAD_GLOBAL mem(1)\n"
-                        "12 ISTRUE\n"
-                        "13 ISTRUE_PEEK_JMPIF addr(18)\n"
-                        "14 POP\n"
-                        "15 LOAD_GLOBAL mem(2)\n"
-                        "16 NOT\n"
-                        "17 ISTRUE\n"
-                        "18 POP\n"
-                        "19 HALT\n");
+                        "12 PEEK_JMPIF addr(16)\n"
+                        "13 POP\n"
+                        "14 LOAD_GLOBAL mem(2)\n"
+                        "15 NOT\n"
+                        "16 POP\n"
+                        "17 HALT\n");
 }
 
 void test_if1(T *t) {
