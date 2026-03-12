@@ -3,10 +3,20 @@
 #include "../symbol.hpp"
 
 namespace Constants {
+// values
 static const Symbol SYM_TRUE = create_symbol("#true");
-static const Symbol SYM_T = create_symbol("#t");
 static const Symbol SYM_FALSE = create_symbol("#false");
-static const Symbol SYM_TYPE_ERROR = create_symbol("#error");
+
+// types
+static const Symbol SYM_T_ERROR = create_symbol("#error");
+static const Symbol SYM_T_INT = create_symbol("#int");
+static const Symbol SYM_T_FLOAT = create_symbol("#float");
+static const Symbol SYM_T_STRING = create_symbol("#string");
+static const Symbol SYM_T_SYMBOL = create_symbol("#symbol");
+static const Symbol SYM_T_LIST = create_symbol("#list");
+static const Symbol SYM_T_NONE = create_symbol("#none");
+
+// fn names
 static const InternedString BUILDIN_FN_PRINT = create_interned_string("print");
 static const InternedString BUILDIN_FN_LIST = create_interned_string("list");
 static const InternedString BUILDIN_FN_PUT = create_interned_string("put");
