@@ -317,6 +317,7 @@ void vm_lt(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   case ValueTag::FLOAT:
     switch (right.tag) {
     case ValueTag::INT:
@@ -328,6 +329,7 @@ void vm_lt(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected a number as left argument");
   }
@@ -353,6 +355,7 @@ void vm_lte(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   case ValueTag::FLOAT:
     switch (right.tag) {
     case ValueTag::INT:
@@ -364,6 +367,7 @@ void vm_lte(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected a number as left argument");
   }
@@ -389,6 +393,7 @@ void vm_gt(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   case ValueTag::FLOAT:
     switch (right.tag) {
     case ValueTag::INT:
@@ -400,6 +405,7 @@ void vm_gt(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected a number as left argument");
   }
@@ -425,6 +431,7 @@ void vm_gte(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   case ValueTag::FLOAT:
     switch (right.tag) {
     case ValueTag::INT:
@@ -436,6 +443,7 @@ void vm_gte(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected a number as left argument");
   }

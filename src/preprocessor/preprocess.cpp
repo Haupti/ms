@@ -242,11 +242,6 @@ void assert_isat_assign(PpParser *p) {
 }
 } // namespace
 
-std::vector<Token>
-preprocess_pptokens(const filesystem::path &absolute_current_path,
-                    IncludedModules *includes,
-                    const std::vector<PreprocessorToken> &tokens);
-
 namespace {
 vector<Token> parse_token(PpParser *p, const PreprocessorToken &token);
 void parse_define(PpParser *p) {
