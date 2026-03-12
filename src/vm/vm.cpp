@@ -612,10 +612,12 @@ int run(std::vector<VMInstr> instrs) {
       Value val = vm_fns.at(instr.as.VMFN.index)(instr.where, &stack, &heap,
                                                  instr.extra.args);
       stack.push(val);
+      ++iptr;
     } break;
     case VMTag::INIT_FRAME: {
       fps.push(stack.stkptr);
       stack.allocate(instr.extra.locals);
+      ++iptr;
     } break;
     case VMTag::RETURN: {
       uint64_t prev_frame = fps.top();
