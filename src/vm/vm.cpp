@@ -34,9 +34,21 @@ struct Stack {
     values.at(stkptr) = value;
     ++stkptr;
   }
-  Value pop() { return values.at(--stkptr); }
+  Value pop() {
+    Value val = values.at(--stkptr);
+    if (val.undefined) {
+      panic("UNEXPECTED UNDEFINED VALUE (this is a bug in the VM)");
+    }
+    return val;
+  }
   void pop_void() { --stkptr; }
-  Value peek() { return values.at(stkptr - 1); }
+  Value peek() {
+    Value val = values.at(stkptr - 1);
+    if (val.undefined) {
+      panic("UNEXPECTED UNDEFINED VALUE (this is a bug in the VM)");
+    }
+    return val;
+  }
   void reserve(uint16_t n) { stkptr += n; }
   void write_local(uint64_t fptr, StkAddr addr, Value val) {
     values.at(fptr + addr.addr) = val;
