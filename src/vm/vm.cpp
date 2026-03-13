@@ -7,18 +7,13 @@
 #include <vector>
 namespace {
 // UTILITIES
-bool as_bool(LocationRef /*ref*/, Value value) {
+bool as_bool(LocationRef ref, Value value) {
   switch (value.tag) {
   case ValueTag::SYMBOL:
     return value.as.SYMBOL.index == Constants::SYM_TRUE.index;
-  case ValueTag::INT:
-    return value.as.INT != 0;
-  case ValueTag::FLOAT:
-    return value.as.FLOAT != 0.0;
-  case ValueTag::NONE:
-    return false;
   default:
-    return true; // everything else is truthy
+    throw msl_runtime_error(ref, "expected a symbol");
+    break;
   }
 }
 
@@ -657,7 +652,7 @@ int run(std::vector<VMInstr> instrs) {
     } break;
     case VMTag::INIT_FRAME: {
       fps.push(fptr);
-      fptr = stack.stkptr;
+      fptr = stack.stkptr - instr.extra.args;
       stack.allocate(instr.extra.locals);
       ++iptr;
     } break;

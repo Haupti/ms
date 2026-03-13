@@ -1,6 +1,8 @@
 function dostuff(arg) {
-  print(arg)
+  let sx = arg + 1
+  print(sx)
+  return sx
 }
 
-dostuff(#true)
-print(#true)
+let res = dostuff(5)
+print(res)

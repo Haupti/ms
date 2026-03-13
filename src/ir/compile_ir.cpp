@@ -106,12 +106,22 @@ IRInstr ir_new_vm_call(LocationRef where, InternedString name, uint16_t args) {
   return ir;
 }
 IRInstr ir_new_fn_init(LocationRef where, InternedString name,
-                       uint16_t locals) {
+                       uint16_t locals, uint16_t args) {
   IRInstr ir;
   ir.as.VAR = name;
   ir.where = where;
   ir.tag = IRTag::FUNCTION_START;
   ir.extra.locals = locals;
+  ir.extra.args = args;
+  return ir;
+}
+IRInstr ir_new_register_arg(LocationRef where, InternedString varname) {
+  IRInstr ir;
+  ir.as.VAR = varname;
+  ir.where = where;
+  ir.tag = IRTag::REGISTER_ARG;
+  ir.extra.args = 0;
+  ir.extra.locals = 0;
   return ir;
 }
 IRInstr ir_new_jump(LocationRef where, IRTag tag, Label target) {
@@ -318,7 +328,7 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
 
   InternedString fn_name = curr.as.IDENTIFIER;
   // SET LOCALS COUNT TO 0
-  IRInstr frame_init = ir_new_fn_init(curr.start, fn_name, 0);
+  IRInstr frame_init = ir_new_fn_init(curr.start, fn_name, 0, 0);
   fn_ctx.add(frame_init);
   // SAVE POSITION FOR LATER PATCHING OF LOCALS COUNT
   uint64_t frame_init_relative_position = fn_ctx.instructions.size() - 1;
@@ -326,15 +336,11 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   node_idx args_list_head = ns->nth_child(curr, 0);
   uint64_t args_i = 0;
   node_idx arg_idx = ns->nth_child(args_list_head, args_i);
-  std::vector<IRInstr> arg_stores;
   while (!arg_idx.is_null()) {
     Node arg = ns->at(arg_idx);
-    arg_stores.push_back(ir_new_store_new(arg.start, arg.as.IDENTIFIER));
+    fn_ctx.add(ir_new_register_arg(arg.start, arg.as.IDENTIFIER));
     ++args_i;
     arg_idx = ns->nth_child(args_list_head, args_i);
-  }
-  for (auto it = arg_stores.rbegin(); it != arg_stores.rend(); ++it) {
-    fn_ctx.add(*it);
   }
 
   uint64_t i = 1;
@@ -349,16 +355,18 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr default_return = ir_new(curr.start, IRTag::RETURN);
   fn_ctx.add(default_return);
 
-  // PATCH LOCALS COUNT
-  // every fn arg and local variable are placed via a store_new instruction
-  // thus the number of store_new instructions is the number of fn args + locals
+  // PATCH LOCALS AND ARGS COUNT
   uint16_t VARS = 0;
+  uint16_t ARGS = 0;
   for (auto instr : fn_ctx.instructions) {
     if (instr.tag == IRTag::STORE_NEW) {
       ++VARS;
+    } else if (instr.tag == IRTag::REGISTER_ARG) {
+      ++ARGS;
     }
   }
   fn_ctx.instructions.at(frame_init_relative_position).extra.locals = VARS;
+  fn_ctx.instructions.at(frame_init_relative_position).extra.args = ARGS;
   fn_ctx.add(ir_new(curr.start, IRTag::FUNCTION_END));
   ctx->add_function(fn_ctx.instructions);
 }

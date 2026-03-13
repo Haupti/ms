@@ -69,12 +69,12 @@ struct VMInstr {
     bool NONE;
   } as;              // 64 bit
   LocationRef where; // 32 bit
-  union {            //
+  struct {           //
     uint16_t args;   //
     uint16_t locals; //
     uint16_t globals; //
-  } extra;           // 16 bit
-  uint8_t padding2;  // 8 bit
+  } extra;           // 48 bit
+  uint16_t padding2; // 16 bit
   VMTag tag;         // 8 bit
                      // total: 128 bit including padding
 };

@@ -92,12 +92,14 @@ VMInstr build_vmcall(LocationRef where, InternedString vmfn, uint16_t args) {
   o.extra.args = args;
   return o;
 }
-VMInstr build_init_frame(LocationRef where, uint16_t locals) {
+VMInstr build_init_frame(LocationRef where, uint16_t locals, uint16_t args) {
   VMInstr o;
   o.where = where;
   o.as.NONE = false;
   o.tag = VMTag::INIT_FRAME;
   o.extra.locals = locals;
+  o.extra.args = args;
+  o.extra.globals = 0;
   return o;
 }
 VMInstr build_jump(LocationRef where, VMTag tag, InstrAddr addr) {
@@ -171,6 +173,7 @@ std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
       ++addr;
       break;
     case IRTag::FUNCTION_END:
+    case IRTag::REGISTER_ARG:
     case IRTag::SCOPE_START:
     case IRTag::SCOPE_END:
       // omitted in the output -> don't contribute to output address counter
@@ -394,9 +397,13 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     case IRTag::FUNCTION_START: {
       enter_fn(&vars);
       ++depth;
-      VMInstr o = build_init_frame(instr.where, instr.extra.locals);
+      VMInstr o = build_init_frame(instr.where, instr.extra.locals, instr.extra.args);
       instructions.push_back(o);
       functions[instr.as.VAR.index] = mask.at(i);
+    } break;
+    case IRTag::REGISTER_ARG: {
+      set_var(&vars, depth, instr.as.VAR);
+      // no output instruction, just register for offsets
     } break;
     case IRTag::FUNCTION_END:
       exit_fn(&vars);

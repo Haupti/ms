@@ -34,6 +34,7 @@ enum class IRTag : uint8_t {
   CALL,
   VMCALL,
   FUNCTION_START,
+  REGISTER_ARG,
   FUNCTION_END,
   SCOPE_START,
   SCOPE_END,
@@ -62,10 +63,10 @@ struct IRInstr {
     bool NONE;
   } as;              // 64 bit
   LocationRef where; // 32 bit
-  union {            // extra information for e.g. vmfncall or frame_init
+  struct {           // extra information for e.g. vmfncall or frame_init
     uint16_t args;   //
     uint16_t locals; //
-  } extra;           // 16 bit
+  } extra;           // 32 bit
   IRTag tag;         // 8 bit
                      // 8 bit padding
 };
