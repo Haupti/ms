@@ -7,13 +7,18 @@
 #include <vector>
 namespace {
 // UTILITIES
-bool as_bool(LocationRef ref, Value value) {
+bool as_bool(LocationRef /*ref*/, Value value) {
   switch (value.tag) {
   case ValueTag::SYMBOL:
     return value.as.SYMBOL.index == Constants::SYM_TRUE.index;
+  case ValueTag::INT:
+    return value.as.INT != 0;
+  case ValueTag::FLOAT:
+    return value.as.FLOAT != 0.0;
+  case ValueTag::NONE:
+    return false;
   default:
-    throw msl_runtime_error(ref, "expected a symbol");
-    break;
+    return true; // everything else is truthy
   }
 }
 
@@ -49,7 +54,14 @@ struct Stack {
     }
     return val;
   }
-  void reserve(uint16_t n) { stkptr += n; }
+  void reserve(uint16_t n) {
+    uint64_t end = stkptr + n;
+    for (uint64_t i = stkptr; i < end; ++i) {
+      values.at(i).undefined = false;
+      values.at(i).tag = ValueTag::NONE;
+    }
+    stkptr += n;
+  }
   void write_local(uint64_t fptr, StkAddr addr, Value val) {
     values.at(fptr + addr.addr) = val;
   }
@@ -64,17 +76,16 @@ struct Stack {
   }
   void allocate(uint16_t locals) {
     uint64_t end = stkptr + locals;
-    uint64_t curr = stkptr;
-    for (uint64_t i = curr; i < end; ++i) {
-      values.at(i).undefined = true;
-      ++stkptr;
+    for (uint64_t i = stkptr; i < end; ++i) {
+      values.at(i).undefined = false;
+      values.at(i).tag = ValueTag::NONE;
     }
+    stkptr += locals;
   }
-  void retreat(uint16_t frame_start) {
-    uint64_t curr = stkptr;
-    for (uint64_t i = curr; i > frame_start; --i) {
+  void retreat(uint64_t frame_start) {
+    while (stkptr > frame_start) {
       --stkptr;
-      values.at(i).undefined = true;
+      values.at(stkptr).undefined = true;
     }
   }
 };
@@ -177,6 +188,7 @@ void vm_add(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   case ValueTag::FLOAT:
     switch (right.tag) {
     case ValueTag::INT:
@@ -188,6 +200,7 @@ void vm_add(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected a number as left argument");
   }
@@ -207,6 +220,7 @@ void vm_sub(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   case ValueTag::FLOAT:
     switch (right.tag) {
     case ValueTag::INT:
@@ -218,6 +232,7 @@ void vm_sub(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected a number as left argument");
   }
@@ -237,6 +252,7 @@ void vm_mul(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   case ValueTag::FLOAT:
     switch (right.tag) {
     case ValueTag::INT:
@@ -248,6 +264,7 @@ void vm_mul(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected a number as left argument");
   }
@@ -264,23 +281,25 @@ void vm_div(LocationRef where, Stack *stack) {
       break;
     case ValueTag::FLOAT:
       stack->push(
-          Value::Float(static_cast<double>(left.as.INT) * right.as.FLOAT));
+          Value::Float(static_cast<double>(left.as.INT) / right.as.FLOAT));
       break;
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   case ValueTag::FLOAT:
     switch (right.tag) {
     case ValueTag::INT:
       stack->push(
-          Value::Float(left.as.FLOAT * static_cast<double>(right.as.INT)));
+          Value::Float(left.as.FLOAT / static_cast<double>(right.as.INT)));
       break;
     case ValueTag::FLOAT:
-      stack->push(Value::Float(left.as.FLOAT * right.as.FLOAT));
+      stack->push(Value::Float(left.as.FLOAT / right.as.FLOAT));
       break;
     default:
       throw msl_runtime_error(where, "expected a number as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected a number as left argument");
   }
@@ -297,6 +316,7 @@ void vm_mod(LocationRef where, Stack *stack) {
     default:
       throw msl_runtime_error(where, "expected an integer as right argument");
     }
+    break;
   default:
     throw msl_runtime_error(where, "expected an integer as left argument");
   }
@@ -597,6 +617,7 @@ int run(std::vector<VMInstr> instrs) {
     case VMTag::DUP:
       stack.dup();
       ++iptr;
+      break;
     case VMTag::TYPEOF: {
       Value value = stack.pop();
       switch (value.tag) {
@@ -635,7 +656,8 @@ int run(std::vector<VMInstr> instrs) {
       ++iptr;
     } break;
     case VMTag::INIT_FRAME: {
-      fps.push(stack.stkptr);
+      fps.push(fptr);
+      fptr = stack.stkptr;
       stack.allocate(instr.extra.locals);
       ++iptr;
     } break;
@@ -643,7 +665,8 @@ int run(std::vector<VMInstr> instrs) {
       uint64_t prev_frame = fps.top();
       fps.pop();
       Value return_value = stack.pop();
-      stack.retreat(prev_frame);
+      stack.retreat(fptr); // Retreat to start of current frame
+      fptr = prev_frame;   // Restore previous frame pointer
       stack.push(return_value);
       iptr = ret.top();
       ret.pop();

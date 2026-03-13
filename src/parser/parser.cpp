@@ -796,7 +796,7 @@ node_idx parse_one(Parser *p) {
 }
 }; // namespace
 
-nodes parse(const std::vector<Token> program) {
+nodes parse(const std::vector<Token> &program) {
   if (program.size() == 0) {
     return {};
   }

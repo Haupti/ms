@@ -1,10 +1,6 @@
 function dostuff(arg) {
-  if(arg) {
-    return #wasarg
-  }else {
-    print(arg)
-  }
-  return #hehe
+  print(arg)
 }
 
-print(dostuff(#false))
+dostuff(#true)
+print(#true)
