@@ -68,5 +68,5 @@ struct IRInstr {
     uint16_t locals; //
   } extra;           // 32 bit
   IRTag tag;         // 8 bit
-                     // 8 bit padding
+                     // 48 bit padding
 };

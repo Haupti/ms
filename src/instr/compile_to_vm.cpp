@@ -95,11 +95,9 @@ VMInstr build_vmcall(LocationRef where, InternedString vmfn, uint16_t args) {
 VMInstr build_init_frame(LocationRef where, uint16_t locals, uint16_t args) {
   VMInstr o;
   o.where = where;
-  o.as.NONE = false;
+  o.as.INT = args;
   o.tag = VMTag::INIT_FRAME;
   o.extra.locals = locals;
-  o.extra.args = args;
-  o.extra.globals = 0;
   return o;
 }
 VMInstr build_jump(LocationRef where, VMTag tag, InstrAddr addr) {
@@ -397,7 +395,12 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     case IRTag::FUNCTION_START: {
       enter_fn(&vars);
       ++depth;
-      VMInstr o = build_init_frame(instr.where, instr.extra.locals, instr.extra.args);
+      uint16_t args = 0;
+      for (size_t j = i + 1; j < ir.size(); ++j) {
+        if (ir.at(j).tag == IRTag::REGISTER_ARG) args++;
+        if (ir.at(j).tag == IRTag::FUNCTION_END) break;
+      }
+      VMInstr o = build_init_frame(instr.where, instr.extra.locals, args);
       instructions.push_back(o);
       functions[instr.as.VAR.index] = mask.at(i);
     } break;

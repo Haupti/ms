@@ -652,7 +652,7 @@ int run(std::vector<VMInstr> instrs) {
     } break;
     case VMTag::INIT_FRAME: {
       fps.push(fptr);
-      fptr = stack.stkptr - instr.extra.args;
+      fptr = stack.stkptr - instr.as.INT;
       stack.allocate(instr.extra.locals);
       ++iptr;
     } break;

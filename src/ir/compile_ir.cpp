@@ -106,13 +106,12 @@ IRInstr ir_new_vm_call(LocationRef where, InternedString name, uint16_t args) {
   return ir;
 }
 IRInstr ir_new_fn_init(LocationRef where, InternedString name,
-                       uint16_t locals, uint16_t args) {
+                       uint16_t locals) {
   IRInstr ir;
   ir.as.VAR = name;
   ir.where = where;
   ir.tag = IRTag::FUNCTION_START;
   ir.extra.locals = locals;
-  ir.extra.args = args;
   return ir;
 }
 IRInstr ir_new_register_arg(LocationRef where, InternedString varname) {
@@ -120,7 +119,6 @@ IRInstr ir_new_register_arg(LocationRef where, InternedString varname) {
   ir.as.VAR = varname;
   ir.where = where;
   ir.tag = IRTag::REGISTER_ARG;
-  ir.extra.args = 0;
   ir.extra.locals = 0;
   return ir;
 }
@@ -328,7 +326,7 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
 
   InternedString fn_name = curr.as.IDENTIFIER;
   // SET LOCALS COUNT TO 0
-  IRInstr frame_init = ir_new_fn_init(curr.start, fn_name, 0, 0);
+  IRInstr frame_init = ir_new_fn_init(curr.start, fn_name, 0);
   fn_ctx.add(frame_init);
   // SAVE POSITION FOR LATER PATCHING OF LOCALS COUNT
   uint64_t frame_init_relative_position = fn_ctx.instructions.size() - 1;
@@ -355,18 +353,14 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr default_return = ir_new(curr.start, IRTag::RETURN);
   fn_ctx.add(default_return);
 
-  // PATCH LOCALS AND ARGS COUNT
+  // PATCH LOCALS COUNT
   uint16_t VARS = 0;
-  uint16_t ARGS = 0;
   for (auto instr : fn_ctx.instructions) {
     if (instr.tag == IRTag::STORE_NEW) {
       ++VARS;
-    } else if (instr.tag == IRTag::REGISTER_ARG) {
-      ++ARGS;
     }
   }
   fn_ctx.instructions.at(frame_init_relative_position).extra.locals = VARS;
-  fn_ctx.instructions.at(frame_init_relative_position).extra.args = ARGS;
   fn_ctx.add(ir_new(curr.start, IRTag::FUNCTION_END));
   ctx->add_function(fn_ctx.instructions);
 }
