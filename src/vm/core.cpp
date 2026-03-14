@@ -2,6 +2,8 @@
 #include "../../lib/asap/util.hpp"
 #include "../msl_runtime_error.hpp"
 #include "stack.hpp"
+#include <fstream>
+#include <sstream>
 #include <string>
 namespace {
 inline std::string value_tag_to_string(ValueTag tag) {
@@ -299,4 +301,51 @@ Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
 Value core::value_to_string_fn(LocationRef, Stack *stack, VMHeap *heap) {
   Value val = stack->pop();
   return heap->add_string(value_to_string(stack, heap, val));
+}
+
+Value core::file_read(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value path_val = stack->pop();
+  if (path_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected a string for file path");
+  }
+  std::string path = heap->get_string(path_val.as.STRING);
+  std::ifstream f(path);
+  if (!f.is_open()) {
+    throw msl_runtime_error(where, "could not open file: " + path);
+  }
+  std::stringstream buffer;
+  buffer << f.rdbuf();
+  return heap->add_string(buffer.str());
+}
+
+Value core::file_write(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value content_val = stack->pop();
+  Value path_val = stack->pop();
+  if (path_val.tag != ValueTag::STRING || content_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for path and content");
+  }
+  std::string path = heap->get_string(path_val.as.STRING);
+  std::string content = heap->get_string(content_val.as.STRING);
+  std::ofstream f(path);
+  if (!f.is_open()) {
+    throw msl_runtime_error(where, "could not open file: " + path);
+  }
+  f << content;
+  return Value::None();
+}
+
+Value core::file_append(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value content_val = stack->pop();
+  Value path_val = stack->pop();
+  if (path_val.tag != ValueTag::STRING || content_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for path and content");
+  }
+  std::string path = heap->get_string(path_val.as.STRING);
+  std::string content = heap->get_string(content_val.as.STRING);
+  std::ofstream f(path, std::ios::app);
+  if (!f.is_open()) {
+    throw msl_runtime_error(where, "could not open file: " + path);
+  }
+  f << content;
+  return Value::None();
 }

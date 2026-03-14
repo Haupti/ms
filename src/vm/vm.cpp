@@ -22,7 +22,7 @@ template <typename T> struct FastStack {
 };
 
 // UTILITIES
-bool as_bool(LocationRef ref, Value value) {
+inline bool as_bool(LocationRef ref, Value value) {
   switch (value.tag) {
   case ValueTag::SYMBOL:
     return value.as.SYMBOL.index == Constants::SYM_TRUE.index;
@@ -33,7 +33,7 @@ bool as_bool(LocationRef ref, Value value) {
 }
 
 // VM INSTRUCTIONS
-void vm_add(LocationRef where, Stack *stack) {
+inline void vm_add(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   switch (left.tag) {
@@ -65,7 +65,7 @@ void vm_add(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected a number as left argument");
   }
 }
-void vm_sub(LocationRef where, Stack *stack) {
+inline void vm_sub(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   switch (left.tag) {
@@ -97,7 +97,7 @@ void vm_sub(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected a number as left argument");
   }
 }
-void vm_mul(LocationRef where, Stack *stack) {
+inline void vm_mul(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   switch (left.tag) {
@@ -129,7 +129,7 @@ void vm_mul(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected a number as left argument");
   }
 }
-void vm_div(LocationRef where, Stack *stack) {
+inline void vm_div(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   switch (left.tag) {
@@ -164,7 +164,7 @@ void vm_div(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected a number as left argument");
   }
 }
-void vm_mod(LocationRef where, Stack *stack) {
+inline void vm_mod(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   switch (left.tag) {
@@ -181,7 +181,7 @@ void vm_mod(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected an integer as left argument");
   }
 }
-void vm_lt(LocationRef where, Stack *stack) {
+inline void vm_lt(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   bool is_true = false;
@@ -219,7 +219,7 @@ void vm_lt(LocationRef where, Stack *stack) {
     stack->push(Value::Symbol(Constants::SYM_FALSE));
   }
 }
-void vm_lte(LocationRef where, Stack *stack) {
+inline void vm_lte(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   bool is_true = false;
@@ -257,7 +257,7 @@ void vm_lte(LocationRef where, Stack *stack) {
     stack->push(Value::Symbol(Constants::SYM_FALSE));
   }
 }
-void vm_gt(LocationRef where, Stack *stack) {
+inline void vm_gt(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   bool is_true = false;
@@ -295,7 +295,7 @@ void vm_gt(LocationRef where, Stack *stack) {
     stack->push(Value::Symbol(Constants::SYM_FALSE));
   }
 }
-void vm_gte(LocationRef where, Stack *stack) {
+inline void vm_gte(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
   bool is_true = false;
@@ -333,7 +333,7 @@ void vm_gte(LocationRef where, Stack *stack) {
     stack->push(Value::Symbol(Constants::SYM_FALSE));
   }
 }
-void vm_eq(Stack *stack, VMHeap *heap) {
+inline void vm_eq(Stack *stack, VMHeap *heap) {
   Value right = stack->pop();
   Value left = stack->pop();
   bool is_true = core::values_equal(heap, left, right);
@@ -343,7 +343,7 @@ void vm_eq(Stack *stack, VMHeap *heap) {
     stack->push(Value::Symbol(Constants::SYM_FALSE));
   }
 }
-void vm_neq(Stack *stack, VMHeap *heap) {
+inline void vm_neq(Stack *stack, VMHeap *heap) {
   Value right = stack->pop();
   Value left = stack->pop();
   bool is_true = core::values_equal(heap, left, right);

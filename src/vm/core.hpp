@@ -28,6 +28,9 @@ Value len(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_to_int(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_to_float(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_to_string_fn(LocationRef where, Stack *stack, VMHeap *heap);
+Value file_read(LocationRef where, Stack *stack, VMHeap *heap);
+Value file_write(LocationRef where, Stack *stack, VMHeap *heap);
+Value file_append(LocationRef where, Stack *stack, VMHeap *heap);
 
 enum class ArgsCountType : uint8_t {
   VARARGS,
@@ -54,7 +57,11 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_LEN.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_INT.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FLOAT.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR.index, ArgsCount(1, ArgsCountType::ARGS)}};
+    {Constants::BUILDIN_FN_STR.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FILE_READ.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FILE_WRITE.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FILE_APPEND.index,
+     ArgsCount(2, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -72,7 +79,10 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_LEN.index, len},
            {Constants::BUILDIN_FN_INT.index, value_to_int},
            {Constants::BUILDIN_FN_FLOAT.index, value_to_float},
-           {Constants::BUILDIN_FN_STR.index, value_to_string_fn}
+           {Constants::BUILDIN_FN_STR.index, value_to_string_fn},
+           {Constants::BUILDIN_FN_FILE_READ.index, file_read},
+           {Constants::BUILDIN_FN_FILE_WRITE.index, file_write},
+           {Constants::BUILDIN_FN_FILE_APPEND.index, file_append}
 
 };
 
