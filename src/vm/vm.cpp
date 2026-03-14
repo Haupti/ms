@@ -4,9 +4,16 @@
 #include "stack.hpp"
 #include "value_and_heap.hpp"
 #include "vm_instr.hpp"
-#include <stack>
 #include <vector>
 namespace {
+template <typename T> struct FastStack {
+  std::vector<T> values;
+  uint64_t ptr = 0;
+  FastStack(uint64_t init) { values.resize(init); }
+  inline void push(T val) { values[ptr++] = val; }
+  inline T pop() { return values[--ptr]; }
+};
+
 // UTILITIES
 bool as_bool(LocationRef ref, Value value) {
   switch (value.tag) {
@@ -343,15 +350,15 @@ void vm_neq(Stack *stack, VMHeap *heap) {
 int run(std::vector<VMInstr> instrs) {
   VMHeap heap = VMHeap(1000, 1000);
   // return addresses
-  std::stack<uint64_t> ret;
+  FastStack<uint64_t> ret(1024);
   // frame pointers
-  std::stack<uint64_t> fps;
+  FastStack<uint64_t> fps(1024);
   Stack stack = Stack(10000);
   uint64_t iptr = 0;
   uint64_t fptr = 0;
-  VMInstr instr;
-  while (true) {
-    instr = instrs.at(iptr);
+  size_t instrs_size = instrs.size();
+  while (iptr < instrs_size) {
+    const VMInstr &instr = instrs[iptr];
     switch (instr.tag) {
     case VMTag::PUSH_INT:
       stack.push(Value::Int(instr.as.INT));
@@ -484,14 +491,12 @@ int run(std::vector<VMInstr> instrs) {
       ++iptr;
     } break;
     case VMTag::RETURN: {
-      uint64_t prev_frame = fps.top();
-      fps.pop();
+      uint64_t prev_frame = fps.pop();
       Value return_value = stack.pop();
       stack.retreat(fptr); // Retreat to start of current frame
       fptr = prev_frame;   // Restore previous frame pointer
       stack.push(return_value);
-      iptr = ret.top();
-      ret.pop();
+      iptr = ret.pop();
     } break;
     case VMTag::POP: {
       stack.pop_void();
