@@ -403,6 +403,7 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
     }
   }
   fn_ctx.instructions.at(frame_init_relative_position).extra.locals = VARS;
+  fn_ctx.instructions.at(frame_init_relative_position).extra.args = args_i;
   fn_ctx.add(ir_new(curr.start, IRTag::FUNCTION_END));
   ctx->add_function(curr.start, fn_name, fn_ctx.instructions, args_i);
 }

@@ -136,7 +136,6 @@ node_idx parse_expect_lazy(Parser *p) {
 }
 
 void parse_add_function_args(Parser *p, node_idx myself_idx) {
-
   while (true) {
     node_idx arg_idx = parse_expression_eager(p);
     p->nodes.add_child(myself_idx, arg_idx);

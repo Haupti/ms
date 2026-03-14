@@ -13,4 +13,11 @@
 ;print([cpy])
 ;print(typeof(cpy))
 
-1.print()
+function sub(a, b){
+  return a - b
+}
+
+print(sub(1,2))
+print(1.sub(2))
+print(1|sub(2))
+

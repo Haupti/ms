@@ -147,7 +147,7 @@ void test_fn1(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
                         "1 HALT\n"
-                        "2 INIT_FRAME 0\n"
+                        "2 INIT_FRAME 0 2\n"
                         "3 LOAD mem(0)\n"
                         "4 LOAD mem(1)\n"
                         "5 ADD\n"
@@ -164,7 +164,7 @@ void test_try(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
                         "1 HALT\n"
-                        "2 INIT_FRAME 0\n"
+                        "2 INIT_FRAME 0 1\n"
                         "3 LOAD mem(0)\n"
                         "4 PUSH_INT 1\n"
                         "5 ADD\n"
@@ -187,7 +187,7 @@ void test_expect(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
                         "1 HALT\n"
-                        "2 INIT_FRAME 0\n"
+                        "2 INIT_FRAME 0 1\n"
                         "3 LOAD mem(0)\n"
                         "4 PUSH_INT 1\n"
                         "5 ADD\n"
@@ -212,7 +212,7 @@ void test_ordering(T *t) {
                         "1 PUSH_INT 1\n"
                         "2 STORE_GLOBAL mem(0)\n"
                         "3 HALT\n"
-                        "4 INIT_FRAME 0\n"
+                        "4 INIT_FRAME 0 1\n"
                         "5 PUSH_NONE \n"
                         "6 RETURN\n"
                         "7 HALT\n");
@@ -239,7 +239,7 @@ void test_complex(T *t) {
                         "9 PUSH_INT 3\n"
                         "10 STORE mem(1)\n"
                         "11 HALT\n"
-                        "12 INIT_FRAME 0\n"
+                        "12 INIT_FRAME 0 1\n"
                         "13 LOAD_GLOBAL mem(0)\n"
                         "14 LOAD mem(0)\n"
                         "15 ADD\n"
@@ -258,7 +258,7 @@ void test_fn_call(T *t) {
                         "3 CALL addr(6)\n"
                         "4 POP\n"
                         "5 HALT\n"
-                        "6 INIT_FRAME 0\n"
+                        "6 INIT_FRAME 0 2\n"
                         "7 LOAD mem(0)\n"
                         "8 LOAD mem(1)\n"
                         "9 ADD\n"

@@ -86,7 +86,8 @@ inline std::string vminstr_to_string(uint64_t pos, const VMInstr &instr) {
            std::to_string(instr.extra.args);
     break;
   case VMTag::INIT_FRAME:
-    str += "INIT_FRAME " + std::to_string(instr.extra.locals);
+    str += "INIT_FRAME " + std::to_string(instr.extra.locals) + " " +
+           std::to_string(instr.as.INT);
     break;
   case VMTag::RETURN:
     str += "RETURN";
