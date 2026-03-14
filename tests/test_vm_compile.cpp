@@ -147,16 +147,14 @@ void test_fn1(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
                         "1 HALT\n"
-                        "2 INIT_FRAME 2\n"
-                        "3 STORE mem(0)\n"
-                        "4 STORE mem(1)\n"
-                        "5 LOAD mem(1)\n"
-                        "6 LOAD mem(0)\n"
-                        "7 ADD\n"
+                        "2 INIT_FRAME 0\n"
+                        "3 LOAD mem(0)\n"
+                        "4 LOAD mem(1)\n"
+                        "5 ADD\n"
+                        "6 RETURN\n"
+                        "7 PUSH_NONE \n"
                         "8 RETURN\n"
-                        "9 PUSH_NONE \n"
-                        "10 RETURN\n"
-                        "11 HALT\n");
+                        "9 HALT\n");
 }
 
 void test_try(T *t) {
@@ -166,21 +164,20 @@ void test_try(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
                         "1 HALT\n"
-                        "2 INIT_FRAME 1\n"
-                        "3 STORE mem(0)\n"
-                        "4 LOAD mem(0)\n"
-                        "5 PUSH_INT 1\n"
-                        "6 ADD\n"
-                        "7 DUP\n"
-                        "8 TYPEOF\n"
-                        "9 PUSH_SYMBOL #error\n"
-                        "10 EQ\n"
-                        "11 JMPIFN addr(13)\n"
+                        "2 INIT_FRAME 0\n"
+                        "3 LOAD mem(0)\n"
+                        "4 PUSH_INT 1\n"
+                        "5 ADD\n"
+                        "6 DUP\n"
+                        "7 TYPEOF\n"
+                        "8 PUSH_SYMBOL #error\n"
+                        "9 EQ\n"
+                        "10 JMPIFN addr(12)\n"
+                        "11 RETURN\n"
                         "12 RETURN\n"
-                        "13 RETURN\n"
-                        "14 PUSH_NONE \n"
-                        "15 RETURN\n"
-                        "16 HALT\n");
+                        "13 PUSH_NONE \n"
+                        "14 RETURN\n"
+                        "15 HALT\n");
 }
 
 void test_expect(T *t) {
@@ -190,22 +187,21 @@ void test_expect(T *t) {
   string out = compile_and_show(code);
   t->assert_str_eq(out, "0 PROGRAM_INIT 0\n"
                         "1 HALT\n"
-                        "2 INIT_FRAME 1\n"
-                        "3 STORE mem(0)\n"
-                        "4 LOAD mem(0)\n"
-                        "5 PUSH_INT 1\n"
-                        "6 ADD\n"
-                        "7 DUP\n"
-                        "8 TYPEOF\n"
-                        "9 PUSH_SYMBOL #error\n"
-                        "10 EQ\n"
-                        "11 JMPIFN addr(14)\n"
-                        "12 PUSH_ALLOC_STRING 'expected non-error value'\n"
-                        "13 VMCALL panic 1\n"
-                        "14 RETURN\n"
-                        "15 PUSH_NONE \n"
-                        "16 RETURN\n"
-                        "17 HALT\n");
+                        "2 INIT_FRAME 0\n"
+                        "3 LOAD mem(0)\n"
+                        "4 PUSH_INT 1\n"
+                        "5 ADD\n"
+                        "6 DUP\n"
+                        "7 TYPEOF\n"
+                        "8 PUSH_SYMBOL #error\n"
+                        "9 EQ\n"
+                        "10 JMPIFN addr(13)\n"
+                        "11 PUSH_ALLOC_STRING 'expected non-error value'\n"
+                        "12 VMCALL panic 1\n"
+                        "13 RETURN\n"
+                        "14 PUSH_NONE \n"
+                        "15 RETURN\n"
+                        "16 HALT\n");
 }
 
 void test_ordering(T *t) {
@@ -216,11 +212,10 @@ void test_ordering(T *t) {
                         "1 PUSH_INT 1\n"
                         "2 STORE_GLOBAL mem(0)\n"
                         "3 HALT\n"
-                        "4 INIT_FRAME 1\n"
-                        "5 STORE mem(0)\n"
-                        "6 PUSH_NONE \n"
-                        "7 RETURN\n"
-                        "8 HALT\n");
+                        "4 INIT_FRAME 0\n"
+                        "5 PUSH_NONE \n"
+                        "6 RETURN\n"
+                        "7 HALT\n");
 }
 void test_complex(T *t) {
   string code = "let x = 1\n"
@@ -244,15 +239,14 @@ void test_complex(T *t) {
                         "9 PUSH_INT 3\n"
                         "10 STORE mem(1)\n"
                         "11 HALT\n"
-                        "12 INIT_FRAME 1\n"
-                        "13 STORE mem(0)\n"
-                        "14 LOAD_GLOBAL mem(0)\n"
-                        "15 LOAD mem(0)\n"
-                        "16 ADD\n"
-                        "17 RETURN\n"
-                        "18 PUSH_NONE \n"
-                        "19 RETURN\n"
-                        "20 HALT\n");
+                        "12 INIT_FRAME 0\n"
+                        "13 LOAD_GLOBAL mem(0)\n"
+                        "14 LOAD mem(0)\n"
+                        "15 ADD\n"
+                        "16 RETURN\n"
+                        "17 PUSH_NONE \n"
+                        "18 RETURN\n"
+                        "19 HALT\n");
 }
 void test_fn_call(T *t) {
   string code = "function add(a,b) { return a + b }"
@@ -264,16 +258,14 @@ void test_fn_call(T *t) {
                         "3 CALL addr(6)\n"
                         "4 POP\n"
                         "5 HALT\n"
-                        "6 INIT_FRAME 2\n"
-                        "7 STORE mem(0)\n"
-                        "8 STORE mem(1)\n"
-                        "9 LOAD mem(1)\n"
-                        "10 LOAD mem(0)\n"
-                        "11 ADD\n"
+                        "6 INIT_FRAME 0\n"
+                        "7 LOAD mem(0)\n"
+                        "8 LOAD mem(1)\n"
+                        "9 ADD\n"
+                        "10 RETURN\n"
+                        "11 PUSH_NONE \n"
                         "12 RETURN\n"
-                        "13 PUSH_NONE \n"
-                        "14 RETURN\n"
-                        "15 HALT\n");
+                        "13 HALT\n");
 }
 
 } // namespace

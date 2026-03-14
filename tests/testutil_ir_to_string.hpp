@@ -59,7 +59,7 @@ inline std::string ir_to_string(const IRInstr &instr) {
   case IRTag::VMCALL:
     return "VMCALL " + resolve_interned_string(instr.as.VAR);
   case IRTag::FUNCTION_START:
-    return "FUNCTION_START " + resolve_interned_string(instr.as.VAR);
+    return "FUNCTION_START " + resolve_interned_string(instr.as.VAR) + " locals:" + std::to_string(instr.extra.locals);
   case IRTag::PEEK_JMPIF:
     return "PEEK_JMPIF " + resolve_label(instr.as.LABEL);
   case IRTag::PEEK_JMPIFN:
@@ -81,7 +81,6 @@ inline std::string ir_to_string(const IRInstr &instr) {
   case IRTag::HALT:
     return "HALT";
   case IRTag::REGISTER_ARG:
-    return "REGISTER_ARG";
-    break;
+    return "REGISTER_ARG " + resolve_interned_string(instr.as.VAR);
   }
 }

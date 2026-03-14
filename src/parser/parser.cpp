@@ -491,8 +491,17 @@ node_idx parse_expression_lazy(Parser *p) {
     return parse_expect_lazy(p);
   case TokenTag::ASSIGN:
     throw compile_error(t.location, "unexpected token '='");
-  case TokenTag::BROPEN:
-    throw compile_error(t.location, "unexpected token ')'");
+  case TokenTag::BROPEN: {
+    // TODO: this was added by gemini instead of exception. not sure if this is
+    // correct. my intuition is that this is not correct. because stuff that
+    // starts with abracket is not a group but must be a function call...
+    p->adv();
+    node_idx expr_idx = parse_expression_eager(p);
+    Token close = p->peek();
+    assert_close_br(close);
+    p->adv();
+    return expr_idx;
+  }
   case TokenTag::BRCLOSE:
     throw compile_error(t.location, "unexpected token ')'");
   case TokenTag::BRACKETOPEN: {
@@ -504,7 +513,7 @@ node_idx parse_expression_lazy(Parser *p) {
     return expr_idx;
   }
   case TokenTag::BRACKETCLOSE:
-    throw compile_error(t.location, "unexpected token '{'");
+    throw compile_error(t.location, "unexpected token ']'");
   case TokenTag::CURLOPEN:
     throw compile_error(t.location, "unexpected token '{'");
   case TokenTag::CURLCLOSE:

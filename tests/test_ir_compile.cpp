@@ -121,9 +121,9 @@ void test_fn1(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "HALT\n"
-                        "FUNCTION_START add\n"
-                        "STORE_NEW b\n"
-                        "STORE_NEW a\n"
+                        "FUNCTION_START add locals:0\n"
+                        "REGISTER_ARG a\n"
+                        "REGISTER_ARG b\n"
                         "LOAD a\n"
                         "LOAD b\n"
                         "ADD\n"
@@ -138,8 +138,8 @@ void test_try(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "HALT\n"
-                        "FUNCTION_START addone\n"
-                        "STORE_NEW b\n"
+                        "FUNCTION_START addone locals:0\n"
+                        "REGISTER_ARG b\n"
                         "LOAD b\n"
                         "PUSH_INT 1\n"
                         "ADD\n"
@@ -153,9 +153,7 @@ void test_try(T *t) {
                         "RETURN\n"
                         "PUSH_NONE\n"
                         "RETURN\n"
-                        "FUNCTION_END\n"
-
-  );
+                        "FUNCTION_END\n");
 }
 void test_expect(T *t) {
   string code = "function addone(a) {\n"
@@ -163,8 +161,8 @@ void test_expect(T *t) {
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "HALT\n"
-                        "FUNCTION_START addone\n"
-                        "STORE_NEW a\n"
+                        "FUNCTION_START addone locals:0\n"
+                        "REGISTER_ARG a\n"
                         "LOAD a\n"
                         "PUSH_INT 1\n"
                         "ADD\n"
@@ -189,8 +187,8 @@ void test_ordering(T *t) {
   t->assert_str_eq(out, "PUSH_INT 1\n"
                         "STORE_NEW x\n"
                         "HALT\n"
-                        "FUNCTION_START void\n"
-                        "STORE_NEW a\n"
+                        "FUNCTION_START void locals:0\n"
+                        "REGISTER_ARG a\n"
                         "PUSH_NONE\n"
                         "RETURN\n"
                         "FUNCTION_END\n");
