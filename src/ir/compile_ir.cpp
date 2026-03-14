@@ -336,9 +336,9 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
     call_instr = ir_new_vm_call(curr.start, fn_name, args_count);
   } else {
     if (!ctx->has_function(fn_name)) {
-      throw msl_runtime_error(curr.start, "function " +
+      throw msl_runtime_error(curr.start, "function '" +
                                               resolve_interned_string(fn_name) +
-                                              " not defined");
+                                              "' not defined");
     }
     uint16_t expected_args = ctx->get_function_args(fn_name);
     if (args_count != expected_args) {

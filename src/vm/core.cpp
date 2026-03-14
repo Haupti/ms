@@ -1,4 +1,5 @@
 #include "core.hpp"
+#include "../../lib/asap/util.hpp"
 #include "../msl_runtime_error.hpp"
 #include "stack.hpp"
 #include <string>
@@ -51,8 +52,18 @@ std::string core::value_to_string(Stack *stack, VMHeap *heap, Value value) {
     return resolve_symbol(value.as.SYMBOL);
   case ValueTag::STRING:
     return heap->get_string(value.as.STRING);
-  case ValueTag::LIST:
-    panic("NOT YET IMPLEMENTED");
+  case ValueTag::LIST: {
+    std::vector<std::string> args;
+    uint64_t i = 0;
+    Value val = heap->nth_child(value.as.LIST, i);
+    while (!val.undefined) {
+      args.push_back(value_to_string(stack, heap, val));
+      ++i;
+      val = heap->nth_child(value.as.LIST, i);
+    }
+    args.push_back(value_to_string(stack, heap, val));
+    return "list(" + join(args, ",") + ")";
+  }
   case ValueTag::ERROR:
     return "error(" + value_to_string(stack, heap, heap->at(value.as.ERROR)) +
            ")";

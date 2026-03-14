@@ -119,6 +119,7 @@ private:
 public:
   VMHeap(uint64_t capacity, uint64_t string_capacity) {
     elements.reserve(capacity);
+    add(Value()); // 0 slot must hold undefined value
     strings.reserve(string_capacity);
   }
   Value add_string(InternedString str) {
