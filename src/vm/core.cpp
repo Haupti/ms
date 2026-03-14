@@ -49,12 +49,10 @@ Value internal_copy_value(Stack *stack, VMHeap *heap, Value value) {
   } break;
   case ValueTag::LIST: {
     VMHIDX new_list = heap->new_list();
-    uint64_t i = 0;
-    VMHIDX curr = heap->nth_child_idx(value.as.LIST, i);
+    VMHIDX curr = heap->node_at(value.as.LIST)->first_child;
     while (curr != INVALID) {
       heap->add_child(new_list, heap->at(curr));
-      ++i;
-      curr = heap->nth_child_idx(value.as.LIST, i);
+      curr = heap->node_at(curr)->next_child;
     }
     return heap->at(new_list);
   } break;
@@ -134,7 +132,7 @@ std::string core::value_to_string(Stack *stack, VMHeap *heap, Value value) {
     return "error(" + value_to_string(stack, heap, heap->at(value.as.ERROR)) +
            ")";
   case ValueTag::NONE:
-    return "None";
+    return "none";
   }
 }
 
@@ -225,4 +223,80 @@ Value core::vmtypeof(LocationRef, Stack *stack, VMHeap *) {
   case ValueTag::NONE:
     return (Value::Symbol(Constants::SYM_T_NONE));
   }
+}
+Value core::string_concat(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value right = stack->pop();
+  Value left = stack->pop();
+  if (left.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected string as left argument");
+  }
+  if (right.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings as right argument");
+  }
+  std::string s1 = heap->get_string(left.as.STRING);
+  std::string s2 = heap->get_string(right.as.STRING);
+  return heap->add_string(s1 + s2);
+}
+Value core::len(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag == ValueTag::STRING) {
+    return Value::Int(heap->get_string(val.as.STRING).length());
+  } else if (val.tag == ValueTag::LIST) {
+    uint64_t count = 0;
+    VMHIDX curr = heap->node_at(val.as.LIST)->first_child;
+    while (curr != INVALID) {
+      count++;
+      curr = heap->node_at(curr)->next_child;
+    }
+    return Value::Int(count);
+  } else {
+    throw msl_runtime_error(where, "expected string or list for len()");
+  }
+}
+
+Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  switch (val.tag) {
+  case ValueTag::INT:
+    return val;
+  case ValueTag::FLOAT:
+    return Value::Int(static_cast<int64_t>(val.as.FLOAT));
+  case ValueTag::STRING: {
+    try {
+      return Value::Int(std::stoll(heap->get_string(val.as.STRING)));
+    } catch (...) {
+      throw msl_runtime_error(where, "could not convert string to int");
+    }
+  }
+  default:
+    throw msl_runtime_error(
+        where, "cannot convert " + value_tag_to_string(val.tag) + " to int");
+  }
+}
+
+Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  switch (val.tag) {
+  case ValueTag::INT:
+    return Value::Float(static_cast<double>(val.as.INT));
+  case ValueTag::FLOAT:
+    return val;
+  case ValueTag::STRING: {
+    try {
+      return Value::Float(std::stod(heap->get_string(val.as.STRING)));
+    } catch (...) {
+      throw msl_runtime_error(where, "could not convert '" +
+                                         heap->get_string(val.as.STRING) +
+                                         "' to float");
+    }
+  }
+  default:
+    throw msl_runtime_error(
+        where, "cannot convert " + value_tag_to_string(val.tag) + " to float");
+  }
+}
+
+Value core::value_to_string_fn(LocationRef, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  return heap->add_string(value_to_string(stack, heap, val));
 }

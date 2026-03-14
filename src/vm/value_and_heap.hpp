@@ -114,9 +114,8 @@ private:
   std::vector<std::string> strings;
   std::vector<StringIdx> free_strings;
 
-  VMHNode *node_at(VMHIDX idx) { return &elements.at(idx); }
-
 public:
+  VMHNode *node_at(VMHIDX idx) { return &elements.at(idx); }
   VMHeap(uint64_t capacity, uint64_t string_capacity) {
     elements.reserve(capacity);
     add(Value()); // 0 slot must hold undefined value

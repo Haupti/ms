@@ -31,4 +31,8 @@ static const InternedString BUILDIN_FN_TYPEOF = create_interned_string("typeof")
 static const InternedString BUILDIN_FN_PANIC = create_interned_string("panic");
 static const InternedString BUILDIN_FN_ERROR = create_interned_string("error");
 static const InternedString BUILDIN_FN_STR_CONCAT = create_interned_string("<>");
+static const InternedString BUILDIN_FN_LEN = create_interned_string("len");
+static const InternedString BUILDIN_FN_INT = create_interned_string("int");
+static const InternedString BUILDIN_FN_FLOAT = create_interned_string("float");
+static const InternedString BUILDIN_FN_STR = create_interned_string("str");
 } // namespace Constants
