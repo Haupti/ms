@@ -188,6 +188,20 @@ public:
     }
     return value_idx;
   }
+  void set_nth_child(VMHIDX list_head, uint64_t n, Value value) {
+    if (elements.size() <= list_head) {
+      warn("attempt to access out of bounds element " +
+           std::to_string(list_head));
+      return;
+    }
+    VMHNode *list_node = &elements.at(list_head);
+    if (list_node->value.tag != ValueTag::LIST) {
+      warn("attempt to add child to non-list value");
+      return;
+    }
+    VMHIDX nth_child_ref = nth_child_idx(list_head, n);
+    elements.at(nth_child_ref) = value;
+  }
   VMHIDX add_child_front(VMHIDX list_head, Value value) {
     if (elements.size() <= list_head) {
       warn("attempt to access out of bounds element " +

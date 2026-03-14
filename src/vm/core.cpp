@@ -3,6 +3,38 @@
 #include "../msl_runtime_error.hpp"
 #include "stack.hpp"
 #include <string>
+namespace {
+inline std::string value_tag_to_string(ValueTag tag) {
+  switch (tag) {
+  case ValueTag::INT:
+    return "int";
+  case ValueTag::FLOAT:
+    return "float";
+  case ValueTag::SYMBOL:
+    return "symbol";
+  case ValueTag::STRING:
+    return "string";
+  case ValueTag::LIST:
+    return "list";
+  case ValueTag::ERROR:
+    return "error";
+  case ValueTag::NONE:
+    return "none";
+  }
+}
+void assert_list(LocationRef where, Value value) {
+  if (value.tag != ValueTag::LIST) {
+    throw msl_runtime_error(where, "expected a list but got a(n)" +
+                                       value_tag_to_string(value.tag));
+  }
+}
+void assert_int(LocationRef where, Value value) {
+  if (value.tag != ValueTag::INT) {
+    throw msl_runtime_error(where, "expected an int but got a(n)" +
+                                       value_tag_to_string(value.tag));
+  }
+}
+}; // namespace
 bool core::values_equal(VMHeap *heap, Value left, Value right) {
   switch (left.tag) {
   case ValueTag::INT:
@@ -79,6 +111,10 @@ Value core::make_error(LocationRef, Stack *stack, VMHeap *heap) {
   Value inner = stack->pop();
   return Value::Error(heap->add(inner));
 }
+[[noreturn]] Value core::vmpanic(LocationRef where, Stack *stack,
+                                 VMHeap *heap) {
+  throw msl_runtime_error(where, value_to_string(stack, heap, stack->pop()));
+}
 Value core::list(LocationRef, Stack *stack, VMHeap *heap) {
   int64_t args_count = stack->pop().as.INT;
   VMHIDX list_head = heap->new_list();
@@ -87,7 +123,19 @@ Value core::list(LocationRef, Stack *stack, VMHeap *heap) {
   }
   return heap->at(list_head);
 }
-[[noreturn]] Value core::vmpanic(LocationRef where, Stack *stack,
-                                 VMHeap *heap) {
-  throw msl_runtime_error(where, value_to_string(stack, heap, stack->pop()));
+Value core::list_at(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value index_value = stack->pop();
+  assert_int(where, index_value);
+  Value list_value = stack->pop();
+  assert_list(where, list_value);
+  return heap->nth_child(list_value.as.LIST, index_value.as.INT);
+}
+Value core::list_put(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value new_value = stack->pop();
+  Value index_value = stack->pop();
+  assert_int(where, index_value);
+  Value list_value = stack->pop();
+  assert_list(where, list_value);
+  heap->set_nth_child(list_value.as.LIST, index_value.as.INT, new_value);
+  return Value::None();
 }
