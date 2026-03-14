@@ -551,4 +551,5 @@ int run(std::vector<VMInstr> instrs) {
       break;
     }
   }
+  return 1;
 }
