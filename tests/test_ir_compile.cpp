@@ -134,7 +134,7 @@ void test_fn1(T *t) {
 }
 void test_try(T *t) {
   string code = "function addone(b) {\n"
-                "return try (b + 1)\n"
+                "return try [b + 1]\n"
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "HALT\n"
@@ -157,7 +157,7 @@ void test_try(T *t) {
 }
 void test_expect(T *t) {
   string code = "function addone(a) {\n"
-                "return expect (a + 1)\n"
+                "return expect [a + 1]\n"
                 "}";
   string out = compile_and_show(code);
   t->assert_str_eq(out, "HALT\n"

@@ -107,7 +107,7 @@ void test_var_def(T *t) {
                         "MASK: $ $ $ $ \n");
 }
 void test_group_and_prefix_operator(T *t) {
-  string code = "not ( 5 )";
+  string code = "not [ 5 ]";
   string out = parse_and_show(code);
   t->assert_str_eq(out, "First Item = 1\n"
                         "\n"
