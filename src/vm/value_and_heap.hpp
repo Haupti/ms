@@ -167,6 +167,20 @@ public:
     return idx;
   }
 
+  void link_lists(VMHIDX left_list, VMHIDX right_list) {
+    VMHNode *left = node_at(left_list);
+    VMHNode right = elements.at(right_list);
+    if (left->first_child == INVALID) {
+      left->first_child = right.first_child;
+      left->last_child = right.last_child;
+      return;
+    }
+    VMHNode *left_last = node_at(left->last_child);
+    left_last->next_child = right.first_child;
+    left->last_child = right.last_child;
+    return;
+  }
+
   VMHIDX add_child(VMHIDX list_head, Value value) {
     if (elements.size() <= list_head) {
       warn("attempt to access out of bounds element " +
@@ -200,7 +214,8 @@ public:
       return;
     }
     VMHIDX nth_child_ref = nth_child_idx(list_head, n);
-    elements.at(nth_child_ref) = value;
+    VMHNode *nth_child_val = node_at(nth_child_ref);
+    nth_child_val->value = value;
   }
   VMHIDX add_child_front(VMHIDX list_head, Value value) {
     if (elements.size() <= list_head) {

@@ -1,5 +1,6 @@
 #include "preprocess.hpp"
 #include "../../lib/asap/util.hpp"
+#include "../compile_error.hpp"
 #include "preprocessor_token.hpp"
 #include "preprocessor_tokenize.hpp"
 #include "token.hpp"
@@ -170,7 +171,8 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
   case PpTokenTag::IFFSET_MACRO:
   case PpTokenTag::IFNFSET_MACRO:
   case PpTokenTag::ENDIF_MACRO:
-    throw runtime_error("invalid use of preprocessor directive\n");
+    throw compile_error(token.location,
+                        "invalid use of preprocessor directive\n");
   }
 }
 
@@ -180,15 +182,17 @@ bool ppparser_has_flag(PpParser *p, const InternedString &name) {
 }
 void ppparser_set_flag(PpParser *p, const InternedString &definition) {
   if (p->flags.count(definition.index) > 0) {
-    throw runtime_error("flag '" + resolve_interned_string(definition) +
-                        "' is already set\n");
+    throw compile_error(ppparser_peek(p).location,
+                        "flag '" + resolve_interned_string(definition) +
+                            "' is already set\n");
   }
   p->flags.insert(definition.index);
 }
 void ppparser_unset_flag(PpParser *p, const InternedString &definition) {
   if (p->flags.count(definition.index) == 0) {
-    throw runtime_error("flag '" + resolve_interned_string(definition) +
-                        "' is not set\n");
+    throw compile_error(ppparser_peek(p).location,
+                        "flag '" + resolve_interned_string(definition) +
+                            "' is not set\n");
   }
   p->flags.erase(definition.index);
 }
@@ -200,8 +204,9 @@ bool ppparser_has_def(PpParser *p, const InternedString &name) {
 void ppparser_def(PpParser *p, const InternedString &definition,
                   const PreprocessorToken &token) {
   if (p->defines.count(definition.index) > 0) {
-    throw runtime_error("macro '" + resolve_interned_string(definition) +
-                        "' is already defined\n");
+    throw compile_error(token.location,
+                        "macro '" + resolve_interned_string(definition) +
+                            "' is already defined\n");
   }
   p->defines[definition.index] = pptoken_to_token(token);
 }
@@ -212,12 +217,12 @@ Token ppparser_get_def(PpParser *p, const InternedString &name) {
 // assertions
 void assert_identifier(const PreprocessorToken &token) {
   if (token.tag != PpTokenTag::IDENTIFIER) {
-    throw runtime_error("expected an identifier\n");
+    throw compile_error(token.location, "expected an identifier\n");
   }
 }
 void assert_literal_string(const PreprocessorToken &token) {
   if (token.tag != PpTokenTag::STRING) {
-    throw runtime_error("expected a literal string\n");
+    throw compile_error(token.location, "expected a literal string\n");
   }
 }
 void assert_literal_value(const PreprocessorToken &token) {
@@ -231,13 +236,13 @@ void assert_literal_value(const PreprocessorToken &token) {
   case PpTokenTag::STRING:
     break;
   default:
-    throw runtime_error("expected a value\n");
+    throw compile_error(token.location, "expected a value\n");
   }
 }
 
 void assert_isat_assign(PpParser *p) {
   if (ppparser_peek(p).tag != PpTokenTag::ASSIGN) {
-    throw runtime_error("expected an '='\n");
+    throw compile_error(ppparser_peek(p).location, "expected an '='\n");
   }
 }
 } // namespace
@@ -274,9 +279,10 @@ void parse_funset(PpParser *p) {
   if (ppparser_has_flag(p, identifier.as.IDENTIFIER)) {
     ppparser_unset_flag(p, identifier.as.IDENTIFIER);
   } else {
-    throw runtime_error("flag '" +
-                        resolve_interned_string(identifier.as.IDENTIFIER) +
-                        "' not set\n");
+    throw compile_error(identifier.location,
+                        "flag '" +
+                            resolve_interned_string(identifier.as.IDENTIFIER) +
+                            "' not set\n");
   }
   ppparser_adv(p); // to next
 }
@@ -369,7 +375,8 @@ vector<Token> parse_token(PpParser *p, const PreprocessorToken &token) {
     auto body = parse_iffset(p, false);
     result.insert(result.end(), body.begin(), body.end());
   } else if (token.tag == PpTokenTag::ENDIF_MACRO) {
-    throw runtime_error(
+    throw compile_error(
+        token.location,
         "invalid use of preprocessor directive: no condition to close\n");
   } else if (token.tag == PpTokenTag::IDENTIFIER) {
     result.push_back(parse_identifier(p, token));

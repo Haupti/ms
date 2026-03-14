@@ -1,3 +1,4 @@
+#include "../compile_error.hpp"
 #include "preprocessor_token.hpp"
 #include <cstdint>
 #include <filesystem>
@@ -151,7 +152,8 @@ PreprocessorToken tokenize_operator(Tokenizer *t) {
   } else if (value == "=") {
     return build_pptoken(get_location(t, start), PpTokenTag::ASSIGN);
   } else {
-    throw runtime_error("unknown operator '" + value + "'\n");
+    throw compile_error(get_location(t, start),
+                        "unknown operator '" + value + "'\n");
   }
 }
 PreprocessorToken tokenize_macro_or_subtraction_operator(Tokenizer *t) {
@@ -183,7 +185,8 @@ PreprocessorToken tokenize_macro_or_subtraction_operator(Tokenizer *t) {
   } else if (value == "-") {
     return build_pptoken(get_location(t, start), PpTokenTag::OP_SUB);
   } else {
-    throw runtime_error("unknown macro '" + value + "'\n");
+    throw compile_error(get_location(t, start),
+                        "unknown macro '" + value + "'\n");
   }
 }
 PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
@@ -305,7 +308,8 @@ preprocessor_tokenize(const filesystem::path &filename,
     } else if (c == ';') {
       skip_comment(&t);
     } else {
-      throw runtime_error("unexpected character '" + string(1, c) + "'\n");
+      throw compile_error(get_location(&t, t.pos),
+                          "unexpected character '" + string(1, c) + "'\n");
     }
   }
   return tokens;

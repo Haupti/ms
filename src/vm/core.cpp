@@ -24,16 +24,51 @@ inline std::string value_tag_to_string(ValueTag tag) {
 }
 void assert_list(LocationRef where, Value value) {
   if (value.tag != ValueTag::LIST) {
-    throw msl_runtime_error(where, "expected a list but got a(n)" +
+    throw msl_runtime_error(where, "expected a list but got a(n) " +
                                        value_tag_to_string(value.tag));
   }
 }
 void assert_int(LocationRef where, Value value) {
   if (value.tag != ValueTag::INT) {
-    throw msl_runtime_error(where, "expected an int but got a(n)" +
+    throw msl_runtime_error(where, "expected an int but got a(n) " +
                                        value_tag_to_string(value.tag));
   }
 }
+
+Value internal_copy_value(Stack *stack, VMHeap *heap, Value value) {
+  switch (value.tag) {
+  case ValueTag::INT:
+    return value;
+  case ValueTag::FLOAT:
+    return value;
+  case ValueTag::SYMBOL:
+    return value;
+  case ValueTag::STRING: {
+    std::string underlying_string = heap->get_string(value.as.STRING);
+    return heap->add_string(underlying_string);
+  } break;
+  case ValueTag::LIST: {
+    VMHIDX new_list = heap->new_list();
+    uint64_t i = 0;
+    VMHIDX curr = heap->nth_child_idx(value.as.LIST, i);
+    while (curr != INVALID) {
+      heap->add_child(new_list, heap->at(curr));
+      ++i;
+      curr = heap->nth_child_idx(value.as.LIST, i);
+    }
+    return heap->at(new_list);
+  } break;
+  case ValueTag::ERROR: {
+    Value underlying_value = heap->at(value.as.ERROR);
+    VMHIDX underlying_value_idx =
+        heap->add(internal_copy_value(stack, heap, underlying_value));
+    return Value::Error(underlying_value_idx);
+  } break;
+  case ValueTag::NONE:
+    return value;
+  }
+}
+
 }; // namespace
 bool core::values_equal(VMHeap *heap, Value left, Value right) {
   switch (left.tag) {
@@ -138,4 +173,37 @@ Value core::list_put(LocationRef where, Stack *stack, VMHeap *heap) {
   assert_list(where, list_value);
   heap->set_nth_child(list_value.as.LIST, index_value.as.INT, new_value);
   return Value::None();
+}
+Value core::list_append(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value value = stack->pop();
+  Value list = stack->pop();
+  assert_list(where, list);
+  heap->add_child(list.as.LIST, value);
+  return list;
+}
+Value core::list_prepend(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value value = stack->pop();
+  Value list = stack->pop();
+  assert_list(where, list);
+  heap->add_child_front(list.as.LIST, value);
+  return list;
+}
+Value core::list_link(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value right_list = stack->pop();
+  assert_list(where, right_list);
+  Value left_list = stack->pop();
+  assert_list(where, left_list);
+  if (left_list.as.LIST == right_list.as.LIST) {
+    throw msl_runtime_error(
+        where,
+        "linking a list to itself is undefined behaviour. in this specific "
+        "case i caught it, but i cannot save you from every mistake.");
+  }
+  heap->link_lists(left_list.as.LIST, right_list.as.LIST);
+  return left_list;
+}
+
+Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
+  Value value = stack->pop();
+  return internal_copy_value(stack, heap, value);
 }

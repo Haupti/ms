@@ -1,3 +1,15 @@
 let res = list(1,2,3)
+let cpy = copy(res)
+res.put(1,9)
 print(res)
-print(res.at(1))
+print(cpy)
+let linked = res.link(cpy)
+print(linked)
+linked.put(0, -1)
+linked.put(4, -1)
+
+print(linked)
+print(res)
+print(cpy)
+
+1.print()

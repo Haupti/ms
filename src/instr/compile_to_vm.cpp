@@ -1,6 +1,6 @@
 #include "../../lib/asap/util.hpp"
+#include "../compile_error.hpp"
 #include "../ir/ir_instr.hpp"
-#include "../msl_runtime_error.hpp"
 #include "../vm/vm_instr.hpp"
 #include <cassert>
 #include <unordered_map>
@@ -377,9 +377,9 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     } break;
     case IRTag::CALL: {
       if (labels.count(instr.as.VAR.index) == 0) {
-        throw msl_runtime_error(
-            instr.where, "undefined function reference '" +
-                             resolve_interned_string(instr.as.VAR) + "'");
+        throw compile_error(instr.where,
+                            "undefined function reference '" +
+                                resolve_interned_string(instr.as.VAR) + "'");
       }
       VMInstr o;
       o.where = instr.where;

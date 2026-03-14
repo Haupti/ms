@@ -1,4 +1,4 @@
-#include "../msl_runtime_error.hpp"
+#include "../compile_error.hpp"
 #include "../parser/node.hpp"
 #include "../vm/constants.hpp"
 #include "../vm/core.hpp"
@@ -23,9 +23,9 @@ struct IRContext {
   void add_function(LocationRef where, InternedString fn_name,
                     const std::vector<IRInstr> &instr, uint16_t args) {
     if (function_args.count(fn_name.index) > 0) {
-      throw msl_runtime_error(where, "function '" +
-                                         resolve_interned_string(fn_name) +
-                                         "' already defined");
+      throw compile_error(where, "function '" +
+                                     resolve_interned_string(fn_name) +
+                                     "' already defined");
     }
     functions.push_back(instr);
     function_args[fn_name.index] = args;
@@ -337,10 +337,10 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
     case core::ArgsCountType::ARGS: {
       // on non-varargs function call, the count of arguments does matter
       if (args_count != expected_args.count) {
-        throw msl_runtime_error(
-            curr.start, "expected " + std::to_string(expected_args.count) +
-                            " argument(s) but got " +
-                            std::to_string(args_count) + " argument(s)");
+        throw compile_error(curr.start,
+                            "expected " + std::to_string(expected_args.count) +
+                                " argument(s) but got " +
+                                std::to_string(args_count) + " argument(s)");
       }
     } break;
     }
@@ -348,16 +348,16 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
     return;
   }
   if (!ctx->has_function(fn_name)) {
-    throw msl_runtime_error(curr.start, "function '" +
-                                            resolve_interned_string(fn_name) +
-                                            "' not defined");
+    throw compile_error(curr.start, "function '" +
+                                        resolve_interned_string(fn_name) +
+                                        "' not defined");
   }
   uint16_t expected_args = ctx->get_function_args(fn_name);
   if (args_count != expected_args) {
-    throw msl_runtime_error(curr.start,
-                            "expected " + std::to_string(expected_args) +
-                                " argument(s) but got " +
-                                std::to_string(args_count) + " argument(s)");
+    throw compile_error(curr.start,
+                        "expected " + std::to_string(expected_args) +
+                            " argument(s) but got " +
+                            std::to_string(args_count) + " argument(s)");
   }
   ctx->add(ir_new_call(curr.start, fn_name, args_count));
 }
@@ -662,14 +662,13 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
       compile_ir_if(ctx, ns, curr_idx, curr);
       break;
     case NodeTag::INTERNAL_PARTIAL_CONDITION:
-      throw msl_runtime_error(curr.start,
-                              "unexpected partial condition encountered");
+      throw compile_error(curr.start,
+                          "unexpected partial condition encountered");
     case NodeTag::INTERNAL_PARTIAL_DEFAULT_CONDITION:
-      throw msl_runtime_error(curr.start,
-                              "unexpected partial condition encountered");
+      throw compile_error(curr.start,
+                          "unexpected partial condition encountered");
     case NodeTag::INTERNAL_LIST:
-      throw msl_runtime_error(curr.start,
-                              "unexpected internal list encountered");
+      throw compile_error(curr.start, "unexpected internal list encountered");
       break;
     }
   }
