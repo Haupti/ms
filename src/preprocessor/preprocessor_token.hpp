@@ -22,6 +22,8 @@ enum class PpTokenTag : uint8_t {
   ASSIGN,
   BROPEN,
   BRCLOSE,
+  BRACKETOPEN,
+  BRACKETCLOSE,
   CURLOPEN,
   CURLCLOSE,
   COMMA,

@@ -207,3 +207,22 @@ Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
   Value value = stack->pop();
   return internal_copy_value(stack, heap, value);
 }
+Value core::vmtypeof(LocationRef, Stack *stack, VMHeap *) {
+  Value value = stack->pop();
+  switch (value.tag) {
+  case ValueTag::INT:
+    return (Value::Symbol(Constants::SYM_T_INT));
+  case ValueTag::FLOAT:
+    return (Value::Symbol(Constants::SYM_T_FLOAT));
+  case ValueTag::SYMBOL:
+    return (Value::Symbol(Constants::SYM_T_SYMBOL));
+  case ValueTag::STRING:
+    return (Value::Symbol(Constants::SYM_T_STRING));
+  case ValueTag::LIST:
+    return (Value::Symbol(Constants::SYM_T_LIST));
+  case ValueTag::ERROR:
+    return (Value::Symbol(Constants::SYM_T_ERROR));
+  case ValueTag::NONE:
+    return (Value::Symbol(Constants::SYM_T_NONE));
+  }
+}

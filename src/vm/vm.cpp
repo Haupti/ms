@@ -465,30 +465,7 @@ int run(std::vector<VMInstr> instrs) {
       ++iptr;
       break;
     case VMTag::TYPEOF: {
-      Value value = stack.pop();
-      switch (value.tag) {
-      case ValueTag::INT:
-        stack.push(Value::Symbol(Constants::SYM_T_INT));
-        break;
-      case ValueTag::FLOAT:
-        stack.push(Value::Symbol(Constants::SYM_T_FLOAT));
-        break;
-      case ValueTag::SYMBOL:
-        stack.push(Value::Symbol(Constants::SYM_T_SYMBOL));
-        break;
-      case ValueTag::STRING:
-        stack.push(Value::Symbol(Constants::SYM_T_STRING));
-        break;
-      case ValueTag::LIST:
-        stack.push(Value::Symbol(Constants::SYM_T_LIST));
-        break;
-      case ValueTag::ERROR:
-        stack.push(Value::Symbol(Constants::SYM_T_ERROR));
-        break;
-      case ValueTag::NONE:
-        stack.push(Value::Symbol(Constants::SYM_T_NONE));
-        break;
-      }
+      stack.push(core::vmtypeof(instr.where, &stack, &heap));
       ++iptr;
     } break;
     case VMTag::CALL:

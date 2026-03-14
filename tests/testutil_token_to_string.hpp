@@ -92,5 +92,10 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return "MACRO(-ifnfset)";
   case PpTokenTag::ENDIF_MACRO:
     return "MACRO(-endif)";
+  case PpTokenTag::BRACKETOPEN:
+    return "[";
+  case PpTokenTag::BRACKETCLOSE:
+    return "]";
+    break;
   }
 }

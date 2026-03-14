@@ -80,5 +80,8 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "SCOPE_END";
   case IRTag::HALT:
     return "HALT";
+  case IRTag::REGISTER_ARG:
+    return "REGISTER_ARG";
+    break;
   }
 }

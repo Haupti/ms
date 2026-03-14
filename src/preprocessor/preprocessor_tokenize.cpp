@@ -295,6 +295,14 @@ preprocessor_tokenize(const filesystem::path &filename,
       tokens.push_back(
           build_pptoken(get_location(&t, t.pos), PpTokenTag::BRCLOSE));
       tok_adv(&t);
+    } else if (c == '[') {
+      tokens.push_back(
+          build_pptoken(get_location(&t, t.pos), PpTokenTag::BRACKETOPEN));
+      tok_adv(&t);
+    } else if (c == ']') {
+      tokens.push_back(
+          build_pptoken(get_location(&t, t.pos), PpTokenTag::BRACKETCLOSE));
+      tok_adv(&t);
     } else if (c == '{') {
       tokens.push_back(
           build_pptoken(get_location(&t, t.pos), PpTokenTag::CURLOPEN));

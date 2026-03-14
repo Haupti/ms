@@ -22,6 +22,7 @@ Value list_append(LocationRef where, Stack *stack, VMHeap *heap);
 Value list_prepend(LocationRef where, Stack *stack, VMHeap *heap);
 Value list_link(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_copy(LocationRef where, Stack *stack, VMHeap *heap);
+Value vmtypeof(LocationRef where, Stack *stack, VMHeap *heap);
 
 enum class ArgsCountType : uint8_t {
   VARARGS,
@@ -42,6 +43,7 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_PREPEND.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_LINK.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_COPY.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TYPEOF.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_ERROR.index, ArgsCount(1, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
@@ -54,6 +56,7 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_PREPEND.index, list_prepend},
            {Constants::BUILDIN_FN_LINK.index, list_link},
            {Constants::BUILDIN_FN_COPY.index, value_copy},
+           {Constants::BUILDIN_FN_TYPEOF.index, vmtypeof},
            {Constants::BUILDIN_FN_ERROR.index, make_error}
 
 };

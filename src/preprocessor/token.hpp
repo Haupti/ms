@@ -22,6 +22,8 @@ enum class TokenTag : uint8_t {
   ASSIGN,
   BROPEN,
   BRCLOSE,
+  BRACKETOPEN,
+  BRACKETCLOSE,
   CURLOPEN,
   CURLCLOSE,
   COMMA,
@@ -133,5 +135,10 @@ inline std::string token_to_string(const Token &token) {
     return resolve_interned_string(token.as.IDENTIFIER);
   case TokenTag::RETURN:
     return "return";
+  case TokenTag::BRACKETOPEN:
+    return "[";
+  case TokenTag::BRACKETCLOSE:
+    return "]";
+    break;
   }
 }

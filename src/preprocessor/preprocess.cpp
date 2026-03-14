@@ -97,6 +97,12 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
   case PpTokenTag::BRCLOSE:
     token.tag = TokenTag::BRCLOSE;
     return token;
+  case PpTokenTag::BRACKETOPEN:
+    token.tag = TokenTag::BRACKETOPEN;
+    return token;
+  case PpTokenTag::BRACKETCLOSE:
+    token.tag = TokenTag::BRACKETCLOSE;
+    return token;
   case PpTokenTag::CURLOPEN:
     token.tag = TokenTag::CURLOPEN;
     return token;

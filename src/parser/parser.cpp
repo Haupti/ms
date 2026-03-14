@@ -1,3 +1,4 @@
+#include "../../lib/asap/util.hpp"
 #include "../compile_error.hpp"
 #include "../preprocessor/token.hpp"
 #include "node.hpp"
@@ -37,6 +38,11 @@ void assert_close_br(Token t) {
     throw compile_error(t.location, "expected ')'");
   }
 }
+void assert_close_bracket(Token t) {
+  if (t.tag != TokenTag::BRACKETCLOSE) {
+    throw compile_error(t.location, "expected ']'");
+  }
+}
 void assert_open_br(Token t) {
   if (t.tag != TokenTag::BROPEN) {
     throw compile_error(t.location, "expected '('");
@@ -65,6 +71,13 @@ void __assert_assign(Token t, string file, int line) {
 void __assert_close_br(Token t, string file, int line) {
   if (t.tag != TokenTag::BRCLOSE) {
     throw __compile_error_debug(t.location, "expected ')'", line, file);
+  }
+}
+#define assert_close_bracket(token)                                            \
+  __assert_close_bracket(token, __FILE__, __LINE__)
+void __assert_close_bracket(Token t, string file, int line) {
+  if (t.tag != TokenTag::BRACKETCLOSE) {
+    throw __compile_error_debug(t.location, "expected ']'", line, file);
   }
 }
 #define assert_open_br(token) __assert_open_br(token, __FILE__, __LINE__)
@@ -400,6 +413,8 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   }
   case TokenTag::OP_NOT:
   case TokenTag::BRCLOSE:
+  case TokenTag::BRACKETOPEN:
+  case TokenTag::BRACKETCLOSE:
   case TokenTag::CURLOPEN:
   case TokenTag::CURLCLOSE:
   case TokenTag::COMMA:
@@ -476,16 +491,20 @@ node_idx parse_expression_lazy(Parser *p) {
     return parse_expect_lazy(p);
   case TokenTag::ASSIGN:
     throw compile_error(t.location, "unexpected token '='");
-  case TokenTag::BROPEN: {
+  case TokenTag::BROPEN:
+    throw compile_error(t.location, "unexpected token ')'");
+  case TokenTag::BRCLOSE:
+    throw compile_error(t.location, "unexpected token ')'");
+  case TokenTag::BRACKETOPEN: {
     p->adv();
     node_idx expr_idx = parse_expression_eager(p);
     Token close = p->peek();
-    assert_close_br(close);
+    assert_close_bracket(close);
     p->adv();
     return expr_idx;
   }
-  case TokenTag::BRCLOSE:
-    throw compile_error(t.location, "unexpected token ')'");
+  case TokenTag::BRACKETCLOSE:
+    throw compile_error(t.location, "unexpected token '{'");
   case TokenTag::CURLOPEN:
     throw compile_error(t.location, "unexpected token '{'");
   case TokenTag::CURLCLOSE:
@@ -747,8 +766,12 @@ node_idx parse_one(Parser *p) {
   case TokenTag::ASSIGN:
     throw compile_error(token.location, "unexpected token");
   case TokenTag::BROPEN:
-    return parse_expression_eager(p);
+    throw compile_error(token.location, "unexpected token");
   case TokenTag::BRCLOSE:
+    throw compile_error(token.location, "unexpected token");
+  case TokenTag::BRACKETOPEN:
+    return parse_expression_eager(p);
+  case TokenTag::BRACKETCLOSE:
     throw compile_error(token.location, "unexpected token");
   case TokenTag::CURLOPEN:
     throw compile_error(token.location, "unexpected token");
