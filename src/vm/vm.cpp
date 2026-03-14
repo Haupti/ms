@@ -7,10 +7,17 @@
 #include <vector>
 namespace {
 template <typename T> struct FastStack {
+  uint64_t init;
   std::vector<T> values;
   uint64_t ptr = 0;
-  FastStack(uint64_t init) { values.resize(init); }
-  inline void push(T val) { values[ptr++] = val; }
+  FastStack(uint64_t init) : init(init) { values.resize(init); }
+  inline void push(T val) {
+    values[ptr++] = val;
+    if (ptr >= init) {
+      panic("ERROR during runtime: stackoverflow (" + std::to_string(init) +
+            ")");
+    }
+  }
   inline T pop() { return values[--ptr]; }
 };
 
