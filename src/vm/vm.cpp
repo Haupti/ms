@@ -1,8 +1,9 @@
 #include "../msl_runtime_error.hpp"
 #include "constants.hpp"
+#include "core.hpp"
+#include "stack.hpp"
 #include "value_and_heap.hpp"
 #include "vm_instr.hpp"
-#include <functional>
 #include <stack>
 #include <vector>
 namespace {
@@ -17,157 +18,7 @@ bool as_bool(LocationRef ref, Value value) {
   }
 }
 
-// RUNTIME STUFF
-
-struct Stack {
-  std::vector<Value> values;
-  uint64_t stkptr;
-
-  Stack(uint64_t init) : stkptr(0) {
-    values.reserve(init);
-
-    for (uint64_t i = 0; i < init; ++i) {
-      values.push_back(Value());
-    }
-  }
-  void push(const Value &value) {
-    values.at(stkptr) = value;
-    ++stkptr;
-  }
-  Value pop() {
-    Value val = values.at(--stkptr);
-    if (val.undefined) {
-      panic("UNEXPECTED UNDEFINED VALUE (this is a bug in the VM)");
-    }
-    return val;
-  }
-  void pop_void() { --stkptr; }
-  Value peek() {
-    Value val = values.at(stkptr - 1);
-    if (val.undefined) {
-      panic("UNEXPECTED UNDEFINED VALUE (this is a bug in the VM)");
-    }
-    return val;
-  }
-  void reserve(uint16_t n) {
-    uint64_t end = stkptr + n;
-    for (uint64_t i = stkptr; i < end; ++i) {
-      values.at(i).undefined = false;
-      values.at(i).tag = ValueTag::NONE;
-    }
-    stkptr += n;
-  }
-  void write_local(uint64_t fptr, StkAddr addr, Value val) {
-    values.at(fptr + addr.addr) = val;
-  }
-  void write_global(StkAddr addr, Value val) { values.at(addr.addr) = val; }
-  Value load_global(StkAddr addr) { return values.at(addr.addr); }
-  Value load_local(uint64_t fptr, StkAddr addr) {
-    return values.at(fptr + addr.addr);
-  }
-  void dup() {
-    Value val = values.at(stkptr - 1);
-    push(val);
-  }
-  void allocate(uint16_t locals) {
-    uint64_t end = stkptr + locals;
-    for (uint64_t i = stkptr; i < end; ++i) {
-      values.at(i).undefined = false;
-      values.at(i).tag = ValueTag::NONE;
-    }
-    stkptr += locals;
-  }
-  void retreat(uint64_t frame_start) {
-    while (stkptr > frame_start) {
-      --stkptr;
-      values.at(stkptr).undefined = true;
-    }
-  }
-};
-
-std::string value_to_string(Stack *stack, VMHeap *heap, Value value) {
-  switch (value.tag) {
-  case ValueTag::INT:
-    return std::to_string(value.as.INT);
-  case ValueTag::FLOAT:
-    return std::to_string(value.as.FLOAT);
-  case ValueTag::SYMBOL:
-    return resolve_symbol(value.as.SYMBOL);
-  case ValueTag::STRING:
-    return heap->get_string(value.as.STRING);
-  case ValueTag::LIST:
-    panic("NOT YET IMPLEMENTED");
-  case ValueTag::ERROR:
-    return "error(" + value_to_string(stack, heap, heap->at(value.as.ERROR)) +
-           ")";
-  case ValueTag::NONE:
-    return "None";
-  }
-}
-
-bool values_equal(VMHeap *heap, Value left, Value right) {
-  switch (left.tag) {
-  case ValueTag::INT:
-    switch (right.tag) {
-    case ValueTag::INT:
-      return left.as.INT == right.as.INT;
-    case ValueTag::FLOAT:
-      return left.as.INT == right.as.FLOAT;
-    default:
-      return false;
-    }
-  case ValueTag::FLOAT:
-    switch (right.tag) {
-    case ValueTag::INT:
-      return left.as.FLOAT == right.as.INT;
-    case ValueTag::FLOAT:
-      return left.as.FLOAT == right.as.FLOAT;
-    default:
-      return false;
-    }
-  case ValueTag::SYMBOL:
-    return right.tag == ValueTag::SYMBOL &&
-           left.as.SYMBOL.index == right.as.SYMBOL.index;
-  case ValueTag::STRING:
-    return right.tag == ValueTag::STRING &&
-           (left.as.STRING == right.as.STRING ||
-            (heap->get_string(left.as.STRING) ==
-             heap->get_string(right.as.STRING)));
-  case ValueTag::LIST:
-    return right.tag == ValueTag::LIST && left.as.LIST == right.as.LIST;
-  case ValueTag::ERROR:
-    return right.tag == ValueTag::ERROR &&
-           values_equal(heap, heap->at(left.as.ERROR),
-                        heap->at(right.as.ERROR));
-  case ValueTag::NONE:
-    return right.tag == ValueTag::NONE;
-  }
-}
-
-Value vm_buildin_print(LocationRef where, Stack *stack, VMHeap *heap,
-                       uint16_t args) {
-  if (args != 1) {
-    throw msl_runtime_error(where, "expects 1 argument(s)");
-  }
-  println(value_to_string(stack, heap, stack->pop()));
-  return Value::None();
-}
-[[noreturn]] Value vm_buildin_panic(LocationRef where, Stack *stack,
-                                    VMHeap *heap, uint16_t args) {
-  if (args != 1) {
-    throw msl_runtime_error(where, "expects 1 argument(s)");
-  }
-  throw msl_runtime_error(where, value_to_string(stack, heap, stack->pop()));
-}
-
-static std::unordered_map<
-    uint64_t,
-    std::function<Value(LocationRef where, Stack *, VMHeap *, uint16_t)>>
-    vm_fns = {{Constants::BUILDIN_FN_PRINT.index, vm_buildin_print},
-              {Constants::BUILDIN_FN_PANIC.index, vm_buildin_panic}
-
-};
-
+// VM INSTRUCTIONS
 void vm_add(LocationRef where, Stack *stack) {
   Value right = stack->pop();
   Value left = stack->pop();
@@ -471,7 +322,7 @@ void vm_gte(LocationRef where, Stack *stack) {
 void vm_eq(Stack *stack, VMHeap *heap) {
   Value right = stack->pop();
   Value left = stack->pop();
-  bool is_true = values_equal(heap, left, right);
+  bool is_true = core::values_equal(heap, left, right);
   if (is_true) {
     stack->push(Value::Symbol(Constants::SYM_TRUE));
   } else {
@@ -481,7 +332,7 @@ void vm_eq(Stack *stack, VMHeap *heap) {
 void vm_neq(Stack *stack, VMHeap *heap) {
   Value right = stack->pop();
   Value left = stack->pop();
-  bool is_true = values_equal(heap, left, right);
+  bool is_true = core::values_equal(heap, left, right);
   if (!is_true) {
     stack->push(Value::Symbol(Constants::SYM_TRUE));
   } else {
@@ -645,8 +496,8 @@ int run(std::vector<VMInstr> instrs) {
       iptr = instr.as.INSTRADDR.addr;
       break;
     case VMTag::VMCALL: {
-      Value val = vm_fns.at(instr.as.VMFN.index)(instr.where, &stack, &heap,
-                                                 instr.extra.args);
+      Value val = core::fns.at(instr.as.VMFN.index)(instr.where, &stack, &heap,
+                                                    instr.extra.args);
       stack.push(val);
       ++iptr;
     } break;

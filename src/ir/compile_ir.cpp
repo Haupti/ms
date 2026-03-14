@@ -1,10 +1,15 @@
 #include "../msl_runtime_error.hpp"
 #include "../parser/node.hpp"
 #include "../vm/constants.hpp"
+#include "../vm/core.hpp"
 #include "ir_instr.hpp"
 #include <vector>
 
 namespace {
+// UTILITIES
+bool core_has(InternedString name) { return core::fns.count(name.index) > 0; }
+
+// COMPILATION
 struct IRContext {
   uint64_t jmp_label_counter = 0;
   std::vector<IRInstr> instructions;
@@ -303,16 +308,8 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
 
   // call
   InternedString fn_name = ns->at(ns->nth_child(curr, 0)).as.IDENTIFIER;
-  bool is_vm_fn = fn_name.index == Constants::BUILDIN_FN_PANIC.index ||
-                  fn_name.index == Constants::BUILDIN_FN_PUT.index ||
-                  fn_name.index == Constants::BUILDIN_FN_AT.index ||
-                  fn_name.index == Constants::BUILDIN_FN_LIST.index ||
-                  fn_name.index == Constants::BUILDIN_FN_CONCAT.index ||
-                  fn_name.index == Constants::BUILDIN_FN_APPEND.index ||
-                  fn_name.index == Constants::BUILDIN_FN_PRINT.index ||
-                  fn_name.index == Constants::BUILDIN_FN_PREPEND.index;
   IRInstr call_instr;
-  if (is_vm_fn) {
+  if (core_has(fn_name)) {
     call_instr = ir_new_vm_call(curr.start, fn_name, args_count);
   } else {
     call_instr = ir_new_call(curr.start, fn_name);

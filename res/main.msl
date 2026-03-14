@@ -1,7 +1,6 @@
 function dostuff(arg) {
-  let sx = arg + 1
-  print(sx)
-  return sx
+  let sx = arg + try error(1)
+  return #ok
 }
 
 let res = dostuff(5)
