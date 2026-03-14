@@ -70,9 +70,9 @@ struct Value {
     val.undefined = false;
     return val;
   }
-  static Value EmptyList() {
+  static Value List(VMHIDX ref) {
     Value val;
-    val.as.LIST = 0;
+    val.as.LIST = ref;
     val.tag = ValueTag::LIST;
     val.undefined = false;
     return val;
@@ -150,6 +150,19 @@ public:
     }
     uint64_t idx = free_list.back();
     elements[idx] = VMHNode(value);
+    free_list.pop_back();
+    return idx;
+  }
+
+  VMHIDX new_list() {
+    if (free_list.size() == 0) {
+      VMHIDX idx = elements.size();
+      elements.emplace_back();
+      elements.back().value = Value::List(idx);
+      return idx;
+    }
+    uint64_t idx = free_list.back();
+    elements[idx] = VMHNode(Value::List(idx));
     free_list.pop_back();
     return idx;
   }

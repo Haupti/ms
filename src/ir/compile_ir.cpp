@@ -322,34 +322,44 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
   }
   uint16_t args_count = i - 1;
 
-  // call
+  // DECIDE CALL: USER FUNCTION OR VM FUNCTION
   InternedString fn_name = ns->at(ns->nth_child(curr, 0)).as.IDENTIFIER;
-  IRInstr call_instr;
+
   if (core_has(fn_name)) {
-    uint64_t expected_args = core::fns_args.at(fn_name.index);
-    if (args_count != expected_args) {
-      throw msl_runtime_error(curr.start,
-                              "expected " + std::to_string(expected_args) +
-                                  " argument(s) but got " +
-                                  std::to_string(args_count) + " argument(s)");
+    core::ArgsCount expected_args = core::fns_args.at(fn_name.index);
+    // DECIDE VARARGS OR ARGS-COUNTED FUNCTION
+    switch (expected_args.type) {
+    case core::ArgsCountType::VARARGS:
+      // on varargs the actual number of args does not matter
+      // but the number of args must be on top of the stack
+      ctx->add(ir_new_push_int(curr.start, args_count));
+      break;
+    case core::ArgsCountType::ARGS: {
+      // on non-varargs function call, the count of arguments does matter
+      if (args_count != expected_args.count) {
+        throw msl_runtime_error(
+            curr.start, "expected " + std::to_string(expected_args.count) +
+                            " argument(s) but got " +
+                            std::to_string(args_count) + " argument(s)");
+      }
+    } break;
     }
-    call_instr = ir_new_vm_call(curr.start, fn_name, args_count);
-  } else {
-    if (!ctx->has_function(fn_name)) {
-      throw msl_runtime_error(curr.start, "function '" +
-                                              resolve_interned_string(fn_name) +
-                                              "' not defined");
-    }
-    uint16_t expected_args = ctx->get_function_args(fn_name);
-    if (args_count != expected_args) {
-      throw msl_runtime_error(curr.start,
-                              "expected " + std::to_string(expected_args) +
-                                  " argument(s) but got " +
-                                  std::to_string(args_count) + " argument(s)");
-    }
-    call_instr = ir_new_call(curr.start, fn_name, args_count);
+    ctx->add(ir_new_vm_call(curr.start, fn_name, args_count));
+    return;
   }
-  ctx->add(call_instr);
+  if (!ctx->has_function(fn_name)) {
+    throw msl_runtime_error(curr.start, "function '" +
+                                            resolve_interned_string(fn_name) +
+                                            "' not defined");
+  }
+  uint16_t expected_args = ctx->get_function_args(fn_name);
+  if (args_count != expected_args) {
+    throw msl_runtime_error(curr.start,
+                            "expected " + std::to_string(expected_args) +
+                                " argument(s) but got " +
+                                std::to_string(args_count) + " argument(s)");
+  }
+  ctx->add(ir_new_call(curr.start, fn_name, args_count));
 }
 
 void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {

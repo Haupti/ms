@@ -61,7 +61,6 @@ std::string core::value_to_string(Stack *stack, VMHeap *heap, Value value) {
       ++i;
       val = heap->nth_child(value.as.LIST, i);
     }
-    args.push_back(value_to_string(stack, heap, val));
     return "list(" + join(args, ",") + ")";
   }
   case ValueTag::ERROR:
@@ -79,6 +78,14 @@ Value core::print(LocationRef, Stack *stack, VMHeap *heap) {
 Value core::make_error(LocationRef, Stack *stack, VMHeap *heap) {
   Value inner = stack->pop();
   return Value::Error(heap->add(inner));
+}
+Value core::list(LocationRef, Stack *stack, VMHeap *heap) {
+  int64_t args_count = stack->pop().as.INT;
+  VMHIDX list_head = heap->new_list();
+  for (int64_t i = 0; i < args_count; ++i) {
+    heap->add_child_front(list_head, stack->pop());
+  }
+  return heap->at(list_head);
 }
 [[noreturn]] Value core::vmpanic(LocationRef where, Stack *stack,
                                  VMHeap *heap) {
