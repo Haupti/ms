@@ -105,39 +105,6 @@ node_idx parse_expression_eager(Parser *p) {
   return parse_consecutive_expression(p, left, left_node.tag, left_node.start);
 }
 
-node_idx parse_function_call(Parser *p, node_idx left,
-                             LocationRef left_location) {
-  p->adv(); // past '('
-  Node myself = Node();
-  myself.start = left_location;
-  myself.tag = NodeTag::FN_CALL;
-  node_idx myself_idx = p->nodes.add_dangling(myself);
-
-  p->nodes.add_child(myself_idx, left);
-
-  if (p->peek().tag == TokenTag::BRCLOSE) {
-    p->adv();
-    return myself_idx;
-  }
-
-  while (true) {
-    node_idx arg_idx = parse_expression_eager(p);
-    p->nodes.add_child(myself_idx, arg_idx);
-    Token next = p->peek();
-    if (next.tag == TokenTag::COMMA) {
-      p->adv();
-    } else if (next.tag == TokenTag::BRCLOSE) {
-      p->adv();
-      break;
-    } else {
-      throw compile_error(next.location,
-                          "unexpected token, expected ',' or ')' but was '" +
-                              token_to_string(next) + "'");
-    }
-  }
-  return myself_idx;
-}
-
 node_idx parse_try_lazy(Parser *p) {
   LocationRef start = p->peek().location;
   p->adv();
@@ -168,6 +135,45 @@ node_idx parse_expect_lazy(Parser *p) {
   return myself_idx;
 }
 
+void parse_add_function_args(Parser *p, node_idx myself_idx) {
+
+  while (true) {
+    node_idx arg_idx = parse_expression_eager(p);
+    p->nodes.add_child(myself_idx, arg_idx);
+    Token next = p->peek();
+    if (next.tag == TokenTag::COMMA) {
+      p->adv();
+    } else if (next.tag == TokenTag::BRCLOSE) {
+      p->adv();
+      break;
+    } else {
+      throw compile_error(next.location,
+                          "unexpected token, expected ',' or ')' but was '" +
+                              token_to_string(next) + "'");
+    }
+  }
+}
+
+node_idx parse_function_call(Parser *p, node_idx left,
+                             LocationRef left_location) {
+  p->adv(); // past '('
+  Node myself = Node();
+  myself.start = left_location;
+  myself.tag = NodeTag::FN_CALL;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  p->nodes.add_child(myself_idx, left);
+
+  if (p->peek().tag == TokenTag::BRCLOSE) {
+    p->adv();
+    return myself_idx;
+  }
+
+  parse_add_function_args(p, myself_idx);
+
+  return myself_idx;
+}
+
 node_idx parse_left_apply_function(Parser *p, node_idx left) {
   Token identifier = p->peek();
   assert_identifier(identifier);
@@ -189,21 +195,12 @@ node_idx parse_left_apply_function(Parser *p, node_idx left) {
 
   assert_open_br(p->peek());
   p->adv();
-
-  while (p->peek().tag != TokenTag::BRCLOSE) {
-    node_idx arg_idx = parse_expression_eager(p);
-    p->nodes.add_child(myself_idx, arg_idx);
-    Token next = p->peek();
-    if (next.tag == TokenTag::COMMA) {
-      p->adv();
-    } else if (next.tag == TokenTag::BRCLOSE) {
-      p->adv();
-      break;
-    } else {
-      throw compile_error(next.location,
-                          "unexpected token, expected ',' or ')'");
-    }
+  if (p->peek().tag == TokenTag::BRCLOSE) {
+    p->adv();
+    return myself_idx;
   }
+
+  parse_add_function_args(p, myself_idx);
   return myself_idx;
 }
 node_idx parse_right_apply_function(Parser *p, node_idx left) {
@@ -227,20 +224,13 @@ node_idx parse_right_apply_function(Parser *p, node_idx left) {
   assert_open_br(p->peek());
   p->adv();
 
-  while (p->peek().tag != TokenTag::BRCLOSE) {
-    node_idx arg_idx = parse_expression_eager(p);
-    p->nodes.add_child(myself_idx, arg_idx);
-    Token next = p->peek();
-    if (next.tag == TokenTag::COMMA) {
-      p->adv();
-    } else if (next.tag == TokenTag::BRCLOSE) {
-      p->adv();
-      break;
-    } else {
-      throw compile_error(next.location,
-                          "unexpected token, expected ',' or ')'");
-    }
+  if (p->peek().tag == TokenTag::BRCLOSE) {
+    p->adv();
+    p->nodes.add_child(myself_idx, left); // last argument
+    return myself_idx;
   }
+
+  parse_add_function_args(p,myself_idx);
   p->nodes.add_child(myself_idx, left); // last argument
   return myself_idx;
 }
@@ -491,7 +481,7 @@ node_idx parse_expression_lazy(Parser *p) {
     return parse_expect_lazy(p);
   case TokenTag::ASSIGN:
     throw compile_error(t.location, "unexpected token '='");
-  case TokenTag::BROPEN: 
+  case TokenTag::BROPEN:
     throw compile_error(t.location, "unexpected token '('");
   case TokenTag::BRCLOSE:
     throw compile_error(t.location, "unexpected token ')'");

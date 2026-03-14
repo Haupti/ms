@@ -73,8 +73,7 @@ void test_literal(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ $ \n"
-  );
+                        "MASK: $ $ $ $ $ $ \n");
 }
 void test_var_def(T *t) {
   string code = "let x = 1 5";
@@ -246,8 +245,7 @@ void test_fn_call_2(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ $ $ \n"
-  );
+                        "MASK: $ $ $ $ $ $ $ \n");
 }
 void test_if(T *t) {
   string code = "if(#true) { print(\"hello\") }";
@@ -433,8 +431,7 @@ void test_if_elif_elif_else(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ $ $ $ $ $ $ $ $ \n"
-  );
+                        "MASK: $ $ $ $ $ $ $ $ $ $ $ $ $ \n");
 }
 void test_function(T *t) {
   string code = "function add(a,b){\n"
@@ -491,8 +488,7 @@ void test_function(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ $ $ $ \n"
-  );
+                        "MASK: $ $ $ $ $ $ $ $ \n");
 }
 void test_function_no_args(T *t) {
   string code = "function void(){ }";
@@ -517,8 +513,7 @@ void test_function_no_args(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ \n"
-  );
+                        "MASK: $ $ $ \n");
 }
 void test_function_returns(T *t) {
   string code = "function does_return(){ return not #true }";
@@ -561,8 +556,7 @@ void test_function_returns(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ $ \n"
-  );
+                        "MASK: $ $ $ $ $ $ \n");
 }
 void test_function_left_apply(T *t) {
   string code = "a . add(1)";
@@ -599,8 +593,7 @@ void test_function_left_apply(T *t) {
                         "    Next_Child = 0\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ \n"
-  );
+                        "MASK: $ $ $ $ $ \n");
 }
 void test_function_right_apply(T *t) {
   string code = "a | add(1)";
@@ -637,8 +630,7 @@ void test_function_right_apply(T *t) {
                         "    Next_Child = 1\n"
                         "    Next_Sibling = 0\n"
                         "-----------------------\n"
-                        "MASK: $ $ $ $ $ \n"
-  );
+                        "MASK: $ $ $ $ $ \n");
 }
 
 void test_list(T *t) {
@@ -895,6 +887,37 @@ void test_expect(T *t) {
                         "-----------------------\n"
                         "MASK: $ $ $ $ $ $ $ \n");
 }
+void test_no_args_fn_call(T *t) {
+  string code = "1 . print()";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 2\n"
+                        "\n"
+                        "0 Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "1 Node  LITERAL_INT = 1:\n"
+                        "    Start = test.msl/1/1\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "2 Node  FN_CALL:\n"
+                        "    Start = test.msl/1/5\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "3 Node  VAR_REF = print:\n"
+                        "    Start = test.msl/1/5\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 1\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ \n");
+}
 
 void test_fn_call_3(T *t) {
   string code = "function add_and_print(a,b){ \n"
@@ -1058,5 +1081,6 @@ int main() {
   t.test("put list element", test_list_set);
   t.test("try", test_try);
   t.test("expect", test_expect);
+  t.test("no-args fn call", test_no_args_fn_call);
   return 0;
 }
