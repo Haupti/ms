@@ -61,26 +61,15 @@ std::string core::value_to_string(Stack *stack, VMHeap *heap, Value value) {
   }
 }
 
-Value core::print(LocationRef where, Stack *stack, VMHeap *heap,
-                  uint16_t args) {
-  if (args != 1) {
-    throw msl_runtime_error(where, "expects 1 argument(s)");
-  }
+Value core::print(LocationRef, Stack *stack, VMHeap *heap) {
   println(value_to_string(stack, heap, stack->pop()));
   return Value::None();
 }
-Value core::make_error(LocationRef where, Stack *stack, VMHeap *heap,
-                       uint16_t args) {
-  if (args != 1) {
-    throw msl_runtime_error(where, "expects 1 argument(s)");
-  }
+Value core::make_error(LocationRef, Stack *stack, VMHeap *heap) {
   Value inner = stack->pop();
   return Value::Error(heap->add(inner));
 }
-[[noreturn]] Value core::vmpanic(LocationRef where, Stack *stack, VMHeap *heap,
-                                 uint16_t args) {
-  if (args != 1) {
-    throw msl_runtime_error(where, "expects 1 argument(s)");
-  }
+[[noreturn]] Value core::vmpanic(LocationRef where, Stack *stack,
+                                 VMHeap *heap) {
   throw msl_runtime_error(where, value_to_string(stack, heap, stack->pop()));
 }

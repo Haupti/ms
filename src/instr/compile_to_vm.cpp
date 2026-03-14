@@ -395,12 +395,8 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     case IRTag::FUNCTION_START: {
       enter_fn(&vars);
       ++depth;
-      uint16_t args = 0;
-      for (size_t j = i + 1; j < ir.size(); ++j) {
-        if (ir.at(j).tag == IRTag::REGISTER_ARG) args++;
-        if (ir.at(j).tag == IRTag::FUNCTION_END) break;
-      }
-      VMInstr o = build_init_frame(instr.where, instr.extra.locals, args);
+      VMInstr o =
+          build_init_frame(instr.where, instr.extra.locals, instr.extra.args);
       instructions.push_back(o);
       functions[instr.as.VAR.index] = mask.at(i);
     } break;

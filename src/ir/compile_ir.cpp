@@ -7,18 +7,34 @@
 
 namespace {
 // UTILITIES
-bool core_has(InternedString name) { return core::fns.count(name.index) > 0; }
+inline bool core_has(InternedString name) {
+  return core::fns.count(name.index) > 0;
+}
 
 // COMPILATION
 struct IRContext {
   uint64_t jmp_label_counter = 0;
   std::vector<IRInstr> instructions;
   std::vector<std::vector<IRInstr>> functions;
+  std::unordered_map<uint64_t, uint16_t> function_args;
 
   uint64_t next_jmp_idx() { return jmp_label_counter++; }
   void add(const IRInstr &instr) { instructions.push_back(instr); }
-  void add_function(const std::vector<IRInstr> &instr) {
+  void add_function(LocationRef where, InternedString fn_name,
+                    const std::vector<IRInstr> &instr, uint16_t args) {
+    if (function_args.count(fn_name.index) > 0) {
+      throw msl_runtime_error(where, "function '" +
+                                         resolve_interned_string(fn_name) +
+                                         "' already defined");
+    }
     functions.push_back(instr);
+    function_args[fn_name.index] = args;
+  }
+  uint16_t get_function_args(InternedString fn_name) {
+    return function_args.at(fn_name.index);
+  }
+  bool has_function(InternedString fn_name) {
+    return function_args.count(fn_name.index) > 0;
   }
 };
 
@@ -94,12 +110,12 @@ IRInstr ir_new(LocationRef where, IRTag tag) {
   ir.extra.args = 0;
   return ir;
 }
-IRInstr ir_new_call(LocationRef where, InternedString name) {
+IRInstr ir_new_call(LocationRef where, InternedString name, uint16_t args) {
   IRInstr ir;
   ir.as.VAR = name;
   ir.where = where;
   ir.tag = IRTag::CALL;
-  ir.extra.args = 0;
+  ir.extra.args = args;
   return ir;
 }
 IRInstr ir_new_vm_call(LocationRef where, InternedString name, uint16_t args) {
@@ -310,9 +326,28 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
   InternedString fn_name = ns->at(ns->nth_child(curr, 0)).as.IDENTIFIER;
   IRInstr call_instr;
   if (core_has(fn_name)) {
+    uint64_t expected_args = core::fns_args.at(fn_name.index);
+    if (args_count != expected_args) {
+      throw msl_runtime_error(curr.start,
+                              "expected " + std::to_string(expected_args) +
+                                  " argument(s) but got " +
+                                  std::to_string(args_count) + " argument(s)");
+    }
     call_instr = ir_new_vm_call(curr.start, fn_name, args_count);
   } else {
-    call_instr = ir_new_call(curr.start, fn_name);
+    if (!ctx->has_function(fn_name)) {
+      throw msl_runtime_error(curr.start, "function " +
+                                              resolve_interned_string(fn_name) +
+                                              " not defined");
+    }
+    uint16_t expected_args = ctx->get_function_args(fn_name);
+    if (args_count != expected_args) {
+      throw msl_runtime_error(curr.start,
+                              "expected " + std::to_string(expected_args) +
+                                  " argument(s) but got " +
+                                  std::to_string(args_count) + " argument(s)");
+    }
+    call_instr = ir_new_call(curr.start, fn_name, args_count);
   }
   ctx->add(call_instr);
 }
@@ -329,7 +364,7 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   uint64_t frame_init_relative_position = fn_ctx.instructions.size() - 1;
 
   node_idx args_list_head = ns->nth_child(curr, 0);
-  uint64_t args_i = 0;
+  uint64_t args_i = 0; // used later
   node_idx arg_idx = ns->nth_child(args_list_head, args_i);
   while (!arg_idx.is_null()) {
     Node arg = ns->at(arg_idx);
@@ -359,7 +394,7 @@ void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
   }
   fn_ctx.instructions.at(frame_init_relative_position).extra.locals = VARS;
   fn_ctx.add(ir_new(curr.start, IRTag::FUNCTION_END));
-  ctx->add_function(fn_ctx.instructions);
+  ctx->add_function(curr.start, fn_name, fn_ctx.instructions, args_i);
 }
 void compile_ir_infix_and(IRContext *ctx, nodes *ns, Node curr) {
   Label label_end = create_next_label("AND_END");

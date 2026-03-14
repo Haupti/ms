@@ -52,12 +52,12 @@ bool is_operator_char(char c) {
 }
 
 LocationRef get_location(Tokenizer *t, uint64_t start) {
-  uint64_t row = 0;
-  uint64_t col = 1;
+  uint64_t row = 1;
+  uint64_t col = 0;
   for (uint64_t i = 0; i < start + 1; i++) {
     if (t->code.at(i) == '\n') {
       row++;
-      col = 1;
+      col = 0;
     } else {
       col++;
     }

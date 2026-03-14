@@ -496,8 +496,7 @@ int run(std::vector<VMInstr> instrs) {
       iptr = instr.as.INSTRADDR.addr;
       break;
     case VMTag::VMCALL: {
-      Value val = core::fns.at(instr.as.VMFN.index)(instr.where, &stack, &heap,
-                                                    instr.extra.args);
+      Value val = core::fns.at(instr.as.VMFN.index)(instr.where, &stack, &heap);
       stack.push(val);
       ++iptr;
     } break;

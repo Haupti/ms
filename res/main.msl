@@ -1,3 +1,4 @@
+function dostuff(aaaa){}
 function dostuff(arg) {
   let sx = arg + try error(1)
   return #ok
