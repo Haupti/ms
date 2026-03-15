@@ -22,13 +22,13 @@
 * [] `list_filter(l, fn_name)` - filter elements based on predicate
 * [] `list_reduce(l, fn_name, initial)`
 
-### dictionary (new type needed)
-* [] implement `valuetag::dict` (hash map)
-* [] `dict()` - create empty dictionary
-* [] `dict_get(d, key)`
-* [] `dict_set(d, key, val)`
-* [] `dict_keys(d)` - return list of keys
-* [] `dict_remove(d, key)`
+### tables
+* [] implement type `ValueTag::TABLE` (hash map)
+* [] `table()` - create empty dictionary
+* [] `table_get(t, key)`
+* [] `table_set(t, key, val)`
+* [] `table_keys(t)` - return list of keys
+* [] `table_remove(t, key)`
 
 ### file system & system
 * [] `fs_exists(path)`
@@ -37,11 +37,28 @@
 * [] `fs_ls(path)` - list directory contents
 * [] `sys_now()` - high-res timestamp
 
+### encoding
+* [] `table_to_json(t)`, `table_from_json(json_string)`
+* [] `str_url_encode(s)`, `str_url_decode(s)`
+
+### binary
+* [] `binary_shift_left(i, n)`, `binary_shift_right(i,n)`
+* [] `binary_or(i, i)`, `binary_and(i, i)`, `binary_xor(i, i)`
+
+### network
+* [] `http_request(r)` where r is a table
+* [] tcp / upd
+* [] database connection?
+
+### other
+* [] coroutines? that is wyld but would be fun
+
 ## language & vm features
 * [DONE] verify variables and functions that are referenced actually exist
 * [] `loop` / `while` constructs in parser/compiler
 * [] `for v in list` / `for i in range(start, end)`
 * [] structs or records for grouping data
 * [] binary operators for bitwise ops (`&`, `|`, `^`, `<<`, `>>`)
+* [] garbage collection
 
 
