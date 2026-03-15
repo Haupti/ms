@@ -20,4 +20,6 @@ function sub(a, b){
 print(sub(1,2))
 print(1.sub(2))
 print(1|sub(2))
-
+print(sys_exec("echo", "hello"))
+print(random(0,5))
+sys_exit(5)

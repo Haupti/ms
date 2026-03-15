@@ -40,4 +40,7 @@ static const InternedString BUILDIN_FN_FILE_WRITE = create_interned_string("file
 static const InternedString BUILDIN_FN_FILE_APPEND = create_interned_string("file_append");
 static const InternedString BUILDIN_FN_SYS_ENV = create_interned_string("sys_env");
 static const InternedString BUILDIN_FN_PROCESS_ARGS = create_interned_string("process_args");
+static const InternedString BUILDIN_FN_SYS_EXIT = create_interned_string("sys_exit");
+static const InternedString BUILDIN_FN_SYS_EXEC = create_interned_string("sys_exec");
+static const InternedString BUILDIN_FN_RANDOM = create_interned_string("random");
 } // namespace Constants

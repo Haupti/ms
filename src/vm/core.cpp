@@ -4,6 +4,7 @@
 #include "stack.hpp"
 #include <cstdlib>
 #include <fstream>
+#include <random>
 #include <sstream>
 #include <string>
 namespace {
@@ -274,8 +275,8 @@ Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {
     }
   }
   default:
-    return Value::Error(heap->add(heap->add_string(
-        "cannot convert " + value_tag_to_string(val.tag) + " to int")));
+    throw msl_runtime_error(
+        where, "cannot convert " + value_tag_to_string(val.tag) + " to int");
   }
 }
 
@@ -296,8 +297,8 @@ Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
     }
   }
   default:
-    return Value::Error(heap->add(heap->add_string(
-        "cannot convert " + value_tag_to_string(val.tag) + " to float")));
+    throw msl_runtime_error(
+        where, "cannot convert " + value_tag_to_string(val.tag) + " to float");
   }
 }
 
@@ -380,3 +381,39 @@ Value core::process_args(LocationRef, Stack *, VMHeap *heap) {
 }
 
 void core::set_args(std::vector<std::string> args) { ::msl_args = args; }
+
+Value core::sys_exit(LocationRef where, Stack *stack, VMHeap *) {
+  Value code_val = stack->pop();
+  if (code_val.tag != ValueTag::INT) {
+    throw msl_runtime_error(where, "expected an integer for exit code");
+  }
+  std::exit(static_cast<int>(code_val.as.INT));
+}
+
+Value core::sys_exec(LocationRef, Stack *stack, VMHeap *heap) {
+  int64_t args_count = stack->pop().as.INT;
+  std::string command = "";
+  for (int64_t i = 0; i < args_count; ++i) {
+    command = value_to_string(stack, heap, stack->pop()) + " " + command;
+  }
+  int result = std::system(command.c_str());
+  return Value::Int(result);
+}
+
+Value core::random_int(LocationRef where, Stack *stack, VMHeap *) {
+  Value max_val = stack->pop();
+  Value min_val = stack->pop();
+  if (min_val.tag != ValueTag::INT || max_val.tag != ValueTag::INT) {
+    throw msl_runtime_error(where, "expected integers for random range");
+  }
+  if (min_val.as.INT > max_val.as.INT) {
+    throw msl_runtime_error(where, "min must be less than or equal to max");
+  }
+
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
+  std::uniform_int_distribution<int64_t> distrib(min_val.as.INT,
+                                                 max_val.as.INT);
+
+  return Value::Int(distrib(gen));
+}

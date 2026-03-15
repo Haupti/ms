@@ -33,6 +33,9 @@ Value file_write(LocationRef where, Stack *stack, VMHeap *heap);
 Value file_append(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_env(LocationRef where, Stack *stack, VMHeap *heap);
 Value process_args(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_exit(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_exec(LocationRef where, Stack *stack, VMHeap *heap);
+Value random_int(LocationRef where, Stack *stack, VMHeap *heap);
 
 void set_args(std::vector<std::string> args);
 
@@ -66,7 +69,10 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_FILE_WRITE.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FILE_APPEND.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_ENV.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_PROCESS_ARGS.index, ArgsCount(0, ArgsCountType::ARGS)}};
+    {Constants::BUILDIN_FN_PROCESS_ARGS.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_SYS_EXIT.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_SYS_EXEC.index, ArgsCount(1, ArgsCountType::VARARGS)},
+    {Constants::BUILDIN_FN_RANDOM.index, ArgsCount(2, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -89,7 +95,10 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_FILE_WRITE.index, file_write},
            {Constants::BUILDIN_FN_FILE_APPEND.index, file_append},
            {Constants::BUILDIN_FN_SYS_ENV.index, sys_env},
-           {Constants::BUILDIN_FN_PROCESS_ARGS.index, process_args}
+           {Constants::BUILDIN_FN_PROCESS_ARGS.index, process_args},
+           {Constants::BUILDIN_FN_SYS_EXIT.index, sys_exit},
+           {Constants::BUILDIN_FN_SYS_EXEC.index, sys_exec},
+           {Constants::BUILDIN_FN_RANDOM.index, random_int}
 
 };
 
