@@ -798,3 +798,111 @@ Value core::math_exp(LocationRef where, Stack *stack, VMHeap *) {
   }
   return Value::Float(std::exp(d));
 }
+
+Value core::str_slice(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value end_val = stack->pop();
+  Value start_val = stack->pop();
+  Value str_val = stack->pop();
+
+  if (str_val.tag != ValueTag::STRING || start_val.tag != ValueTag::INT ||
+      end_val.tag != ValueTag::INT) {
+    throw msl_runtime_error(where, "expected str_slice(string, int, int)");
+  }
+
+  int64_t start = start_val.as.INT;
+  int64_t end = end_val.as.INT;
+
+  if (start > end) {
+    throw msl_runtime_error(where, "start must be larger than end");
+  }
+  if (start < 0 || end < 0) {
+    throw msl_runtime_error(where, "start and end must be larger then 0");
+  }
+  return heap->add_string(
+      heap->get_string(str_val.as.STRING).substr(start, end - start));
+}
+
+Value core::str_find(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value sub_val = stack->pop();
+  Value str_val = stack->pop();
+
+  if (str_val.tag != ValueTag::STRING || sub_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected str_find(string, string)");
+  }
+
+  std::string s = heap->get_string(str_val.as.STRING);
+  std::string sub = heap->get_string(sub_val.as.STRING);
+  size_t pos = s.find(sub);
+
+  if (pos == std::string::npos) {
+    return Value::None();
+  }
+  return Value::Int(pos);
+}
+
+Value core::str_index(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value index_val = stack->pop();
+  Value str_val = stack->pop();
+
+  if (str_val.tag != ValueTag::STRING || index_val.tag != ValueTag::INT) {
+    throw msl_runtime_error(where, "expected str_index(string, int)");
+  }
+
+  std::string s = heap->get_string(str_val.as.STRING);
+  int64_t i = index_val.as.INT;
+  int64_t len = s.length();
+
+  if (i < 0) {
+    i += len;
+  }
+
+  if (i < 0 || i >= len) {
+    throw msl_runtime_error(where, "string index out of bounds");
+  }
+
+  return heap->add_string(std::string(1, s[i]));
+}
+
+Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
+  int64_t args_count = stack->pop().as.INT;
+  if (args_count == 0) {
+    throw msl_runtime_error(where, "str_fmt expects at least a format string");
+  }
+
+  std::vector<Value> args;
+  args.reserve(args_count);
+  for (int64_t i = 0; i < args_count; ++i) {
+    args.push_back(stack->pop());
+  }
+  std::reverse(args.begin(), args.end());
+
+  Value fmt_str_val = args[0];
+  if (fmt_str_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(
+        where, "str_fmt expects the first argument to be a format string");
+  }
+  std::string fmt_str = heap->get_string(fmt_str_val.as.STRING);
+
+  std::string result = "";
+  size_t arg_idx = 1;
+  for (size_t i = 0; i < fmt_str.length(); ++i) {
+    if (fmt_str[i] == '{' && i + 1 < fmt_str.length() &&
+        fmt_str[i + 1] == '}') {
+      if (arg_idx >= args.size()) {
+        throw msl_runtime_error(where,
+                                "not enough arguments for format string");
+      }
+      result += value_to_string(stack, heap, args[arg_idx]);
+      ++arg_idx;
+      ++i; // Skip the '}'
+    } else {
+      result += fmt_str[i];
+    }
+  }
+
+  if (arg_idx < args.size()) {
+    throw msl_runtime_error(where, "too many arguments for format string");
+  }
+
+  return heap->add_string(result);
+}

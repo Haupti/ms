@@ -8,11 +8,11 @@
 * [DONE] `math_sin(x)`, `math_cos(x)`, `math_tan(x)`
 * [DONE] `math_log(x)`, `math_exp(x)`
 
-### string manipulation
-* [] `str_slice(s, start, end)`
-* [] `str_find(s, sub)` - return index of substring
-* [] `str_index(s, i)` - get character at index (as string)
-* [] `str_fmt(fmt, ...)` - basic string formatting
+### String Manipulation
+* [DONE] `str_slice(s, start, end)`
+* [DONE] `str_find(s, sub)` - Return index of substring
+* [DONE] `str_index(s, i)` - Get character at index (as string)
+* [DONE] `str_fmt(fmt, ...)` - Basic string formatting
 
 ### list operations
 * [] `list_slice(l, start, end)`

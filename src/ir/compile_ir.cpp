@@ -503,6 +503,17 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
 void compile_ir_for(IRContext *, nodes *, node_idx , Node ) {
   // TODO
   panic("NOT YET IMPLEMENTED");
+  // What should be the outcome of this?
+  // 1. store list on stack
+  // 2. store index on stack
+  // 2.5. add jump label (start)
+  // 3. store max-index on stack
+  // 4. if index is max-index jump to end
+  // 5. load index-pos element from list on stack
+  // 6. store it as variable loop-param
+  // 7. body
+  // 8. jump to (start)
+  // 9. add jump label (end)
 }
 
 void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,

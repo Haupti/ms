@@ -40,17 +40,23 @@ Value value_to_float(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_to_string_fn(LocationRef where, Stack *stack, VMHeap *heap);
 Value vmassert(LocationRef where, Stack *stack, VMHeap *heap);
 Value vmassert_type(LocationRef where, Stack *stack, VMHeap *heap);
+
 Value file_read(LocationRef where, Stack *stack, VMHeap *heap);
 Value file_write(LocationRef where, Stack *stack, VMHeap *heap);
 Value file_append(LocationRef where, Stack *stack, VMHeap *heap);
+
 Value process_args(LocationRef where, Stack *stack, VMHeap *heap);
+
 Value sys_env(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exit(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exec(LocationRef where, Stack *stack, VMHeap *heap);
+
 Value random_int(LocationRef where, Stack *stack, VMHeap *heap);
+
 Value time_epoch_ms(LocationRef where, Stack *stack, VMHeap *heap);
 Value time_epoch_sec(LocationRef where, Stack *stack, VMHeap *heap);
 Value time_iso8601(LocationRef where, Stack *stack, VMHeap *heap);
+
 Value str_split(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_replace(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_contains(LocationRef where, Stack *stack, VMHeap *heap);
@@ -59,6 +65,10 @@ Value str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_lower(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_upper(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_trim(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_slice(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_find(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_index(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_fmt(LocationRef where, Stack *stack, VMHeap *heap);
 
 Value math_abs(LocationRef where, Stack *stack, VMHeap *heap);
 Value math_floor(LocationRef where, Stack *stack, VMHeap *heap);
@@ -71,6 +81,7 @@ Value math_cos(LocationRef where, Stack *stack, VMHeap *heap);
 Value math_tan(LocationRef where, Stack *stack, VMHeap *heap);
 Value math_log(LocationRef where, Stack *stack, VMHeap *heap);
 Value math_exp(LocationRef where, Stack *stack, VMHeap *heap);
+
 
 void set_args(const std::vector<std::string> &args);
 
@@ -141,7 +152,11 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_MATH_COS.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_MATH_TAN.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_MATH_LOG.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_MATH_EXP.index, ArgsCount(1, ArgsCountType::ARGS)}};
+    {Constants::BUILDIN_FN_MATH_EXP.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_SLICE.index, ArgsCount(3, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_FIND.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_INDEX.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_FMT.index, ArgsCount(1, ArgsCountType::VARARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -191,7 +206,11 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_MATH_COS.index, math_cos},
            {Constants::BUILDIN_FN_MATH_TAN.index, math_tan},
            {Constants::BUILDIN_FN_MATH_LOG.index, math_log},
-           {Constants::BUILDIN_FN_MATH_EXP.index, math_exp}
+           {Constants::BUILDIN_FN_MATH_EXP.index, math_exp},
+           {Constants::BUILDIN_FN_STR_SLICE.index, str_slice},
+           {Constants::BUILDIN_FN_STR_FIND.index, str_find},
+           {Constants::BUILDIN_FN_STR_INDEX.index, str_index},
+           {Constants::BUILDIN_FN_STR_FMT.index, str_fmt}
 
 };
 

@@ -68,4 +68,9 @@ static const InternedString BUILDIN_FN_MATH_COS = create_interned_string("math_c
 static const InternedString BUILDIN_FN_MATH_TAN = create_interned_string("math_tan");
 static const InternedString BUILDIN_FN_MATH_LOG = create_interned_string("math_log");
 static const InternedString BUILDIN_FN_MATH_EXP = create_interned_string("math_exp");
+
+static const InternedString BUILDIN_FN_STR_SLICE = create_interned_string("str_slice");
+static const InternedString BUILDIN_FN_STR_FIND = create_interned_string("str_find");
+static const InternedString BUILDIN_FN_STR_INDEX = create_interned_string("str_index");
+static const InternedString BUILDIN_FN_STR_FMT = create_interned_string("str_fmt");
 } // namespace Constants

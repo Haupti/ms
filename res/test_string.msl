@@ -1,0 +1,29 @@
+function assert_eq(actual, expected, msg) {
+    if (actual != expected) {
+        print("FAIL: " <> msg <> " - expected '" <> str(expected) <> "' but got '" <> str(actual) <> "'")
+        sys_exit(1)
+    }
+}
+
+print("Testing string functions...")
+
+; Test str_slice
+assert_eq(str_slice("hello", 1, 4), "ell", "str_slice positive")
+assert_eq(str_slice("hello", 0, 1), "h", "str_slice negative end")
+assert_eq(str_slice("hello", 4, 4), "", "str_slice negative start")
+
+; Test str_find
+assert_eq(str_find("hello world", "world"), 6, "str_find found")
+assert_eq(str_find("hello hello", "hello"), 0, "str_find first occurrence")
+
+; Test str_index
+assert_eq(str_index("hello", 0), "h", "str_index positive")
+
+; Test str_fmt
+assert_eq(str_fmt("Hello, {}!", "world"), "Hello, world!", "str_fmt single arg")
+assert_eq(str_fmt("{}, {}!", "Hello", "world"), "Hello, world!", "str_fmt multiple args")
+assert_eq(str_fmt("The number is {}", 42), "The number is 42", "str_fmt with int")
+assert_eq(str_fmt("Pi is approx. {}", 3.14), "Pi is approx. 3.140000", "str_fmt with float")
+assert_eq(str_fmt("No args here"), "No args here", "str_fmt no args")
+
+print("All string tests passed!")
