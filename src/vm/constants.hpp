@@ -43,4 +43,15 @@ static const InternedString BUILDIN_FN_PROCESS_ARGS = create_interned_string("pr
 static const InternedString BUILDIN_FN_SYS_EXIT = create_interned_string("sys_exit");
 static const InternedString BUILDIN_FN_SYS_EXEC = create_interned_string("sys_exec");
 static const InternedString BUILDIN_FN_RANDOM = create_interned_string("random");
+static const InternedString BUILDIN_FN_TIME_EPOCH_MS = create_interned_string("time_epoch_ms");
+static const InternedString BUILDIN_FN_TIME_EPOCH_SEC = create_interned_string("time_epoch_sec");
+static const InternedString BUILDIN_FN_TIME_ISO8601 = create_interned_string("time_iso8601");
+static const InternedString BUILDIN_FN_STR_SPLIT = create_interned_string("str_split");
+static const InternedString BUILDIN_FN_STR_REPLACE = create_interned_string("str_replace");
+static const InternedString BUILDIN_FN_STR_CONTAINS = create_interned_string("str_contains");
+static const InternedString BUILDIN_FN_STR_HAS_PREFIX = create_interned_string("str_has_prefix");
+static const InternedString BUILDIN_FN_STR_HAS_SUFFIX = create_interned_string("str_has_suffix");
+static const InternedString BUILDIN_FN_STR_LOWER = create_interned_string("str_lower");
+static const InternedString BUILDIN_FN_STR_UPPER = create_interned_string("str_upper");
+static const InternedString BUILDIN_FN_STR_TRIM = create_interned_string("str_trim");
 } // namespace Constants

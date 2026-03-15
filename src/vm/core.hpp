@@ -36,6 +36,17 @@ Value process_args(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exit(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exec(LocationRef where, Stack *stack, VMHeap *heap);
 Value random_int(LocationRef where, Stack *stack, VMHeap *heap);
+Value time_epoch_ms(LocationRef where, Stack *stack, VMHeap *heap);
+Value time_epoch_sec(LocationRef where, Stack *stack, VMHeap *heap);
+Value time_iso8601(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_split(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_replace(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_contains(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_has_prefix(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_lower(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_upper(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_trim(LocationRef where, Stack *stack, VMHeap *heap);
 
 void set_args(std::vector<std::string> args);
 
@@ -72,7 +83,18 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_PROCESS_ARGS.index, ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_EXIT.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_EXEC.index, ArgsCount(1, ArgsCountType::VARARGS)},
-    {Constants::BUILDIN_FN_RANDOM.index, ArgsCount(2, ArgsCountType::ARGS)}};
+    {Constants::BUILDIN_FN_RANDOM.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_EPOCH_MS.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_EPOCH_SEC.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_ISO8601.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_SPLIT.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_REPLACE.index, ArgsCount(3, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_CONTAINS.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_HAS_PREFIX.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_HAS_SUFFIX.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_LOWER.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_UPPER.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_TRIM.index, ArgsCount(1, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -98,7 +120,18 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_PROCESS_ARGS.index, process_args},
            {Constants::BUILDIN_FN_SYS_EXIT.index, sys_exit},
            {Constants::BUILDIN_FN_SYS_EXEC.index, sys_exec},
-           {Constants::BUILDIN_FN_RANDOM.index, random_int}
+           {Constants::BUILDIN_FN_RANDOM.index, random_int},
+           {Constants::BUILDIN_FN_TIME_EPOCH_MS.index, time_epoch_ms},
+           {Constants::BUILDIN_FN_TIME_EPOCH_SEC.index, time_epoch_sec},
+           {Constants::BUILDIN_FN_TIME_ISO8601.index, time_iso8601},
+           {Constants::BUILDIN_FN_STR_SPLIT.index, str_split},
+           {Constants::BUILDIN_FN_STR_REPLACE.index, str_replace},
+           {Constants::BUILDIN_FN_STR_CONTAINS.index, str_contains},
+           {Constants::BUILDIN_FN_STR_HAS_PREFIX.index, str_has_prefix},
+           {Constants::BUILDIN_FN_STR_HAS_SUFFIX.index, str_has_suffix},
+           {Constants::BUILDIN_FN_STR_LOWER.index, str_lower},
+           {Constants::BUILDIN_FN_STR_UPPER.index, str_upper},
+           {Constants::BUILDIN_FN_STR_TRIM.index, str_trim}
 
 };
 

@@ -5,6 +5,10 @@
 #include <cstdlib>
 #include <fstream>
 #include <random>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <algorithm>
 #include <sstream>
 #include <string>
 namespace {
@@ -416,4 +420,158 @@ Value core::random_int(LocationRef where, Stack *stack, VMHeap *) {
                                                  max_val.as.INT);
 
   return Value::Int(distrib(gen));
+}
+
+Value core::time_epoch_ms(LocationRef, Stack *, VMHeap *) {
+  auto now = std::chrono::system_clock::now();
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                now.time_since_epoch())
+                .count();
+  return Value::Int(ms);
+}
+
+Value core::time_epoch_sec(LocationRef, Stack *, VMHeap *) {
+  auto now = std::chrono::system_clock::now();
+  auto sec = std::chrono::duration_cast<std::chrono::seconds>(
+                 now.time_since_epoch())
+                 .count();
+  return Value::Int(sec);
+}
+
+Value core::time_iso8601(LocationRef, Stack *, VMHeap *heap) {
+  auto now = std::chrono::system_clock::now();
+  std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+  std::tm now_tm;
+#ifdef _WIN32
+  gmtime_s(&now_tm, &now_c);
+#else
+  gmtime_r(&now_c, &now_tm);
+#endif
+  std::stringstream ss;
+  ss << std::put_time(&now_tm, "%Y-%m-%dT%H:%M:%SZ");
+  return heap->add_string(ss.str());
+}
+
+Value core::str_split(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value delim_val = stack->pop();
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING || delim_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for str_split");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  std::string delim = heap->get_string(delim_val.as.STRING);
+  VMHIDX list_head = heap->new_list();
+  if (delim.empty()) {
+    for (char c : s) {
+      heap->add_child(list_head, heap->add_string(std::string(1, c)));
+    }
+  } else {
+    size_t start = 0;
+    size_t end = s.find(delim);
+    while (end != std::string::npos) {
+      heap->add_child(list_head, heap->add_string(s.substr(start, end - start)));
+      start = end + delim.length();
+      end = s.find(delim, start);
+    }
+    heap->add_child(list_head, heap->add_string(s.substr(start)));
+  }
+  return heap->at(list_head);
+}
+
+Value core::str_replace(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value replacement_val = stack->pop();
+  Value search_val = stack->pop();
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING || search_val.tag != ValueTag::STRING ||
+      replacement_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for str_replace");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  std::string search = heap->get_string(search_val.as.STRING);
+  std::string replacement = heap->get_string(replacement_val.as.STRING);
+  if (search.empty())
+    return str_val;
+  size_t pos = 0;
+  while ((pos = s.find(search, pos)) != std::string::npos) {
+    s.replace(pos, search.length(), replacement);
+    pos += replacement.length();
+  }
+  return heap->add_string(s);
+}
+
+Value core::str_contains(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value sub_val = stack->pop();
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING || sub_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for str_contains");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  std::string sub = heap->get_string(sub_val.as.STRING);
+  bool found = s.find(sub) != std::string::npos;
+  return Value::Symbol(found ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+}
+
+Value core::str_has_prefix(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value prefix_val = stack->pop();
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING || prefix_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for str_has_prefix");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  std::string prefix = heap->get_string(prefix_val.as.STRING);
+  bool res = s.compare(0, prefix.length(), prefix) == 0;
+  return Value::Symbol(res ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+}
+
+Value core::str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value suffix_val = stack->pop();
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING || suffix_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for str_has_suffix");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  std::string suffix = heap->get_string(suffix_val.as.STRING);
+  bool res = false;
+  if (s.length() >= suffix.length()) {
+    res = s.compare(s.length() - suffix.length(), suffix.length(), suffix) == 0;
+  }
+  return Value::Symbol(res ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+}
+
+Value core::str_lower(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected string for str_lower");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  std::transform(s.begin(), s.end(), s.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  return heap->add_string(s);
+}
+
+Value core::str_upper(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected string for str_upper");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  std::transform(s.begin(), s.end(), s.begin(),
+                 [](unsigned char c) { return std::toupper(c); });
+  return heap->add_string(s);
+}
+
+Value core::str_trim(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected string for str_trim");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+            return !std::isspace(ch);
+          }));
+  s.erase(std::find_if(s.rbegin(), s.rend(),
+                       [](unsigned char ch) { return !std::isspace(ch); })
+              .base(),
+          s.end());
+  return heap->add_string(s);
 }
