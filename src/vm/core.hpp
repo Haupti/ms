@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../location.hpp"
+#include "../msl_runtime_error.hpp"
 #include "constants.hpp"
 #include "stack.hpp"
 #include "value_and_heap.hpp"
@@ -9,6 +10,15 @@
 #include <unordered_map>
 
 namespace core {
+inline bool as_bool(LocationRef ref, Value value) {
+  switch (value.tag) {
+  case ValueTag::SYMBOL:
+    return value.as.SYMBOL.index == Constants::SYM_TRUE.index;
+  default:
+    throw msl_runtime_error(ref, "expected a symbol");
+    break;
+  }
+}
 std::string value_to_string(Stack *stack, VMHeap *heap, Value value);
 bool values_equal(VMHeap *heap, Value left, Value right);
 
@@ -28,11 +38,13 @@ Value len(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_to_int(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_to_float(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_to_string_fn(LocationRef where, Stack *stack, VMHeap *heap);
+Value vmassert(LocationRef where, Stack *stack, VMHeap *heap);
+Value vmassert_type(LocationRef where, Stack *stack, VMHeap *heap);
 Value file_read(LocationRef where, Stack *stack, VMHeap *heap);
 Value file_write(LocationRef where, Stack *stack, VMHeap *heap);
 Value file_append(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_env(LocationRef where, Stack *stack, VMHeap *heap);
 Value process_args(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_env(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exit(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exec(LocationRef where, Stack *stack, VMHeap *heap);
 Value random_int(LocationRef where, Stack *stack, VMHeap *heap);
@@ -76,6 +88,8 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_INT.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FLOAT.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ASSERT.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ASSERTTYPE.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FILE_READ.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FILE_WRITE.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FILE_APPEND.index, ArgsCount(2, ArgsCountType::ARGS)},
@@ -113,6 +127,8 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_INT.index, value_to_int},
            {Constants::BUILDIN_FN_FLOAT.index, value_to_float},
            {Constants::BUILDIN_FN_STR.index, value_to_string_fn},
+           {Constants::BUILDIN_FN_ASSERT.index, vmassert},
+           {Constants::BUILDIN_FN_ASSERTTYPE.index, vmassert_type},
            {Constants::BUILDIN_FN_FILE_READ.index, file_read},
            {Constants::BUILDIN_FN_FILE_WRITE.index, file_write},
            {Constants::BUILDIN_FN_FILE_APPEND.index, file_append},

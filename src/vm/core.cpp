@@ -2,18 +2,18 @@
 #include "../../lib/asap/util.hpp"
 #include "../msl_runtime_error.hpp"
 #include "stack.hpp"
-#include <cstdlib>
-#include <fstream>
-#include <random>
-#include <chrono>
-#include <ctime>
-#include <iomanip>
 #include <algorithm>
+#include <chrono>
+#include <cstdlib>
+#include <ctime>
+#include <fstream>
+#include <iomanip>
+#include <random>
 #include <sstream>
 #include <string>
 namespace {
 std::vector<std::string> msl_args;
-inline std::string value_tag_to_string(ValueTag tag) {
+inline std::string type_to_string(ValueTag tag) {
   switch (tag) {
   case ValueTag::INT:
     return "int";
@@ -31,16 +31,56 @@ inline std::string value_tag_to_string(ValueTag tag) {
     return "none";
   }
 }
+
+Value type_to_symbol(const Value &value) {
+  switch (value.tag) {
+  case ValueTag::INT:
+    return (Value::Symbol(Constants::SYM_T_INT));
+  case ValueTag::FLOAT:
+    return (Value::Symbol(Constants::SYM_T_FLOAT));
+  case ValueTag::SYMBOL:
+    return (Value::Symbol(Constants::SYM_T_SYMBOL));
+  case ValueTag::STRING:
+    return (Value::Symbol(Constants::SYM_T_STRING));
+  case ValueTag::LIST:
+    return (Value::Symbol(Constants::SYM_T_LIST));
+  case ValueTag::ERROR:
+    return (Value::Symbol(Constants::SYM_T_ERROR));
+  case ValueTag::NONE:
+    return (Value::Symbol(Constants::SYM_T_NONE));
+  }
+}
+ValueTag symbol_to_type(LocationRef where, const Symbol &symbol) {
+  if (symbol.index == Constants::SYM_T_INT.index) {
+    return ValueTag::INT;
+  } else if (symbol.index == Constants::SYM_T_FLOAT.index) {
+    return ValueTag::FLOAT;
+  } else if (symbol.index == Constants::SYM_T_STRING.index) {
+    return ValueTag::STRING;
+  } else if (symbol.index == Constants::SYM_T_SYMBOL.index) {
+    return ValueTag::SYMBOL;
+  } else if (symbol.index == Constants::SYM_T_NONE.index) {
+    return ValueTag::NONE;
+  } else if (symbol.index == Constants::SYM_T_LIST.index) {
+    return ValueTag::LIST;
+  } else if (symbol.index == Constants::SYM_T_ERROR.index) {
+    return ValueTag::ERROR;
+  } else {
+    throw msl_runtime_error(where, "'" + resolve_symbol(symbol) +
+                                       "' does not denote a type");
+  }
+}
+
 void assert_list(LocationRef where, Value value) {
   if (value.tag != ValueTag::LIST) {
     throw msl_runtime_error(where, "expected a list but got a(n) " +
-                                       value_tag_to_string(value.tag));
+                                       type_to_string(value.tag));
   }
 }
 void assert_int(LocationRef where, Value value) {
   if (value.tag != ValueTag::INT) {
     throw msl_runtime_error(where, "expected an int but got a(n) " +
-                                       value_tag_to_string(value.tag));
+                                       type_to_string(value.tag));
   }
 }
 
@@ -216,22 +256,7 @@ Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
 }
 Value core::vmtypeof(LocationRef, Stack *stack, VMHeap *) {
   Value value = stack->pop();
-  switch (value.tag) {
-  case ValueTag::INT:
-    return (Value::Symbol(Constants::SYM_T_INT));
-  case ValueTag::FLOAT:
-    return (Value::Symbol(Constants::SYM_T_FLOAT));
-  case ValueTag::SYMBOL:
-    return (Value::Symbol(Constants::SYM_T_SYMBOL));
-  case ValueTag::STRING:
-    return (Value::Symbol(Constants::SYM_T_STRING));
-  case ValueTag::LIST:
-    return (Value::Symbol(Constants::SYM_T_LIST));
-  case ValueTag::ERROR:
-    return (Value::Symbol(Constants::SYM_T_ERROR));
-  case ValueTag::NONE:
-    return (Value::Symbol(Constants::SYM_T_NONE));
-  }
+  return type_to_symbol(value);
 }
 Value core::string_concat(LocationRef where, Stack *stack, VMHeap *heap) {
   Value right = stack->pop();
@@ -279,8 +304,8 @@ Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {
     }
   }
   default:
-    throw msl_runtime_error(
-        where, "cannot convert " + value_tag_to_string(val.tag) + " to int");
+    throw msl_runtime_error(where, "cannot convert " + type_to_string(val.tag) +
+                                       " to int");
   }
 }
 
@@ -301,8 +326,8 @@ Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
     }
   }
   default:
-    throw msl_runtime_error(
-        where, "cannot convert " + value_tag_to_string(val.tag) + " to float");
+    throw msl_runtime_error(where, "cannot convert " + type_to_string(val.tag) +
+                                       " to float");
   }
 }
 
@@ -432,9 +457,9 @@ Value core::time_epoch_ms(LocationRef, Stack *, VMHeap *) {
 
 Value core::time_epoch_sec(LocationRef, Stack *, VMHeap *) {
   auto now = std::chrono::system_clock::now();
-  auto sec = std::chrono::duration_cast<std::chrono::seconds>(
-                 now.time_since_epoch())
-                 .count();
+  auto sec =
+      std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
+          .count();
   return Value::Int(sec);
 }
 
@@ -469,7 +494,8 @@ Value core::str_split(LocationRef where, Stack *stack, VMHeap *heap) {
     size_t start = 0;
     size_t end = s.find(delim);
     while (end != std::string::npos) {
-      heap->add_child(list_head, heap->add_string(s.substr(start, end - start)));
+      heap->add_child(list_head,
+                      heap->add_string(s.substr(start, end - start)));
       start = end + delim.length();
       end = s.find(delim, start);
     }
@@ -574,4 +600,25 @@ Value core::str_trim(LocationRef where, Stack *stack, VMHeap *heap) {
               .base(),
           s.end());
   return heap->add_string(s);
+}
+Value core::vmassert(LocationRef where, Stack *stack, VMHeap *) {
+  Value value = stack->pop();
+  if (!core::as_bool(where, value)) {
+    throw msl_runtime_error(where, "assertion failed");
+  }
+  return Value::None();
+}
+Value core::vmassert_type(LocationRef where, Stack *stack, VMHeap *) {
+  Value typeval = stack->pop();
+  Value val = stack->pop();
+  if (val.tag != ValueTag::SYMBOL) {
+    throw msl_runtime_error(where, "expected a symbol as second argument");
+  }
+  ValueTag actual = symbol_to_type(where, val.as.SYMBOL);
+  if (typeval.tag != actual) {
+    throw msl_runtime_error(where,
+                            "expected a " + resolve_symbol(typeval.as.SYMBOL) +
+                                " but got " + type_to_string(actual) + "");
+  }
+  return Value::None();
 }

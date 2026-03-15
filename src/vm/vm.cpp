@@ -21,17 +21,6 @@ template <typename T> struct FastStack {
   inline T pop() { return values[--ptr]; }
 };
 
-// UTILITIES
-inline bool as_bool(LocationRef ref, Value value) {
-  switch (value.tag) {
-  case ValueTag::SYMBOL:
-    return value.as.SYMBOL.index == Constants::SYM_TRUE.index;
-  default:
-    throw msl_runtime_error(ref, "expected a symbol");
-    break;
-  }
-}
-
 // VM INSTRUCTIONS
 inline void vm_add(LocationRef where, Stack *stack) {
   Value right = stack->pop();
@@ -410,7 +399,7 @@ int run(std::vector<VMInstr> instrs, std::vector<std::string> msl_args) {
     } break;
     case VMTag::NOT: {
       Value val = stack.pop();
-      if (as_bool(instr.where, val)) {
+      if (core::as_bool(instr.where, val)) {
         stack.push(Value::Symbol(Constants::SYM_FALSE));
       } else {
         stack.push(Value::Symbol(Constants::SYM_TRUE));
@@ -511,14 +500,14 @@ int run(std::vector<VMInstr> instrs, std::vector<std::string> msl_args) {
       ++iptr;
     } break;
     case VMTag::PEEK_JMPIF: {
-      if (as_bool(instr.where, stack.peek())) {
+      if (core::as_bool(instr.where, stack.peek())) {
         iptr = instr.as.INSTRADDR.addr;
       } else {
         ++iptr;
       }
     } break;
     case VMTag::PEEK_JMPIFN: {
-      if (!as_bool(instr.where, stack.peek())) {
+      if (!core::as_bool(instr.where, stack.peek())) {
         iptr = instr.as.INSTRADDR.addr;
       } else {
         ++iptr;
@@ -530,7 +519,7 @@ int run(std::vector<VMInstr> instrs, std::vector<std::string> msl_args) {
     } break;
     case VMTag::JMPIFN: {
       Value val = stack.pop();
-      if (!as_bool(instr.where, val)) {
+      if (!core::as_bool(instr.where, val)) {
         iptr = instr.as.INSTRADDR.addr;
       } else {
         ++iptr;
@@ -538,7 +527,7 @@ int run(std::vector<VMInstr> instrs, std::vector<std::string> msl_args) {
     } break;
     case VMTag::JMPIF: {
       Value val = stack.pop();
-      if (as_bool(instr.where, val)) {
+      if (core::as_bool(instr.where, val)) {
         iptr = instr.as.INSTRADDR.addr;
       } else {
         ++iptr;
