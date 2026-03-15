@@ -354,7 +354,8 @@ inline void vm_neq(Stack *stack, VMHeap *heap) {
   }
 }
 }; // namespace
-int run(std::vector<VMInstr> instrs) {
+int run(std::vector<VMInstr> instrs, std::vector<std::string> msl_args) {
+  core::set_args(msl_args);
   VMHeap heap = VMHeap(1000, 1000);
   // return addresses
   FastStack<uint64_t> ret(1024);

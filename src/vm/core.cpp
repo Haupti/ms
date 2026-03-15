@@ -2,10 +2,12 @@
 #include "../../lib/asap/util.hpp"
 #include "../msl_runtime_error.hpp"
 #include "stack.hpp"
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <string>
 namespace {
+std::vector<std::string> msl_args;
 inline std::string value_tag_to_string(ValueTag tag) {
   switch (tag) {
   case ValueTag::INT:
@@ -267,12 +269,13 @@ Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {
     try {
       return Value::Int(std::stoll(heap->get_string(val.as.STRING)));
     } catch (...) {
-      throw msl_runtime_error(where, "could not convert string to int");
+      return Value::Error(
+          heap->add(heap->add_string("could not convert string to int")));
     }
   }
   default:
-    throw msl_runtime_error(
-        where, "cannot convert " + value_tag_to_string(val.tag) + " to int");
+    return Value::Error(heap->add(heap->add_string(
+        "cannot convert " + value_tag_to_string(val.tag) + " to int")));
   }
 }
 
@@ -287,14 +290,14 @@ Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
     try {
       return Value::Float(std::stod(heap->get_string(val.as.STRING)));
     } catch (...) {
-      throw msl_runtime_error(where, "could not convert '" +
-                                         heap->get_string(val.as.STRING) +
-                                         "' to float");
+      return Value::Error(heap->add(
+          heap->add_string("could not convert '" +
+                           heap->get_string(val.as.STRING) + "' to float")));
     }
   }
   default:
-    throw msl_runtime_error(
-        where, "cannot convert " + value_tag_to_string(val.tag) + " to float");
+    return Value::Error(heap->add(heap->add_string(
+        "cannot convert " + value_tag_to_string(val.tag) + " to float")));
   }
 }
 
@@ -311,7 +314,8 @@ Value core::file_read(LocationRef where, Stack *stack, VMHeap *heap) {
   std::string path = heap->get_string(path_val.as.STRING);
   std::ifstream f(path);
   if (!f.is_open()) {
-    throw msl_runtime_error(where, "could not open file: " + path);
+    return Value::Error(
+        heap->add(heap->add_string("could not open file: " + path)));
   }
   std::stringstream buffer;
   buffer << f.rdbuf();
@@ -328,7 +332,8 @@ Value core::file_write(LocationRef where, Stack *stack, VMHeap *heap) {
   std::string content = heap->get_string(content_val.as.STRING);
   std::ofstream f(path);
   if (!f.is_open()) {
-    throw msl_runtime_error(where, "could not open file: " + path);
+    return Value::Error(
+        heap->add(heap->add_string("could not open file: " + path)));
   }
   f << content;
   return Value::None();
@@ -344,8 +349,34 @@ Value core::file_append(LocationRef where, Stack *stack, VMHeap *heap) {
   std::string content = heap->get_string(content_val.as.STRING);
   std::ofstream f(path, std::ios::app);
   if (!f.is_open()) {
-    throw msl_runtime_error(where, "could not open file: " + path);
+    return Value::Error(
+        heap->add(heap->add_string("could not open file: " + path)));
   }
   f << content;
   return Value::None();
 }
+
+Value core::sys_env(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value name_val = stack->pop();
+  if (name_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where,
+                            "expected a string for environment variable name");
+  }
+  const char *val = std::getenv(heap->get_string(name_val.as.STRING).c_str());
+  if (val == nullptr) {
+    return Value::Error(
+        heap->add(heap->add_string("environment variable not found: " +
+                                   heap->get_string(name_val.as.STRING))));
+  }
+  return heap->add_string(std::string(val));
+}
+
+Value core::process_args(LocationRef, Stack *, VMHeap *heap) {
+  VMHIDX list_head = heap->new_list();
+  for (const auto &arg : ::msl_args) {
+    heap->add_child(list_head, heap->add_string(arg));
+  }
+  return heap->at(list_head);
+}
+
+void core::set_args(std::vector<std::string> args) { ::msl_args = args; }

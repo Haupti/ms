@@ -2,7 +2,6 @@
 
 ## language features
 * [DONE] verify varaibles and functions that are referenced actually exist: done because they must while resolving names to stack/jump addresses
-* [] verify that function argument counts are correct
 * [] loops/range
 * [] function like macros & -export macro to export those function like macros to the file that includes it (but only that one)
 
