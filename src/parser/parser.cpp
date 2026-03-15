@@ -23,71 +23,71 @@ struct Parser {
 };
 
 #ifdef PRODUCTION
-void assert_identifier(Token t) {
+void assert_identifier(const Token &t) {
   if (t.tag != TokenTag::IDENTIFIER) {
     throw compile_error(t.location, "expected an identifier");
   }
 }
-void assert_assign(Token t) {
+void assert_assign(const Token &t) {
   if (t.tag != TokenTag::ASSIGN) {
     throw compile_error(t.location, "expected '='");
   }
 }
-void assert_close_br(Token t) {
+void assert_close_br(const Token &t) {
   if (t.tag != TokenTag::BRCLOSE) {
     throw compile_error(t.location, "expected ')'");
   }
 }
-void assert_close_bracket(Token t) {
+void assert_close_bracket(const Token &t) {
   if (t.tag != TokenTag::BRACKETCLOSE) {
     throw compile_error(t.location, "expected ']'");
   }
 }
-void assert_open_br(Token t) {
+void assert_open_br(const Token &t) {
   if (t.tag != TokenTag::BROPEN) {
     throw compile_error(t.location, "expected '('");
   }
 }
-void assert_open_cur(Token t) {
+void assert_open_cur(const Token &t) {
   if (t.tag != TokenTag::BROPEN) {
     throw compile_error(t.location, "expected '{'");
   }
 }
 #else
 #define assert_identifier(token) __assert_identifier(token, __FILE__, __LINE__)
-void __assert_identifier(Token t, string file, int line) {
+void __assert_identifier(Token t, const string &file, int line) {
   if (t.tag != TokenTag::IDENTIFIER) {
     throw __compile_error_debug(t.location, "expected an identifier", line,
                                 file);
   }
 }
 #define assert_assign(token) __assert_assign(token, __FILE__, __LINE__)
-void __assert_assign(Token t, string file, int line) {
+void __assert_assign(Token t, const string &file, int line) {
   if (t.tag != TokenTag::ASSIGN) {
     throw __compile_error_debug(t.location, "expected '='", line, file);
   }
 }
 #define assert_close_br(token) __assert_close_br(token, __FILE__, __LINE__)
-void __assert_close_br(Token t, string file, int line) {
+void __assert_close_br(Token t, const string &file, int line) {
   if (t.tag != TokenTag::BRCLOSE) {
     throw __compile_error_debug(t.location, "expected ')'", line, file);
   }
 }
 #define assert_close_bracket(token)                                            \
   __assert_close_bracket(token, __FILE__, __LINE__)
-void __assert_close_bracket(Token t, string file, int line) {
+void __assert_close_bracket(Token t, const string &file, int line) {
   if (t.tag != TokenTag::BRACKETCLOSE) {
     throw __compile_error_debug(t.location, "expected ']'", line, file);
   }
 }
 #define assert_open_br(token) __assert_open_br(token, __FILE__, __LINE__)
-void __assert_open_br(Token t, string file, int line) {
+void __assert_open_br(Token t, const string &file, int line) {
   if (t.tag != TokenTag::BROPEN) {
     throw __compile_error_debug(t.location, "expected '('", line, file);
   }
 }
 #define assert_open_cur(token) __assert_open_cur(token, __FILE__, __LINE__)
-void __assert_open_cur(Token t, string file, int line) {
+void __assert_open_cur(Token t, const string &file, int line) {
   if (t.tag != TokenTag::CURLOPEN) {
     throw __compile_error_debug(t.location, "expected '{'", line, file);
   }
@@ -229,7 +229,7 @@ node_idx parse_right_apply_function(Parser *p, node_idx left) {
     return myself_idx;
   }
 
-  parse_add_function_args(p,myself_idx);
+  parse_add_function_args(p, myself_idx);
   p->nodes.add_child(myself_idx, left); // last argument
   return myself_idx;
 }

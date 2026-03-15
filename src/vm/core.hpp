@@ -60,7 +60,7 @@ Value str_lower(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_upper(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_trim(LocationRef where, Stack *stack, VMHeap *heap);
 
-void set_args(std::vector<std::string> args);
+void set_args(const std::vector<std::string> &args);
 
 enum class ArgsCountType : uint8_t {
   VARARGS,
@@ -92,20 +92,30 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_ASSERTTYPE.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FILE_READ.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FILE_WRITE.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_FILE_APPEND.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FILE_APPEND.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_ENV.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_PROCESS_ARGS.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_PROCESS_ARGS.index,
+     ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_EXIT.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_SYS_EXEC.index, ArgsCount(1, ArgsCountType::VARARGS)},
+    {Constants::BUILDIN_FN_SYS_EXEC.index,
+     ArgsCount(1, ArgsCountType::VARARGS)},
     {Constants::BUILDIN_FN_RANDOM.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_TIME_EPOCH_MS.index, ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_TIME_EPOCH_SEC.index, ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_TIME_ISO8601.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_EPOCH_MS.index,
+     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_EPOCH_SEC.index,
+     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_ISO8601.index,
+     ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_SPLIT.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_REPLACE.index, ArgsCount(3, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_CONTAINS.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_HAS_PREFIX.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_HAS_SUFFIX.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_REPLACE.index,
+     ArgsCount(3, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_CONTAINS.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_HAS_PREFIX.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_HAS_SUFFIX.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_LOWER.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_UPPER.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_TRIM.index, ArgsCount(1, ArgsCountType::ARGS)}};

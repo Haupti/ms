@@ -409,7 +409,7 @@ Value core::process_args(LocationRef, Stack *, VMHeap *heap) {
   return heap->at(list_head);
 }
 
-void core::set_args(std::vector<std::string> args) { ::msl_args = args; }
+void core::set_args(const std::vector<std::string> &args) { ::msl_args = args; }
 
 Value core::sys_exit(LocationRef where, Stack *stack, VMHeap *) {
   Value code_val = stack->pop();
@@ -423,7 +423,8 @@ Value core::sys_exec(LocationRef, Stack *stack, VMHeap *heap) {
   int64_t args_count = stack->pop().as.INT;
   std::string command = "";
   for (int64_t i = 0; i < args_count; ++i) {
-    command = value_to_string(stack, heap, stack->pop()) + " " + command;
+    command =
+        value_to_string(stack, heap, stack->pop()).append(" ").append(command);
   }
   int result = std::system(command.c_str());
   return Value::Int(result);

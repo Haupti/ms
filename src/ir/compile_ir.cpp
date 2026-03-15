@@ -436,7 +436,9 @@ void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
 void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   Label label_end = create_next_label("CONDITIONAL_END");
   std::vector<Label> skip_labels;
-  for (uint64_t i = 0; i < ns->list_length(ns->nth_child(curr_idx, 0)); i++) {
+  uint64_t len = ns->list_length(ns->nth_child(curr_idx, 0));
+  skip_labels.reserve(len);
+  for (uint64_t i = 0; i < len; i++) {
     skip_labels.push_back(create_next_label("SKIP_LABEL_" + std::to_string(i)));
   }
 
