@@ -19,6 +19,8 @@ enum class PpTokenTag : uint8_t {
   TRY,
   EXPECT,
   RETURN,
+  FOR,
+  IN,
   ASSIGN,
   BROPEN,
   BRCLOSE,

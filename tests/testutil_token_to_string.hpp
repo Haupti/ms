@@ -96,6 +96,9 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return "[";
   case PpTokenTag::BRACKETCLOSE:
     return "]";
-    break;
+  case PpTokenTag::FOR:
+    return "for";
+  case PpTokenTag::IN:
+    return "in";
   }
 }

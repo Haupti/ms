@@ -500,6 +500,10 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
 
   ctx->add(ir_new_label(curr.start, label_end));
 }
+void compile_ir_for(IRContext *, nodes *, node_idx , Node ) {
+  // TODO
+  panic("NOT YET IMPLEMENTED");
+}
 
 void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
                  bool is_standalone) {
@@ -663,6 +667,9 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
       break;
     case NodeTag::IF:
       compile_ir_if(ctx, ns, curr_idx, curr);
+      break;
+    case NodeTag::FOR_LOOP:
+      compile_ir_for(ctx, ns, curr_idx, curr);
       break;
     case NodeTag::INTERNAL_PARTIAL_CONDITION:
       throw compile_error(curr.start,

@@ -1,4 +1,3 @@
-#include "../../lib/asap/util.hpp"
 #include "../compile_error.hpp"
 #include "../preprocessor/token.hpp"
 #include "node.hpp"
@@ -26,6 +25,11 @@ struct Parser {
 void assert_identifier(const Token &t) {
   if (t.tag != TokenTag::IDENTIFIER) {
     throw compile_error(t.location, "expected an identifier");
+  }
+}
+void assert_in(const Token &t) {
+  if (t.tag != TokenTag::IN) {
+    throw compile_error(t.location, "expected 'in'");
   }
 }
 void assert_assign(const Token &t) {
@@ -59,6 +63,12 @@ void __assert_identifier(Token t, const string &file, int line) {
   if (t.tag != TokenTag::IDENTIFIER) {
     throw __compile_error_debug(t.location, "expected an identifier", line,
                                 file);
+  }
+}
+#define assert_in(token) __assert_in(token, __FILE__, __LINE__)
+void __assert_in(Token t, const string &file, int line) {
+  if (t.tag != TokenTag::IN) {
+    throw __compile_error_debug(t.location, "expected 'in'", line, file);
   }
 }
 #define assert_assign(token) __assert_assign(token, __FILE__, __LINE__)
@@ -422,6 +432,8 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::STRING:
   case TokenTag::IDENTIFIER:
   case TokenTag::RETURN:
+  case TokenTag::FOR:
+  case TokenTag::IN:
     return left;
   }
 }
@@ -554,6 +566,10 @@ node_idx parse_expression_lazy(Parser *p) {
     throw compile_error(t.location, "unexpected token '<>'");
   case TokenTag::RETURN:
     throw compile_error(t.location, "unexpected token 'return'");
+  case TokenTag::FOR:
+    throw compile_error(t.location, "unexpected token 'for'");
+  case TokenTag::IN:
+    throw compile_error(t.location, "unexpected token 'in'");
   }
 }
 
@@ -722,6 +738,31 @@ node_idx parse_return(Parser *p) {
   p->nodes.add_child(myself_idx, value_idx);
   return myself_idx;
 }
+node_idx parse_for(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv(); // move to loop param
+
+  Token identifier = p->peek();
+  assert_identifier(identifier);
+
+  Node myself = Node();
+  myself.start = start;
+  myself.tag = NodeTag::FOR_LOOP;
+  myself.as.IDENTIFIER = identifier.as.IDENTIFIER;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  p->adv(); // move to 'in'
+  assert_in(p->peek());
+  p->adv(); // move to list
+  node_idx list_idx = parse_expression_eager(p);
+  p->nodes.add_child(myself_idx, list_idx);
+
+  node_idx body_idx = parse_block(p);
+  if (!body_idx.is_null()) {
+    p->nodes.add_child(myself_idx, body_idx);
+  }
+  return myself_idx;
+}
 
 node_idx parse_one(Parser *p) {
   Token token = p->peek();
@@ -752,6 +793,8 @@ node_idx parse_one(Parser *p) {
     return parse_expression_eager(p);
   case TokenTag::RETURN:
     return parse_return(p);
+  case TokenTag::FOR:
+    return parse_for(p);
   case TokenTag::ASSIGN:
     throw compile_error(token.location, "unexpected token");
   case TokenTag::BROPEN:
@@ -804,6 +847,8 @@ node_idx parse_one(Parser *p) {
     throw compile_error(token.location, "unexpected token");
   case TokenTag::IDENTIFIER:
     return parse_expression_eager(p);
+  case TokenTag::IN:
+    throw compile_error(token.location, "unexpected token");
   }
 }
 }; // namespace

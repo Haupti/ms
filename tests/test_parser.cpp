@@ -918,6 +918,63 @@ void test_no_args_fn_call(T *t) {
                         "-----------------------\n"
                         "MASK: $ $ $ $ \n");
 }
+void test_for_loop(T *t) {
+  string code = "for x in list(13) {\n"
+                "print(x)\n"
+                "}";
+  string out = parse_and_show(code);
+  t->assert_str_eq(out, "First Item = 1\n"
+                        "\n"
+                        "0 Node  NIL:\n"
+                        "    Start = NIL\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "1 Node  FOR x:\n"
+                        "    Start = test.msl/1/1\n"
+                        "    First_Child = 3\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "2 Node  VAR_REF = list:\n"
+                        "    Start = test.msl/1/10\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 4\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "3 Node  FN_CALL:\n"
+                        "    Start = test.msl/1/10\n"
+                        "    First_Child = 2\n"
+                        "    Next_Child = 6\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "4 Node  LITERAL_INT = 13:\n"
+                        "    Start = test.msl/1/15\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "5 Node  VAR_REF = print:\n"
+                        "    Start = test.msl/2/1\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 7\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "6 Node  FN_CALL:\n"
+                        "    Start = test.msl/2/1\n"
+                        "    First_Child = 5\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "7 Node  VAR_REF = x:\n"
+                        "    Start = test.msl/2/7\n"
+                        "    First_Child = 0\n"
+                        "    Next_Child = 0\n"
+                        "    Next_Sibling = 0\n"
+                        "-----------------------\n"
+                        "MASK: $ $ $ $ $ $ $ $ \n");
+}
 
 void test_fn_call_3(T *t) {
   string code = "function add_and_print(a,b){ \n"
@@ -1082,5 +1139,6 @@ int main() {
   t.test("try", test_try);
   t.test("expect", test_expect);
   t.test("no-args fn call", test_no_args_fn_call);
+  t.test("for-loop", test_for_loop);
   return 0;
 }
