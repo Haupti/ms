@@ -1,0 +1,42 @@
+function assert_eq(actual, expected, msg) {
+    if (actual != expected) {
+        print("FAIL: " <> msg <> " - expected " <> str(expected) <> " but got " <> str(actual))
+        sys_exit(1)
+    }
+}
+
+function assert_float_eq(actual, expected, msg) {
+    ; very simple float comparison
+    let diff = math_abs(actual - expected)
+    if (diff > 0.00001) {
+        print("FAIL: " <> msg <> " - expected " <> str(expected) <> " but got " <> str(actual))
+        sys_exit(1)
+    }
+}
+
+print("Testing math functions...")
+
+assert_eq(math_abs(-5), 5, "math_abs int negative")
+assert_eq(math_abs(5), 5, "math_abs int positive")
+assert_float_eq(math_abs(-5.5), 5.5, "math_abs float negative")
+
+assert_float_eq(math_floor(5.9), 5.0, "math_floor")
+assert_float_eq(math_ceil(5.1), 6.0, "math_ceil")
+assert_float_eq(math_round(5.4), 5.0, "math_round down")
+assert_float_eq(math_round(5.6), 6.0, "math_round up")
+
+assert_float_eq(math_sqrt(16.0), 4.0, "math_sqrt float")
+assert_float_eq(math_sqrt(16), 4.0, "math_sqrt int")
+
+assert_float_eq(math_pow(2.0, 3.0), 8.0, "math_pow float")
+assert_float_eq(math_pow(2, 3), 8.0, "math_pow int")
+
+assert_float_eq(math_sin(0), 0.0, "math_sin")
+assert_float_eq(math_cos(0), 1.0, "math_cos")
+; tan(pi/4) is approx 1, but we do not have pi defined easily.
+; lets just test math_tan(0)
+assert_float_eq(math_tan(0), 0.0, "math_tan")
+
+assert_float_eq(math_log(math_exp(1.0)), 1.0, "math_log/exp")
+
+print("All math tests passed!")

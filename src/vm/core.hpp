@@ -60,6 +60,18 @@ Value str_lower(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_upper(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_trim(LocationRef where, Stack *stack, VMHeap *heap);
 
+Value math_abs(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_floor(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_ceil(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_round(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_sqrt(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_pow(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_sin(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_cos(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_tan(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_log(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_exp(LocationRef where, Stack *stack, VMHeap *heap);
+
 void set_args(const std::vector<std::string> &args);
 
 enum class ArgsCountType : uint8_t {
@@ -118,7 +130,18 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
      ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_LOWER.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_UPPER.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_TRIM.index, ArgsCount(1, ArgsCountType::ARGS)}};
+    {Constants::BUILDIN_FN_STR_TRIM.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_ABS.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_FLOOR.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_CEIL.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_ROUND.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_SQRT.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_POW.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_SIN.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_COS.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_TAN.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_LOG.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_MATH_EXP.index, ArgsCount(1, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -157,7 +180,18 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_STR_HAS_SUFFIX.index, str_has_suffix},
            {Constants::BUILDIN_FN_STR_LOWER.index, str_lower},
            {Constants::BUILDIN_FN_STR_UPPER.index, str_upper},
-           {Constants::BUILDIN_FN_STR_TRIM.index, str_trim}
+           {Constants::BUILDIN_FN_STR_TRIM.index, str_trim},
+           {Constants::BUILDIN_FN_MATH_ABS.index, math_abs},
+           {Constants::BUILDIN_FN_MATH_FLOOR.index, math_floor},
+           {Constants::BUILDIN_FN_MATH_CEIL.index, math_ceil},
+           {Constants::BUILDIN_FN_MATH_ROUND.index, math_round},
+           {Constants::BUILDIN_FN_MATH_SQRT.index, math_sqrt},
+           {Constants::BUILDIN_FN_MATH_POW.index, math_pow},
+           {Constants::BUILDIN_FN_MATH_SIN.index, math_sin},
+           {Constants::BUILDIN_FN_MATH_COS.index, math_cos},
+           {Constants::BUILDIN_FN_MATH_TAN.index, math_tan},
+           {Constants::BUILDIN_FN_MATH_LOG.index, math_log},
+           {Constants::BUILDIN_FN_MATH_EXP.index, math_exp}
 
 };
 

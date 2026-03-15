@@ -4,6 +4,7 @@
 #include "stack.hpp"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
@@ -622,4 +623,178 @@ Value core::vmassert_type(LocationRef where, Stack *stack, VMHeap *) {
                                 " but got " + type_to_string(actual) + "");
   }
   return Value::None();
+}
+
+Value core::math_abs(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  switch (val.tag) {
+  case ValueTag::INT:
+    return Value::Int(std::abs(val.as.INT));
+  case ValueTag::FLOAT:
+    return Value::Float(std::abs(val.as.FLOAT));
+  default:
+    throw msl_runtime_error(where, "expected a number for math_abs");
+  }
+}
+
+Value core::math_floor(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  switch (val.tag) {
+  case ValueTag::INT:
+    return val;
+  case ValueTag::FLOAT:
+    return Value::Float(std::floor(val.as.FLOAT));
+  default:
+    throw msl_runtime_error(where, "expected a number for math_floor");
+  }
+}
+
+Value core::math_ceil(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  switch (val.tag) {
+  case ValueTag::INT:
+    return val;
+  case ValueTag::FLOAT:
+    return Value::Float(std::ceil(val.as.FLOAT));
+  default:
+    throw msl_runtime_error(where, "expected a number for math_ceil");
+  }
+}
+
+Value core::math_round(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  switch (val.tag) {
+  case ValueTag::INT:
+    return val;
+  case ValueTag::FLOAT:
+    return Value::Float(std::round(val.as.FLOAT));
+  default:
+    throw msl_runtime_error(where, "expected a number for math_round");
+  }
+}
+
+Value core::math_sqrt(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  double d;
+  switch (val.tag) {
+  case ValueTag::INT:
+    d = static_cast<double>(val.as.INT);
+    break;
+  case ValueTag::FLOAT:
+    d = val.as.FLOAT;
+    break;
+  default:
+    throw msl_runtime_error(where, "expected a number for math_sqrt");
+  }
+  return Value::Float(std::sqrt(d));
+}
+
+Value core::math_pow(LocationRef where, Stack *stack, VMHeap *) {
+  Value y_val = stack->pop();
+  Value x_val = stack->pop();
+  double x, y;
+
+  switch (x_val.tag) {
+  case ValueTag::INT:
+    x = static_cast<double>(x_val.as.INT);
+    break;
+  case ValueTag::FLOAT:
+    x = x_val.as.FLOAT;
+    break;
+  default:
+    throw msl_runtime_error(where, "expected a number for math_pow x");
+  }
+
+  switch (y_val.tag) {
+  case ValueTag::INT:
+    y = static_cast<double>(y_val.as.INT);
+    break;
+  case ValueTag::FLOAT:
+    y = y_val.as.FLOAT;
+    break;
+  default:
+    throw msl_runtime_error(where, "expected a number for math_pow y");
+  }
+
+  return Value::Float(std::pow(x, y));
+}
+
+Value core::math_sin(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  double d;
+  switch (val.tag) {
+  case ValueTag::INT:
+    d = static_cast<double>(val.as.INT);
+    break;
+  case ValueTag::FLOAT:
+    d = val.as.FLOAT;
+    break;
+  default:
+    throw msl_runtime_error(where, "expected a number for math_sin");
+  }
+  return Value::Float(std::sin(d));
+}
+
+Value core::math_cos(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  double d;
+  switch (val.tag) {
+  case ValueTag::INT:
+    d = static_cast<double>(val.as.INT);
+    break;
+  case ValueTag::FLOAT:
+    d = val.as.FLOAT;
+    break;
+  default:
+    throw msl_runtime_error(where, "expected a number for math_cos");
+  }
+  return Value::Float(std::cos(d));
+}
+
+Value core::math_tan(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  double d;
+  switch (val.tag) {
+  case ValueTag::INT:
+    d = static_cast<double>(val.as.INT);
+    break;
+  case ValueTag::FLOAT:
+    d = val.as.FLOAT;
+    break;
+  default:
+    throw msl_runtime_error(where, "expected a number for math_tan");
+  }
+  return Value::Float(std::tan(d));
+}
+
+Value core::math_log(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  double d;
+  switch (val.tag) {
+  case ValueTag::INT:
+    d = static_cast<double>(val.as.INT);
+    break;
+  case ValueTag::FLOAT:
+    d = val.as.FLOAT;
+    break;
+  default:
+    throw msl_runtime_error(where, "expected a number for math_log");
+  }
+  return Value::Float(std::log(d));
+}
+
+Value core::math_exp(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  double d;
+  switch (val.tag) {
+  case ValueTag::INT:
+    d = static_cast<double>(val.as.INT);
+    break;
+  case ValueTag::FLOAT:
+    d = val.as.FLOAT;
+    break;
+  default:
+    throw msl_runtime_error(where, "expected a number for math_exp");
+  }
+  return Value::Float(std::exp(d));
 }

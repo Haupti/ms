@@ -56,4 +56,16 @@ static const InternedString BUILDIN_FN_STR_HAS_SUFFIX = create_interned_string("
 static const InternedString BUILDIN_FN_STR_LOWER = create_interned_string("str_lower");
 static const InternedString BUILDIN_FN_STR_UPPER = create_interned_string("str_upper");
 static const InternedString BUILDIN_FN_STR_TRIM = create_interned_string("str_trim");
+
+static const InternedString BUILDIN_FN_MATH_ABS = create_interned_string("math_abs");
+static const InternedString BUILDIN_FN_MATH_FLOOR = create_interned_string("math_floor");
+static const InternedString BUILDIN_FN_MATH_CEIL = create_interned_string("math_ceil");
+static const InternedString BUILDIN_FN_MATH_ROUND = create_interned_string("math_round");
+static const InternedString BUILDIN_FN_MATH_SQRT = create_interned_string("math_sqrt");
+static const InternedString BUILDIN_FN_MATH_POW = create_interned_string("math_pow");
+static const InternedString BUILDIN_FN_MATH_SIN = create_interned_string("math_sin");
+static const InternedString BUILDIN_FN_MATH_COS = create_interned_string("math_cos");
+static const InternedString BUILDIN_FN_MATH_TAN = create_interned_string("math_tan");
+static const InternedString BUILDIN_FN_MATH_LOG = create_interned_string("math_log");
+static const InternedString BUILDIN_FN_MATH_EXP = create_interned_string("math_exp");
 } // namespace Constants
