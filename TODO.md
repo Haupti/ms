@@ -18,6 +18,7 @@
 * [] `list_slice(l, start, end)`
 * [] `list_remove(l, i)` - remove element at index
 * [] `list_contains(l, val)`
+* [] `range(i,j)`
 
 ### tables
 * [] implement type `ValueTag::TABLE` (hash map)
@@ -52,8 +53,8 @@
 
 ## language & vm features
 * [DONE] verify variables and functions that are referenced actually exist
-* [] `loop` / `while` constructs in parser/compiler
-* [] `for v in list` / `for i in range(start, end)`
+* [DONE] `for` loop 
+* [] `while` loop
 * [] structs or records for grouping data
 * [] binary operators for bitwise ops (`&`, `|`, `^`, `<<`, `>>`)
 * [] garbage collection

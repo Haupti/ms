@@ -205,7 +205,8 @@ void test_for_loop(T *t) {
                         "STORE_NEW x\n"
                         "JMP $START_LOOP_10\n"
                         "LABEL $END_LOOP_11\n"
-                        "SCOPE_END\n");
+                        "SCOPE_END\n"
+                        "POP\n");
 }
 
 } // namespace

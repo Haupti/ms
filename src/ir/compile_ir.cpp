@@ -526,6 +526,7 @@ void compile_ir_for(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   ctx->add(ir_new_jump(curr.start, IRTag::JMP, label_start)); // repeat
   ctx->add(ir_new_label(curr.start, label_end));              // end
   ctx->add(ir_new(curr.start, IRTag::SCOPE_END));             // scope end
+  ctx->add(ir_new(curr.start, IRTag::POP));                   // pop iterator
 }
 
 // standalone flag must be true if this is not used by anything
