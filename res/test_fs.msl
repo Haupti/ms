@@ -1,0 +1,34 @@
+function assert_eq(actual, expected, msg) {
+    if (actual != expected) {
+        print("FAIL: " <> msg <> " - expected '" <> str(expected) <> "' but got '" <> str(actual) <> "'")
+        sys_exit(1)
+    }
+}
+
+function assert_true(actual, msg) {
+    if (actual != #true) {
+        print("FAIL: " <> msg <> " - expected #true but got " <> str(actual))
+        sys_exit(1)
+    }
+}
+
+function assert_false(actual, msg) {
+    if (actual != #false) {
+        print("FAIL: " <> msg <> " - expected #false but got " <> str(actual))
+        sys_exit(1)
+    }
+}
+
+print("Testing filesystem and system functions...")
+
+let test_dir = "test_temp_dir"
+let test_file = test_dir <> "/test_file.txt"
+
+; Cleanup in case of previous failed run
+if (fs_exists(test_dir)) {
+    if (fs_exists(test_file)) {
+        fs_rm(test_file)
+    }
+    fs_rm(test_dir)
+}
+

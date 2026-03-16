@@ -7,12 +7,14 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <random>
 #include <sstream>
 #include <string>
 namespace {
+
 std::vector<std::string> msl_args;
 inline std::string type_to_string(ValueTag tag) {
   switch (tag) {
@@ -31,6 +33,10 @@ inline std::string type_to_string(ValueTag tag) {
   case ValueTag::NONE:
     return "none";
   }
+}
+
+inline Value create_error(VMHeap *heap, const std::string &str) {
+  return Value::Error(heap->ref_add_string(str));
 }
 
 Value type_to_symbol(const Value &value) {
@@ -321,9 +327,9 @@ Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
     try {
       return Value::Float(std::stod(heap->get_string(val.as.STRING)));
     } catch (...) {
-      return Value::Error(heap->add(
-          heap->add_string("could not convert '" +
-                           heap->get_string(val.as.STRING) + "' to float")));
+      return create_error(heap, "could not convert '" +
+                                    heap->get_string(val.as.STRING) +
+                                    "' to float");
     }
   }
   default:
@@ -905,4 +911,73 @@ Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
   }
 
   return heap->add_string(result);
+}
+
+Value core::fs_exists(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value path_val = stack->pop();
+  if (path_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected a string for file path");
+  }
+  std::string path = heap->get_string(path_val.as.STRING);
+  bool exists = std::filesystem::exists(path);
+  return Value::Symbol(exists ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+}
+
+Value core::fs_mkdir(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value path_val = stack->pop();
+  if (path_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected a string for directory path");
+  }
+  std::string path = heap->get_string(path_val.as.STRING);
+  try {
+    if (!std::filesystem::create_directory(path)) {
+      return create_error(heap, "failed to create directory");
+    }
+  } catch (const std::filesystem::filesystem_error &e) {
+    return create_error(heap,
+                        "failed to create directory: " + std::string(e.what()));
+  }
+  return Value::None();
+}
+
+Value core::fs_rm(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value path_val = stack->pop();
+  if (path_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected a string for path");
+  }
+  std::string path = heap->get_string(path_val.as.STRING);
+  try {
+    if (!std::filesystem::remove(path)) {
+      return create_error(heap, "file or directory not found");
+    }
+  } catch (const std::filesystem::filesystem_error &e) {
+    return create_error(heap, "failed to remove: " + std::string(e.what()));
+  }
+  return Value::None();
+}
+
+Value core::fs_ls(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value path_val = stack->pop();
+  if (path_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected a string for path");
+  }
+  std::string path = heap->get_string(path_val.as.STRING);
+  VMHIDX list_head = heap->new_list();
+  try {
+    for (const auto &entry : std::filesystem::directory_iterator(path)) {
+      heap->add_child(list_head, heap->add_string(entry.path().string()));
+    }
+  } catch (const std::filesystem::filesystem_error &e) {
+    return create_error(heap, "failed to list directory contents: " +
+                                  std::string(e.what()));
+  }
+  return heap->at(list_head);
+}
+
+Value core::sys_now(LocationRef, Stack *, VMHeap *) {
+  auto now = std::chrono::high_resolution_clock::now();
+  auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                   now.time_since_epoch())
+                   .count();
+  return Value::Int(nanos);
 }

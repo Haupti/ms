@@ -2,6 +2,7 @@
 #include "value_and_heap.hpp"
 #include "vm_instr.hpp"
 #include <vector>
+
 struct Stack {
   std::vector<Value> values;
   uint64_t stkptr;

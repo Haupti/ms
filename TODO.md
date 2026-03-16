@@ -18,9 +18,6 @@
 * [] `list_slice(l, start, end)`
 * [] `list_remove(l, i)` - remove element at index
 * [] `list_contains(l, val)`
-* [] `list_map(l, fn_name)` - apply function to all elements
-* [] `list_filter(l, fn_name)` - filter elements based on predicate
-* [] `list_reduce(l, fn_name, initial)`
 
 ### tables
 * [] implement type `ValueTag::TABLE` (hash map)
@@ -31,11 +28,11 @@
 * [] `table_remove(t, key)`
 
 ### file system & system
-* [] `fs_exists(path)`
-* [] `fs_mkdir(path)`
-* [] `fs_rm(path)`
-* [] `fs_ls(path)` - list directory contents
-* [] `sys_now()` - high-res timestamp
+* [DONE] `fs_exists(path)`
+* [DONE] `fs_mkdir(path)`
+* [DONE] `fs_rm(path)`
+* [DONE] `fs_ls(path)` - list directory contents
+* [DONE] `sys_now()` - high-res timestamp
 
 ### encoding
 * [] `table_to_json(t)`, `table_from_json(json_string)`

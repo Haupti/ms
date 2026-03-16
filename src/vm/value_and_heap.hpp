@@ -140,6 +140,11 @@ public:
     add(new_str);
     return new_str;
   }
+  VMHIDX ref_add_string(std::string str) {
+    strings.push_back(str);
+    auto new_str = Value::String(strings.size() - 1);
+    return add(new_str);
+  }
 
   VMHIDX add(Value value) {
     if (free_list.size() == 0) {

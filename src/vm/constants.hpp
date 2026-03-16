@@ -73,4 +73,10 @@ static const InternedString BUILDIN_FN_STR_SLICE = create_interned_string("str_s
 static const InternedString BUILDIN_FN_STR_FIND = create_interned_string("str_find");
 static const InternedString BUILDIN_FN_STR_INDEX = create_interned_string("str_index");
 static const InternedString BUILDIN_FN_STR_FMT = create_interned_string("str_fmt");
+
+static const InternedString BUILDIN_FN_FS_EXISTS = create_interned_string("fs_exists");
+static const InternedString BUILDIN_FN_FS_MKDIR = create_interned_string("fs_mkdir");
+static const InternedString BUILDIN_FN_FS_RM = create_interned_string("fs_rm");
+static const InternedString BUILDIN_FN_FS_LS = create_interned_string("fs_ls");
+static const InternedString BUILDIN_FN_SYS_NOW = create_interned_string("sys_now");
 } // namespace Constants

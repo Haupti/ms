@@ -70,6 +70,12 @@ Value str_find(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_index(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_fmt(LocationRef where, Stack *stack, VMHeap *heap);
 
+Value fs_exists(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_mkdir(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_rm(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_ls(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_now(LocationRef where, Stack *stack, VMHeap *heap);
+
 Value math_abs(LocationRef where, Stack *stack, VMHeap *heap);
 Value math_floor(LocationRef where, Stack *stack, VMHeap *heap);
 Value math_ceil(LocationRef where, Stack *stack, VMHeap *heap);
@@ -156,7 +162,12 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_STR_SLICE.index, ArgsCount(3, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_FIND.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_INDEX.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_FMT.index, ArgsCount(1, ArgsCountType::VARARGS)}};
+    {Constants::BUILDIN_FN_STR_FMT.index, ArgsCount(1, ArgsCountType::VARARGS)},
+    {Constants::BUILDIN_FN_FS_EXISTS.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FS_MKDIR.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FS_RM.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FS_LS.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_SYS_NOW.index, ArgsCount(0, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -210,7 +221,12 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_STR_SLICE.index, str_slice},
            {Constants::BUILDIN_FN_STR_FIND.index, str_find},
            {Constants::BUILDIN_FN_STR_INDEX.index, str_index},
-           {Constants::BUILDIN_FN_STR_FMT.index, str_fmt}
+           {Constants::BUILDIN_FN_STR_FMT.index, str_fmt},
+           {Constants::BUILDIN_FN_FS_EXISTS.index, fs_exists},
+           {Constants::BUILDIN_FN_FS_MKDIR.index, fs_mkdir},
+           {Constants::BUILDIN_FN_FS_RM.index, fs_rm},
+           {Constants::BUILDIN_FN_FS_LS.index, fs_ls},
+           {Constants::BUILDIN_FN_SYS_NOW.index, sys_now}
 
 };
 
