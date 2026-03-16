@@ -267,6 +267,23 @@ void test_fn_call(T *t) {
                         "12 RETURN\n"
                         "13 HALT\n");
 }
+void test_for_loop(T *t) {
+  string code = "let somelist = list(1)\n"
+                "for x in somelist {"
+                "#noop\n"
+                "}\n";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "0 PROGRAM_INIT 2\n"
+                        "1 PUSH_INT 1\n"
+                        "2 PUSH_INT 1\n"
+                        "3 VMCALL list 1\n"
+                        "4 STORE_GLOBAL mem(0)\n"
+                        "5 LOAD_GLOBAL mem(0)\n"
+                        "6 ITER_FOREACH addr(9)\n"
+                        "7 STORE mem(1)\n"
+                        "8 JMP addr(6)\n"
+                        "9 HALT\n");
+}
 
 } // namespace
 int main() {
@@ -286,5 +303,6 @@ int main() {
   t.test("functions come after rest", test_ordering);
   t.test("complex", test_complex);
   t.test("fn call", test_fn_call);
+  t.test("for loop", test_for_loop);
   return 0;
 }

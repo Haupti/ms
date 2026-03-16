@@ -116,6 +116,9 @@ inline std::string vminstr_to_string(uint64_t pos, const VMInstr &instr) {
   case VMTag::HALT:
     str += "HALT";
     break;
+  case VMTag::ITER_FOREACH:
+    str += "ITER_FOREACH addr(" + std::to_string(instr.as.INSTRADDR.addr) + ")";
+    break;
   }
   return str;
 }

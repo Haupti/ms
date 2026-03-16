@@ -499,6 +499,22 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       stack.pop_void();
       ++iptr;
     } break;
+    case VMTag::ITER_FOREACH: {
+      Value list = stack.pop();
+      if(list.tag == ValueTag::LIST && heap.nth_child_idx(list.as.LIST, 0) != INVALID){
+        VMHIDX first_elem_idx = heap.nth_child_idx(list.as.LIST, 0);
+        stack.push(Value::Iterator(first_elem_idx));
+        stack.push(heap.at(first_elem_idx));
+        ++iptr;
+      }else if(list.tag == ValueTag::ITERATOR && heap.node_at(list.as.ITERATOR)->next_child != INVALID) {
+        VMHIDX next_elem_idx = heap.node_at(list.as.ITERATOR)->next_child;
+        stack.push(Value::Iterator(next_elem_idx));
+        stack.push(heap.at(next_elem_idx));
+        ++iptr;
+      }else {
+        iptr = instr.as.INSTRADDR.addr;
+      }
+    } break;
     case VMTag::PEEK_JMPIF: {
       if (core::as_bool(instr.where, stack.peek())) {
         iptr = instr.as.INSTRADDR.addr;

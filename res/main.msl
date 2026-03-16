@@ -1,25 +1,3 @@
-;let res = list(1,2,3)
-;let cpy = copy(res)
-;res.put(1,9)
-;print(res)
-;print(cpy)
-;let linked = res.link(cpy)
-;print(linked)
-;linked.put(0, -1)
-;linked.put(4, -1)
-;
-;print(linked)
-;print(res)
-;print([cpy])
-;print(typeof(cpy))
-
-function sub(a, b){
-  return a - b
-}
-
-print(sub(1,2))
-print(1.sub(2))
-print(1|sub(2))
-print(sys_exec("echo", "hello"))
-print(random(0,5))
-sys_exit(5)
+-include "test_fs.msl"
+-include "test_math.msl"
+-include "test_string.msl"

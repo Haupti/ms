@@ -159,6 +159,14 @@ IRInstr ir_new_label(LocationRef where, Label label) {
   ir.extra.args = 0;
   return ir;
 }
+IRInstr ir_new_iter_foreach(LocationRef where, Label label) {
+  IRInstr ir;
+  ir.as.LABEL = label;
+  ir.where = where;
+  ir.tag = IRTag::ITER_FOREACH;
+  ir.extra.args = 0;
+  return ir;
+}
 
 void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
                  bool is_standalone);
@@ -424,13 +432,16 @@ void compile_ir_infix_or(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(ir_new_label(curr.start, label_end));
 }
 
-void compile_condition_body(IRContext *ctx, nodes *ns, node_idx body_head) {
-  ctx->add(ir_new(ns->at(body_head).start, IRTag::SCOPE_START));
+void compile_body(IRContext *ctx, nodes *ns, node_idx body_head) {
   node_idx curr = body_head;
   while (!curr.is_null()) {
     compile_one(ctx, ns, curr, true);
     curr = ns->next_child(curr);
   }
+}
+void compile_block_body(IRContext *ctx, nodes *ns, node_idx body_head) {
+  ctx->add(ir_new(ns->at(body_head).start, IRTag::SCOPE_START));
+  compile_body(ctx, ns, body_head);
   ctx->add(ir_new(ns->at(body_head).start, IRTag::SCOPE_END));
 }
 void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
@@ -452,7 +463,7 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
     IRInstr ifjmp = ir_new_jump(curr.start, IRTag::JMPIFN, label_end);
     ctx->add(ifjmp);
   }
-  compile_condition_body(ctx, ns, ns->nth_child(if_cond, 1));
+  compile_block_body(ctx, ns, ns->nth_child(if_cond, 1));
 
   uint32_t cond_idx = 1;
   node_idx elif_cond = ns->nth_child(curr_idx, cond_idx);
@@ -480,7 +491,7 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
     ctx->add(elifjmp);
 
     // actual body
-    compile_condition_body(ctx, ns, ns->nth_child(elif_cond, 1));
+    compile_block_body(ctx, ns, ns->nth_child(elif_cond, 1));
     cond_idx++;
     elif_cond = ns->nth_child(curr_idx, cond_idx);
   }
@@ -495,27 +506,31 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
     ctx->add(else_skip_label);
 
     // actual body
-    compile_condition_body(ctx, ns, ns->nth_child(elif_cond, 0));
+    compile_block_body(ctx, ns, ns->nth_child(elif_cond, 0));
   }
 
   ctx->add(ir_new_label(curr.start, label_end));
 }
-void compile_ir_for(IRContext *, nodes *, node_idx , Node ) {
-  // TODO
-  panic("NOT YET IMPLEMENTED");
-  // What should be the outcome of this?
-  // 1. store list on stack
-  // 2. store index on stack
-  // 2.5. add jump label (start)
-  // 3. store max-index on stack
-  // 4. if index is max-index jump to end
-  // 5. load index-pos element from list on stack
-  // 6. store it as variable loop-param
-  // 7. body
-  // 8. jump to (start)
-  // 9. add jump label (end)
+
+void compile_ir_for(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
+  Label label_start = create_next_label("START_LOOP");
+  Label label_end = create_next_label("END_LOOP");
+
+  node_idx list_expr = ns->nth_child(curr_idx, 0);
+  compile_one(ctx, ns, list_expr, false);                     // list to iterate
+  ctx->add(ir_new_label(curr.start, label_start));            // repeat label
+  ctx->add(ir_new_iter_foreach(curr.start, label_end));       // init/next||jmp
+  ctx->add(ir_new(curr.start, IRTag::SCOPE_START));           // scope
+  ctx->add(ir_new_store_new(curr.start, curr.as.IDENTIFIER)); // param
+  compile_body(ctx, ns, ns->nth_child(curr_idx, 1));          // body
+  ctx->add(ir_new_jump(curr.start, IRTag::JMP, label_start)); // repeat
+  ctx->add(ir_new_label(curr.start, label_end));              // end
+  ctx->add(ir_new(curr.start, IRTag::SCOPE_END));             // scope end
 }
 
+// standalone flag must be true if this is not used by anything
+// e.g. `list(1,2,3)` is standalone
+// but in `let x = list(1,2,3)` it is not
 void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
                  bool is_standalone) {
   if (curr_idx.is_null()) {

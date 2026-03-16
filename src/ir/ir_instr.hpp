@@ -31,6 +31,7 @@ enum class IRTag : uint8_t {
   RETURN,
   DUP,
   TYPEOF,
+  ITER_FOREACH,
   CALL,
   VMCALL,
   FUNCTION_START,

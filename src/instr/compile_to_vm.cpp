@@ -106,6 +106,14 @@ VMInstr build_jump(LocationRef where, VMTag tag, InstrAddr addr) {
   o.extra.args = 0;
   return o;
 }
+VMInstr build_iter_foreach(LocationRef where, InstrAddr addr) {
+  VMInstr o;
+  o.where = where;
+  o.as.INSTRADDR = addr;
+  o.tag = VMTag::ITER_FOREACH;
+  o.extra.args = 0;
+  return o;
+}
 
 enum class EntryTag : uint8_t {
   FN_BEGIN,
@@ -122,8 +130,8 @@ struct VarTrackingEntry {
   EntryTag tag;
 };
 
-void set_labels(
-    std::unordered_map<uint64_t, InstrAddr> *labels, std::vector<IRInstr> *ir) {
+void set_labels(std::unordered_map<uint64_t, InstrAddr> *labels,
+                std::vector<IRInstr> *ir) {
   // because there is a program init instruction prepended at the very beginning
   // thus all addresses must be shifted 1 up
   uint64_t addr = 1;
@@ -163,6 +171,7 @@ void set_labels(
     case IRTag::JMPIFN:
     case IRTag::JMPIF:
     case IRTag::HALT:
+    case IRTag::ITER_FOREACH:
       ++addr;
       break;
     case IRTag::FUNCTION_END:
@@ -398,6 +407,11 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       exit_fn(&vars);
       --depth;
       break;
+    case IRTag::ITER_FOREACH: {
+      InstrAddr addr = labels.at(instr.as.LABEL.idx);
+      VMInstr o = build_iter_foreach(where, addr);
+      instructions.push_back(o);
+    } break;
     case IRTag::PEEK_JMPIF: {
       InstrAddr addr = labels.at(instr.as.LABEL.idx);
       VMInstr o = build_jump(where, VMTag::PEEK_JMPIF, addr);

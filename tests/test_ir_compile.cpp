@@ -193,6 +193,20 @@ void test_ordering(T *t) {
                         "RETURN\n"
                         "FUNCTION_END\n");
 }
+void test_for_loop(T *t) {
+  string code = "for x in somelist {\n"
+                "#noop\n"
+                "}\n";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "LOAD somelist\n"
+                        "LABEL $START_LOOP_10\n"
+                        "ITER_FOREACH $END_LOOP_11\n"
+                        "SCOPE_START\n"
+                        "STORE_NEW x\n"
+                        "JMP $START_LOOP_10\n"
+                        "LABEL $END_LOOP_11\n"
+                        "SCOPE_END\n");
+}
 
 } // namespace
 int main() {
@@ -209,5 +223,6 @@ int main() {
   t.test("try", test_try);
   t.test("expect", test_expect);
   t.test("functions come after rest", test_ordering);
+  t.test("for loop", test_for_loop);
   return 0;
 }

@@ -17,6 +17,7 @@ static const Symbol SYM_T_STRING = create_symbol("#string");
 static const Symbol SYM_T_SYMBOL = create_symbol("#symbol");
 static const Symbol SYM_T_LIST = create_symbol("#list");
 static const Symbol SYM_T_NONE = create_symbol("#none");
+static const Symbol SYM_T_ITERATOR = create_symbol("#iterator");
 
 // fn names
 static const InternedString BUILDIN_FN_PRINT = create_interned_string("print");

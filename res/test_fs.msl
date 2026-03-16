@@ -31,3 +31,4 @@ if (fs_exists(test_dir)) {
     fs_rm(test_dir)
 }
 
+print("All fs tests passed!")

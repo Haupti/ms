@@ -1,10 +1,3 @@
-function assert_eq(actual, expected, msg) {
-    if (actual != expected) {
-        print("FAIL: " <> msg <> " - expected '" <> str(expected) <> "' but got '" <> str(actual) <> "'")
-        sys_exit(1)
-    }
-}
-
 print("Testing string functions...")
 
 ; Test str_slice

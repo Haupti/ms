@@ -18,6 +18,7 @@ enum class ValueTag : uint8_t {
   SYMBOL,
   STRING,
   LIST,
+  ITERATOR,
   ERROR,
   NONE,
 };
@@ -29,6 +30,7 @@ struct Value {
     StringIdx STRING;
     Symbol SYMBOL;
     VMHIDX LIST;
+    VMHIDX ITERATOR;
     VMHIDX ERROR;
     int64_t NONE;
   } as;
@@ -81,6 +83,13 @@ struct Value {
     Value val;
     val.as.ERROR = boxed_value;
     val.tag = ValueTag::ERROR;
+    val.undefined = false;
+    return val;
+  }
+  static Value Iterator(VMHIDX ref){
+    Value val;
+    val.as.ITERATOR = ref;
+    val.tag = ValueTag::ITERATOR;
     val.undefined = false;
     return val;
   }

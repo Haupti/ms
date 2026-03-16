@@ -33,6 +33,7 @@ enum class VMTag : uint8_t {
   CALL,
   VMCALL,
   INIT_FRAME,
+  ITER_FOREACH,
   RETURN, // same as destroy frame but also jump to return address
   POP,
   // check if value is true without poping it, then conditional jump
@@ -67,14 +68,14 @@ struct VMInstr {
     // true -> explicit NONE value
     // false -> undefined
     bool NONE;
-  } as;              // 64 bit
-  LocationRef where; // 32 bit
-  union {            //
-    uint16_t args;   //
-    uint16_t locals; //
+  } as;               // 64 bit
+  LocationRef where;  // 32 bit
+  union {             //
+    uint16_t args;    //
+    uint16_t locals;  //
     uint16_t globals; //
-  } extra;           // 16 bit
-  uint8_t padding2;  // 8 bit
-  VMTag tag;         // 8 bit
-                     // total: 128 bit including padding
+  } extra;            // 16 bit
+  uint8_t padding2;   // 8 bit
+  VMTag tag;          // 8 bit
+                      // total: 128 bit including padding
 };

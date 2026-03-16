@@ -32,6 +32,8 @@ inline std::string type_to_string(ValueTag tag) {
     return "error";
   case ValueTag::NONE:
     return "none";
+  case ValueTag::ITERATOR:
+    return "iterator";
   }
 }
 
@@ -55,6 +57,8 @@ Value type_to_symbol(const Value &value) {
     return (Value::Symbol(Constants::SYM_T_ERROR));
   case ValueTag::NONE:
     return (Value::Symbol(Constants::SYM_T_NONE));
+  case ValueTag::ITERATOR:
+    return (Value::Symbol(Constants::SYM_T_ITERATOR));
   }
 }
 ValueTag symbol_to_type(LocationRef where, const Symbol &symbol) {
@@ -72,6 +76,8 @@ ValueTag symbol_to_type(LocationRef where, const Symbol &symbol) {
     return ValueTag::LIST;
   } else if (symbol.index == Constants::SYM_T_ERROR.index) {
     return ValueTag::ERROR;
+  } else if (symbol.index == Constants::SYM_T_ITERATOR.index) {
+    return ValueTag::ITERATOR;
   } else {
     throw msl_runtime_error(where, "'" + resolve_symbol(symbol) +
                                        "' does not denote a type");
@@ -120,6 +126,9 @@ Value internal_copy_value(Stack *stack, VMHeap *heap, Value value) {
   } break;
   case ValueTag::NONE:
     return value;
+  case ValueTag::ITERATOR:
+    // an iterator is a view into a list thus a copy stays the same
+    return value;
   }
 }
 
@@ -160,6 +169,9 @@ bool core::values_equal(VMHeap *heap, Value left, Value right) {
                         heap->at(right.as.ERROR));
   case ValueTag::NONE:
     return right.tag == ValueTag::NONE;
+  case ValueTag::ITERATOR:
+    return right.tag == ValueTag::ITERATOR &&
+           left.as.ITERATOR == right.as.ITERATOR;
   }
 }
 
@@ -189,6 +201,8 @@ std::string core::value_to_string(Stack *stack, VMHeap *heap, Value value) {
            ")";
   case ValueTag::NONE:
     return "none";
+  case ValueTag::ITERATOR:
+    return "iterator(" + std::to_string(value.as.ITERATOR) + ")";
   }
 }
 
