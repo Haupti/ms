@@ -4,6 +4,7 @@
 #include "../location.hpp"
 #include "../symbol.hpp"
 #include <cstdint>
+#include <string>
 
 enum class VMTag : uint8_t {
   PUSH_INT,
@@ -79,3 +80,5 @@ struct VMInstr {
   VMTag tag;          // 8 bit
                       // total: 128 bit including padding
 };
+
+std::string vminstr_to_string(uint64_t pos, const VMInstr &instr);

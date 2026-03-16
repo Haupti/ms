@@ -6,7 +6,6 @@
 #include "../src/preprocessor/preprocess.hpp"
 #include "../src/preprocessor/preprocessor_tokenize.hpp"
 #include "../src/vm/vm_instr.hpp"
-#include "testutil_vm_to_string.hpp"
 using namespace std;
 namespace {
 static string filename = "test.msl";

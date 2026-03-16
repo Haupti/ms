@@ -1,8 +1,7 @@
-#pragma once
-#include "../src/vm/vm_instr.hpp"
+#include "vm_instr.hpp"
 #include <string>
 
-inline std::string vminstr_to_string(uint64_t pos, const VMInstr &instr) {
+std::string vminstr_to_string(uint64_t pos, const VMInstr &instr) {
   std::string str = std::to_string(pos) + " ";
   switch (instr.tag) {
   case VMTag::PUSH_INT:

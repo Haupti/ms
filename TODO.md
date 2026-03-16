@@ -54,6 +54,8 @@
 ## language & vm features
 * [DONE] verify variables and functions that are referenced actually exist
 * [DONE] `for` loop 
+* [] `break` loop keyword
+* [] `continue` loop keyword
 * [] `while` loop
 * [] structs or records for grouping data
 * [] binary operators for bitwise ops (`&`, `|`, `^`, `<<`, `>>`)

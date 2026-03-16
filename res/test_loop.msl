@@ -1,5 +1,7 @@
 
 let mylist = list(1,2,3,4)
 for x in mylist {
-  print(x)
+  for y in mylist {
+    print(str(x) <> str(y))
+  }
 }
