@@ -19,7 +19,6 @@ function assert_false(actual, msg) {
     }
 }
 
-print("Testing filesystem and system functions...")
 
 let test_dir = "test_temp_dir"
 let test_file = test_dir <> "/test_file.txt"

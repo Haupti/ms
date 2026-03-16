@@ -9,8 +9,6 @@
 // this has the following assumptions for the IR:
 // * all variable names are unique per frame
 // * all labels are unique
-// * all functions are placed at the end of the IR instruction vector with
-//    nothing in between
 namespace {
 VMInstr build_init_template() {
   VMInstr o;
@@ -124,10 +122,8 @@ struct VarTrackingEntry {
   EntryTag tag;
 };
 
-std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
+void set_labels(
     std::unordered_map<uint64_t, InstrAddr> *labels, std::vector<IRInstr> *ir) {
-  std::vector<InstrAddr> mask;
-  mask.reserve(ir->size());
   // because there is a program init instruction prepended at the very beginning
   // thus all addresses must be shifted 1 up
   uint64_t addr = 1;
@@ -167,7 +163,6 @@ std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
     case IRTag::JMPIFN:
     case IRTag::JMPIF:
     case IRTag::HALT:
-      mask.push_back(InstrAddr{addr});
       ++addr;
       break;
     case IRTag::FUNCTION_END:
@@ -186,7 +181,6 @@ std::vector<InstrAddr> make_instraddr_mask_and_set_labels(
       break;
     }
   }
-  return mask;
 }
 
 VarTrackingEntry get_var(std::vector<VarTrackingEntry> *vars, uint64_t depth,
@@ -260,13 +254,10 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
   uint64_t depth = 0;
   std::vector<VarTrackingEntry> vars;
 
-  // var interned string index -> instr addr
-  std::unordered_map<uint64_t, InstrAddr> functions;
   // label name index -> instr addr
   std::unordered_map<uint64_t, InstrAddr> labels;
 
-  std::vector<InstrAddr> mask =
-      make_instraddr_mask_and_set_labels(&labels, &ir);
+  set_labels(&labels, &ir);
 
   IRInstr instr;
   for (uint64_t i = 0; i < ir.size(); ++i) {
@@ -398,7 +389,6 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       VMInstr o =
           build_init_frame(instr.where, instr.extra.locals, instr.extra.args);
       instructions.push_back(o);
-      functions[instr.as.VAR.index] = mask.at(i);
     } break;
     case IRTag::REGISTER_ARG: {
       set_var(&vars, depth, instr.as.VAR);
