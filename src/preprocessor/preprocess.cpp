@@ -15,7 +15,7 @@ using namespace std;
 namespace {
 
 struct PpParser {
-  filesystem::path absolute_filepath;
+  string absolute_filepath;
   vector<PreprocessorToken> tokens;
   unordered_map<uint64_t, Token> defines; // interned strings as key
   unordered_set<uint64_t> flags;          // interned strings as key
@@ -360,16 +360,16 @@ vector<Token> run_include(PpParser *p) {
   assert_literal_string(rel_path);
   ppparser_adv(p);
 
-  filesystem::path absolute_filepath =
-      filesystem::canonical(p->absolute_filepath.parent_path() /
-                            resolve_interned_string(rel_path.as.STR));
+  string absolute_filepath = filesystem::canonical(
+      filesystem::path(p->absolute_filepath).parent_path() /
+      resolve_interned_string(rel_path.as.STR));
   if (p->includes->absolute_filepaths.count(absolute_filepath) > 0) {
     return vector<Token>({});
   } else {
     string content = read_file(absolute_filepath);
     return preprocess_pptokens(
         absolute_filepath, p->includes,
-        preprocessor_tokenize(absolute_filepath, content));
+        preprocessor_tokenize(&absolute_filepath, content));
   }
 }
 
@@ -405,7 +405,7 @@ vector<Token> parse_token(PpParser *p, const PreprocessorToken &token) {
 } // namespace
 
 std::vector<Token>
-preprocess_pptokens(const filesystem::path &absolute_current_path,
+preprocess_pptokens(const string &absolute_current_path,
                     IncludedModules *includes,
                     const std::vector<PreprocessorToken> &tokens) {
   assert(includes != NULL);
@@ -426,7 +426,7 @@ preprocess_pptokens(const filesystem::path &absolute_current_path,
 std::vector<Token> preprocess(const std::string &entrypoint) {
   string content = read_file(entrypoint);
   IncludedModules included_modules;
-  filesystem::path absolute_path = filesystem::canonical(entrypoint);
-  auto pptokens = preprocessor_tokenize(absolute_path, content);
+  string absolute_path = filesystem::canonical(entrypoint);
+  auto pptokens = preprocessor_tokenize(&absolute_path, content);
   return preprocess_pptokens(absolute_path, &included_modules, pptokens);
 }

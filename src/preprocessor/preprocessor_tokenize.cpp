@@ -1,7 +1,8 @@
 #include "../compile_error.hpp"
+#include "../filename.hpp"
+#include "../sourcecode.hpp"
 #include "preprocessor_token.hpp"
 #include <cstdint>
-#include <filesystem>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -10,13 +11,13 @@ using namespace std;
 
 namespace {
 struct Tokenizer {
-  filesystem::path filename;
+  Filename filename;
   string code;
   uint64_t pos;
   uint64_t len;
 };
 
-Tokenizer tok_build(const string &filename, string code) {
+Tokenizer tok_build(Filename filename, string code) {
   Tokenizer t;
   t.filename = filename;
   t.code = std::move(code);
@@ -52,18 +53,8 @@ bool is_operator_char(char c) {
          c == '=' or c == '!';
 }
 
-LocationRef get_location(Tokenizer *t, uint64_t start) {
-  uint64_t row = 1;
-  uint64_t col = 0;
-  for (uint64_t i = 0; i < start + 1; i++) {
-    if (t->code.at(i) == '\n') {
-      row++;
-      col = 0;
-    } else {
-      col++;
-    }
-  }
-  return create_location(t->filename, row, col);
+inline LocationRef get_location(Tokenizer *t, uint64_t start) {
+  return create_location(t->filename, start);
 }
 
 PreprocessorToken tokenize_number(Tokenizer *t) {
@@ -262,9 +253,11 @@ void skip_comment(Tokenizer *t) {
 } // namespace
 
 std::vector<PreprocessorToken>
-preprocessor_tokenize(const filesystem::path &filename,
-                      const std::string &code) {
-  Tokenizer t = tok_build(filename, code);
+preprocessor_tokenize(const string *const filename, const std::string &code) {
+
+  Filename f = get_filename(filename);
+  cache_sourcecode(f, code);
+  Tokenizer t = tok_build(f, code);
 
   vector<PreprocessorToken> tokens;
   while (!tok_eof(&t)) {

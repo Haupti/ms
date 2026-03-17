@@ -4,8 +4,8 @@
 #include "parser/parser.hpp"
 #include "preprocessor/preprocess.hpp"
 #include "vm/vm.hpp"
-#include <filesystem>
 #include <iostream>
+#include <string>
 
 void dump_vm_instructions(const std::vector<VMInstr> &instrs) {
   for (uint64_t i = 0; i < instrs.size(); ++i) {
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
     fail("expected a entrypoint path as argument");
   }
 
-  filesystem::path path = entrypoint;
+  string path = entrypoint;
   auto tokens = preprocess(path);
   auto nodes = parse(tokens);
   auto ir = compile_ir(nodes);

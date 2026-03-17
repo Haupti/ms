@@ -6,7 +6,7 @@
 
 using namespace std;
 namespace {
-static filesystem::path test_filename = "test.msl";
+static string test_filename = "test.msl";
 static IncludedModules includes;
 
 void test_no_flag(T *t) {

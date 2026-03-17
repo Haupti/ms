@@ -4,4 +4,5 @@
 #include <vector>
 
 std::vector<PreprocessorToken>
-preprocessor_tokenize(const std::filesystem::path &filename, const std::string &code);
+preprocessor_tokenize(const std::string *const filename,
+                      const std::string &code);

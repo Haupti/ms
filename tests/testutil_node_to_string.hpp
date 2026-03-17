@@ -110,9 +110,8 @@ inline std::string show_node(const Node &node) {
   }
   s += ":\n";
   if (node.tag != NodeTag::NIL) {
-    Location loc = resolve_location(node.start);
-    s += "    Start = " + std::string(loc.filename) + "/" +
-         std::to_string(loc.row) + "/" + std::to_string(loc.col) + "\n";
+    std::string loc = location_to_string(node.start);
+    s += "    Start = " + loc + "\n";
   } else {
     s += "    Start = NIL\n";
   }

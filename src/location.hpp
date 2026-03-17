@@ -1,17 +1,16 @@
 #pragma once
 
+#include "filename.hpp"
 #include <cstdint>
-#include <filesystem>
+#include <string>
+
 struct LocationRef {
   uint32_t index;
 };
 struct Location {
-  std::filesystem::path filename;
-  uint64_t row;
-  uint64_t col;
+  Filename filename;
+  uint64_t offset;
 };
 
-LocationRef create_location(const std::filesystem::path &filename, uint64_t row,
-                            uint64_t col);
-Location resolve_location(const LocationRef &ref);
+LocationRef create_location(Filename filename, uint64_t offset);
 std::string location_to_string(const LocationRef &ref);
