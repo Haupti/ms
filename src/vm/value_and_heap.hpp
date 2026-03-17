@@ -3,6 +3,7 @@
 #include "../../lib/asap/util.hpp"
 #include "../interned_string.hpp"
 #include "../symbol.hpp"
+#include "stack.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -86,13 +87,18 @@ struct Value {
     val.undefined = false;
     return val;
   }
-  static Value Iterator(VMHIDX ref){
+  static Value Iterator(VMHIDX ref) {
     Value val;
     val.as.ITERATOR = ref;
     val.tag = ValueTag::ITERATOR;
     val.undefined = false;
     return val;
   }
+};
+
+enum class GCFlag : uint8_t {
+  FREE,
+  MARKED,
 };
 
 struct VMHNode {
@@ -112,10 +118,11 @@ struct VMHNode {
     last_child = 0;
     next_child = 0;
   }
+  GCFlag gc_flag;
 };
 
 struct VMHeap {
-private:
+  // private
   std::vector<VMHNode> elements;
   std::vector<VMHIDX> free_list;
 
@@ -123,7 +130,7 @@ private:
   std::vector<std::string> strings;
   std::vector<StringIdx> free_strings;
 
-public:
+  // public
   VMHNode *node_at(VMHIDX idx) { return &elements.at(idx); }
   VMHeap(uint64_t capacity, uint64_t string_capacity) {
     elements.reserve(capacity);
@@ -289,6 +296,4 @@ public:
   }
 
   std::string get_string(StringIdx idx) { return strings.at(idx); }
-
-  //void run_gc(Stack * stk){}
 };
