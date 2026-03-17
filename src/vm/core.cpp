@@ -739,14 +739,16 @@ Value core::vmassert(LocationRef where, Stack *stack, VMHeap *) {
 Value core::vmassert_type(LocationRef where, Stack *stack, VMHeap *) {
   Value typeval = stack->pop();
   Value val = stack->pop();
-  if (val.tag != ValueTag::SYMBOL) {
-    throw msl_runtime_error(where, "expected a symbol as second argument");
+  if (typeval.tag != ValueTag::SYMBOL) {
+    throw msl_runtime_error(
+        where, "expected a symbol as second argument but got a(n) " +
+                   type_to_string(typeval.tag));
   }
-  ValueTag actual = symbol_to_type(where, val.as.SYMBOL);
-  if (typeval.tag != actual) {
-    throw msl_runtime_error(where,
-                            "expected a " + resolve_symbol(typeval.as.SYMBOL) +
-                                " but got " + type_to_string(actual) + "");
+  ValueTag expected = symbol_to_type(where, typeval.as.SYMBOL);
+  if (val.tag != expected) {
+    throw msl_runtime_error(where, "expected a " + type_to_string(expected) +
+                                       " but got " + type_to_string(val.tag) +
+                                       "");
   }
   return Value::None();
 }

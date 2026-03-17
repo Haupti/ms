@@ -5,6 +5,7 @@ let test_file = test_dir <> "/test_file.txt"
 
 ; Cleanup in case of previous failed run
 if (fs_exists(test_dir)) {
+    assert_type(test_dir, #string)
     if (fs_exists(test_file)) {
         fs_rm(test_file)
     }
