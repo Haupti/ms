@@ -84,13 +84,13 @@ ValueTag symbol_to_type(LocationRef where, const Symbol &symbol) {
   }
 }
 
-void assert_list(LocationRef where, Value value) {
+inline void assert_list(LocationRef where, Value value) {
   if (value.tag != ValueTag::LIST) {
     throw msl_runtime_error(where, "expected a list but got a(n) " +
                                        type_to_string(value.tag));
   }
 }
-void assert_int(LocationRef where, Value value) {
+inline void assert_int(LocationRef where, Value value) {
   if (value.tag != ValueTag::INT) {
     throw msl_runtime_error(where, "expected an int but got a(n) " +
                                        type_to_string(value.tag));
@@ -269,6 +269,112 @@ Value core::list_link(LocationRef where, Stack *stack, VMHeap *heap) {
   }
   heap->link_lists(left_list.as.LIST, right_list.as.LIST);
   return left_list;
+}
+
+Value core::list_slice(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value end_val = stack->pop();
+  Value start_val = stack->pop();
+  Value list_val = stack->pop();
+
+  assert_list(where, list_val);
+  assert_int(where, start_val);
+  assert_int(where, end_val);
+
+  int64_t start = start_val.as.INT;
+  int64_t end = end_val.as.INT;
+
+  if (start < 0 || end < 0 || start > end) {
+    throw msl_runtime_error(where, "invalid slice indices");
+  }
+
+  VMHIDX new_list = heap->new_list();
+  VMHIDX curr = heap->node_at(list_val.as.LIST)->first_child;
+  int64_t i = 0;
+  while (curr != INVALID && i < end) {
+    if (i >= start) {
+      heap->add_child(new_list, heap->at(curr));
+    }
+    curr = heap->node_at(curr)->next_child;
+    i++;
+  }
+  return heap->at(new_list);
+}
+
+Value core::list_remove(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value index_val = stack->pop();
+  Value list_val = stack->pop();
+
+  assert_list(where, list_val);
+  assert_int(where, index_val);
+
+  int64_t index = index_val.as.INT;
+  if (index < 0) {
+    throw msl_runtime_error(where, "index out of bounds");
+  }
+
+  VMHIDX list_ref = list_val.as.LIST;
+  VMHNode *list_node = heap->node_at(list_ref);
+  VMHIDX curr = list_node->first_child;
+  VMHIDX prev = INVALID;
+  int64_t i = 0;
+
+  while (curr != INVALID && i < index) {
+    prev = curr;
+    curr = heap->node_at(curr)->next_child;
+    i++;
+  }
+
+  if (curr == INVALID) {
+    throw msl_runtime_error(where, "index out of bounds");
+  }
+
+  if (prev == INVALID) {
+    // removing first child
+    list_node->first_child = heap->node_at(curr)->next_child;
+    if (list_node->first_child == INVALID) {
+      list_node->last_child = INVALID;
+    }
+  } else {
+    heap->node_at(prev)->next_child = heap->node_at(curr)->next_child;
+    if (heap->node_at(prev)->next_child == INVALID) {
+      list_node->last_child = prev;
+    }
+  }
+
+  return list_val;
+}
+
+Value core::list_contains(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  Value list_val = stack->pop();
+
+  assert_list(where, list_val);
+
+  VMHIDX curr = heap->node_at(list_val.as.LIST)->first_child;
+  while (curr != INVALID) {
+    if (values_equal(heap, heap->at(curr), val)) {
+      return Value::Symbol(Constants::SYM_TRUE);
+    }
+    curr = heap->node_at(curr)->next_child;
+  }
+  return Value::Symbol(Constants::SYM_FALSE);
+}
+
+Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value end_val = stack->pop();
+  Value start_val = stack->pop();
+
+  assert_int(where, start_val);
+  assert_int(where, end_val);
+
+  int64_t start = start_val.as.INT;
+  int64_t end = end_val.as.INT;
+
+  VMHIDX list_head = heap->new_list();
+  for (int64_t i = start; i < end; ++i) {
+    heap->add_child(list_head, Value::Int(i));
+  }
+  return heap->at(list_head);
 }
 
 Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
@@ -836,7 +942,7 @@ Value core::str_slice(LocationRef where, Stack *stack, VMHeap *heap) {
     throw msl_runtime_error(where, "start must be larger than end");
   }
   if (start < 0 || end < 0) {
-    throw msl_runtime_error(where, "start and end must be larger then 0");
+    throw msl_runtime_error(where, "start and end must be larger than 0");
   }
   return heap->add_string(
       heap->get_string(str_val.as.STRING).substr(start, end - start));
@@ -997,40 +1103,40 @@ Value core::sys_now(LocationRef, Stack *, VMHeap *) {
 }
 
 Value core::bit_shift_left(LocationRef where, Stack *stack, VMHeap *) {
-  Value n = stack->pop();
-  Value i = stack->pop();
+  Value n = stack->pop(); // right
+  Value i = stack->pop(); // left
   assert_int(where, i);
   assert_int(where, n);
   return Value::Int(i.as.INT << n.as.INT);
 }
 
 Value core::bit_shift_right(LocationRef where, Stack *stack, VMHeap *) {
-  Value n = stack->pop();
-  Value i = stack->pop();
+  Value n = stack->pop(); // right
+  Value i = stack->pop(); // left
   assert_int(where, i);
   assert_int(where, n);
   return Value::Int(i.as.INT >> n.as.INT);
 }
 
 Value core::bit_or(LocationRef where, Stack *stack, VMHeap *) {
-  Value j = stack->pop();
-  Value i = stack->pop();
+  Value j = stack->pop(); // right
+  Value i = stack->pop(); // left
   assert_int(where, i);
   assert_int(where, j);
   return Value::Int(i.as.INT | j.as.INT);
 }
 
 Value core::bit_and(LocationRef where, Stack *stack, VMHeap *) {
-  Value j = stack->pop();
-  Value i = stack->pop();
+  Value j = stack->pop(); // right
+  Value i = stack->pop(); // left
   assert_int(where, i);
   assert_int(where, j);
   return Value::Int(i.as.INT & j.as.INT);
 }
 
 Value core::bit_xor(LocationRef where, Stack *stack, VMHeap *) {
-  Value j = stack->pop();
-  Value i = stack->pop();
+  Value j = stack->pop(); // right
+  Value i = stack->pop(); // left
   assert_int(where, i);
   assert_int(where, j);
   return Value::Int(i.as.INT ^ j.as.INT);

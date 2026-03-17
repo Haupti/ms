@@ -15,10 +15,10 @@
 * [DONE] `str_fmt(fmt, ...)` - Basic string formatting
 
 ### list operations
-* [] `list_slice(l, start, end)`
-* [] `list_remove(l, i)` - remove element at index
-* [] `list_contains(l, val)`
-* [] `range(i,j)` -> create a list of numbers including i but excluding j
+* [DONE] `list_slice(l, start, end)`
+* [DONE] `list_remove(l, i)` - remove element at index
+* [DONE] `list_contains(l, val)`
+* [DONE] `range(i,j)` -> create a list of numbers including i but excluding j
 
 ### tables
 * [] implement type `ValueTag::TABLE` (hash map)
@@ -61,4 +61,12 @@
 * [] binary operators for bitwise ops (`&`, `|`, `^`, `<<`, `>>`)
 * [] garbage collection
 
+## flags/marcros set by the compiler
+* [] filename macro replaced at compile time with the LocationRef's filename
+* [] main flag: true if that file was passed to the interpreter as entrypoint, otherwise false
+* [] os flags: win, posix
+* [] line macro: is replaced with the line number of the file its in
+* [] column macro: is replaced with the column number 
+* [] make flags defineable as interpreter arguments via e.g. "--flag FLAG1" and such. (repeatable)
+* [] make macro values defineable as interpreter arguments via e.g. "--define SOMENAME <somevalue>" (repeatable)
 

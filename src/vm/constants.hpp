@@ -86,4 +86,9 @@ static const InternedString BUILDIN_FN_BIT_SHIFT_RIGHT = create_interned_string(
 static const InternedString BUILDIN_FN_BIT_OR = create_interned_string("bit_or");
 static const InternedString BUILDIN_FN_BIT_AND = create_interned_string("bit_and");
 static const InternedString BUILDIN_FN_BIT_XOR = create_interned_string("bit_xor");
+
+static const InternedString BUILDIN_FN_LIST_SLICE = create_interned_string("list_slice");
+static const InternedString BUILDIN_FN_LIST_REMOVE = create_interned_string("list_remove");
+static const InternedString BUILDIN_FN_LIST_CONTAINS = create_interned_string("list_contains");
+static const InternedString BUILDIN_FN_RANGE = create_interned_string("range");
 } // namespace Constants

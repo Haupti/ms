@@ -31,6 +31,10 @@ Value list_at(LocationRef where, Stack *stack, VMHeap *heap);
 Value list_append(LocationRef where, Stack *stack, VMHeap *heap);
 Value list_prepend(LocationRef where, Stack *stack, VMHeap *heap);
 Value list_link(LocationRef where, Stack *stack, VMHeap *heap);
+Value list_slice(LocationRef where, Stack *stack, VMHeap *heap);
+Value list_remove(LocationRef where, Stack *stack, VMHeap *heap);
+Value list_contains(LocationRef where, Stack *stack, VMHeap *heap);
+Value range(LocationRef where, Stack *stack, VMHeap *heap);
 Value value_copy(LocationRef where, Stack *stack, VMHeap *heap);
 Value vmtypeof(LocationRef where, Stack *stack, VMHeap *heap);
 Value string_concat(LocationRef where, Stack *stack, VMHeap *heap);
@@ -180,7 +184,12 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
      ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_BIT_OR.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_BIT_AND.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_BIT_XOR.index, ArgsCount(2, ArgsCountType::ARGS)}};
+    {Constants::BUILDIN_FN_BIT_XOR.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_LIST_SLICE.index, ArgsCount(3, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_LIST_REMOVE.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_LIST_CONTAINS.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_RANGE.index, ArgsCount(2, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -191,6 +200,10 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_APPEND.index, list_append},
            {Constants::BUILDIN_FN_PREPEND.index, list_prepend},
            {Constants::BUILDIN_FN_LINK.index, list_link},
+           {Constants::BUILDIN_FN_LIST_SLICE.index, list_slice},
+           {Constants::BUILDIN_FN_LIST_REMOVE.index, list_remove},
+           {Constants::BUILDIN_FN_LIST_CONTAINS.index, list_contains},
+           {Constants::BUILDIN_FN_RANGE.index, range},
            {Constants::BUILDIN_FN_COPY.index, value_copy},
            {Constants::BUILDIN_FN_TYPEOF.index, vmtypeof},
            {Constants::BUILDIN_FN_ERROR.index, make_error},

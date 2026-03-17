@@ -4,3 +4,4 @@
 -include "test_string.msl"
 -include "test_loop.msl"
 -include "test_binary.msl"
+-include "test_list_ops.msl"
