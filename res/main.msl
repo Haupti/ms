@@ -1,3 +1,6 @@
+-include "util_assertions.msl"
 -include "test_fs.msl"
 -include "test_math.msl"
 -include "test_string.msl"
+-include "test_loop.msl"
+-include "test_binary.msl"

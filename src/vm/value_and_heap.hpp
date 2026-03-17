@@ -289,4 +289,6 @@ public:
   }
 
   std::string get_string(StringIdx idx) { return strings.at(idx); }
+
+  //void run_gc(Stack * stk){}
 };

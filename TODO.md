@@ -18,7 +18,7 @@
 * [] `list_slice(l, start, end)`
 * [] `list_remove(l, i)` - remove element at index
 * [] `list_contains(l, val)`
-* [] `range(i,j)`
+* [] `range(i,j)` -> create a list of numbers including i but excluding j
 
 ### tables
 * [] implement type `ValueTag::TABLE` (hash map)
@@ -40,8 +40,8 @@
 * [] `str_url_encode(s)`, `str_url_decode(s)`
 
 ### binary
-* [] `binary_shift_left(i, n)`, `binary_shift_right(i,n)`
-* [] `binary_or(i, i)`, `binary_and(i, i)`, `binary_xor(i, i)`
+* [DONE] `bit_shift_left(i, n)`, `bit_shift_right(i,n)`
+* [DONE] `bit_or(i, j)`, `bit_and(i, j)`, `bit_xor(i, j)`
 
 ### network
 * [] `http_request(r)` where r is a table

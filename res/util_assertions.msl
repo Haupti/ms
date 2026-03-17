@@ -1,0 +1,29 @@
+function assert_eq(actual, expected, msg) {
+    if (actual != expected) {
+        print("FAIL: " <> msg <> " - expected '" <> str(expected) <> "' but got '" <> str(actual) <> "'")
+        sys_exit(1)
+    }
+}
+
+function assert_float_eq(actual, expected, msg) {
+    ; very simple float comparison
+    let diff = math_abs(actual - expected)
+    if (diff > 0.00001) {
+        print("FAIL: " <> msg <> " - expected " <> str(expected) <> " but got " <> str(actual))
+        sys_exit(1)
+    }
+}
+
+function assert_true(actual, msg) {
+    if (actual != #true) {
+        print("FAIL: " <> msg <> " - expected #true but got " <> str(actual))
+        sys_exit(1)
+    }
+}
+
+function assert_false(actual, msg) {
+    if (actual != #false) {
+        print("FAIL: " <> msg <> " - expected #false but got " <> str(actual))
+        sys_exit(1)
+    }
+}

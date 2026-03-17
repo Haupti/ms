@@ -76,6 +76,12 @@ Value fs_rm(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_ls(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_now(LocationRef where, Stack *stack, VMHeap *heap);
 
+Value bit_shift_left(LocationRef where, Stack *stack, VMHeap *heap);
+Value bit_shift_right(LocationRef where, Stack *stack, VMHeap *heap);
+Value bit_or(LocationRef where, Stack *stack, VMHeap *heap);
+Value bit_and(LocationRef where, Stack *stack, VMHeap *heap);
+Value bit_xor(LocationRef where, Stack *stack, VMHeap *heap);
+
 Value math_abs(LocationRef where, Stack *stack, VMHeap *heap);
 Value math_floor(LocationRef where, Stack *stack, VMHeap *heap);
 Value math_ceil(LocationRef where, Stack *stack, VMHeap *heap);
@@ -167,7 +173,14 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_FS_MKDIR.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FS_RM.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FS_LS.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_SYS_NOW.index, ArgsCount(0, ArgsCountType::ARGS)}};
+    {Constants::BUILDIN_FN_SYS_NOW.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_BIT_SHIFT_LEFT.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_BIT_SHIFT_RIGHT.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_BIT_OR.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_BIT_AND.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_BIT_XOR.index, ArgsCount(2, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -226,8 +239,11 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_FS_MKDIR.index, fs_mkdir},
            {Constants::BUILDIN_FN_FS_RM.index, fs_rm},
            {Constants::BUILDIN_FN_FS_LS.index, fs_ls},
-           {Constants::BUILDIN_FN_SYS_NOW.index, sys_now}
-
-};
+           {Constants::BUILDIN_FN_SYS_NOW.index, sys_now},
+           {Constants::BUILDIN_FN_BIT_SHIFT_LEFT.index, bit_shift_left},
+           {Constants::BUILDIN_FN_BIT_SHIFT_RIGHT.index, bit_shift_right},
+           {Constants::BUILDIN_FN_BIT_OR.index, bit_or},
+           {Constants::BUILDIN_FN_BIT_AND.index, bit_and},
+           {Constants::BUILDIN_FN_BIT_XOR.index, bit_xor}};
 
 } // namespace core

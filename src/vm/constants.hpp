@@ -80,4 +80,10 @@ static const InternedString BUILDIN_FN_FS_MKDIR = create_interned_string("fs_mkd
 static const InternedString BUILDIN_FN_FS_RM = create_interned_string("fs_rm");
 static const InternedString BUILDIN_FN_FS_LS = create_interned_string("fs_ls");
 static const InternedString BUILDIN_FN_SYS_NOW = create_interned_string("sys_now");
+
+static const InternedString BUILDIN_FN_BIT_SHIFT_LEFT = create_interned_string("bit_shift_left");
+static const InternedString BUILDIN_FN_BIT_SHIFT_RIGHT = create_interned_string("bit_shift_right");
+static const InternedString BUILDIN_FN_BIT_OR = create_interned_string("bit_or");
+static const InternedString BUILDIN_FN_BIT_AND = create_interned_string("bit_and");
+static const InternedString BUILDIN_FN_BIT_XOR = create_interned_string("bit_xor");
 } // namespace Constants

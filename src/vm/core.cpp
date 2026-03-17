@@ -995,3 +995,43 @@ Value core::sys_now(LocationRef, Stack *, VMHeap *) {
                    .count();
   return Value::Int(nanos);
 }
+
+Value core::bit_shift_left(LocationRef where, Stack *stack, VMHeap *) {
+  Value n = stack->pop();
+  Value i = stack->pop();
+  assert_int(where, i);
+  assert_int(where, n);
+  return Value::Int(i.as.INT << n.as.INT);
+}
+
+Value core::bit_shift_right(LocationRef where, Stack *stack, VMHeap *) {
+  Value n = stack->pop();
+  Value i = stack->pop();
+  assert_int(where, i);
+  assert_int(where, n);
+  return Value::Int(i.as.INT >> n.as.INT);
+}
+
+Value core::bit_or(LocationRef where, Stack *stack, VMHeap *) {
+  Value j = stack->pop();
+  Value i = stack->pop();
+  assert_int(where, i);
+  assert_int(where, j);
+  return Value::Int(i.as.INT | j.as.INT);
+}
+
+Value core::bit_and(LocationRef where, Stack *stack, VMHeap *) {
+  Value j = stack->pop();
+  Value i = stack->pop();
+  assert_int(where, i);
+  assert_int(where, j);
+  return Value::Int(i.as.INT & j.as.INT);
+}
+
+Value core::bit_xor(LocationRef where, Stack *stack, VMHeap *) {
+  Value j = stack->pop();
+  Value i = stack->pop();
+  assert_int(where, i);
+  assert_int(where, j);
+  return Value::Int(i.as.INT ^ j.as.INT);
+}
