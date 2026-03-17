@@ -6,13 +6,13 @@
 using namespace std;
 namespace {
 
+static string test_filename = "test.msl";
 void test_stuff(T *t) {
   vector<PreprocessorToken> tokens = preprocessor_tokenize(
-      "test.msl",
-      "1 1.1 1.1.print() true #true #false #none #1 #_1 "
-      "\"hello \n world\""
-      "if ( #true ) { + - == let x = 0} "
-      "fn(1,2,3) fn:name_1(_aaa_0_AZ) try expect");
+      &test_filename, "1 1.1 1.1.print() true #true #false #none #1 #_1 "
+                      "\"hello \n world\""
+                      "if ( #true ) { + - == let x = 0} "
+                      "fn(1,2,3) fn:name_1(_aaa_0_AZ) try expect");
 
   vector<string> strs;
   strs.reserve(tokens.size());
@@ -29,16 +29,17 @@ void test_stuff(T *t) {
 
 void test_fset_and_such(T *t) {
   vector<PreprocessorToken> tokens = preprocessor_tokenize(
-      "test.msl", "-fset TESTRUN -funset TESTRUN -iffset TESTRUN print(x) -endif");
+      &test_filename,
+      "-fset TESTRUN -funset TESTRUN -iffset TESTRUN print(x) -endif");
 
   vector<string> strs;
   strs.reserve(tokens.size());
   for (auto t : tokens) {
     strs.push_back(pptoken_to_string(t));
   }
-  t->assert_str_eq(
-      join(strs, " "),
-      "MACRO(-fset) TESTRUN MACRO(-funset) TESTRUN MACRO(-iffset) TESTRUN print ( x ) MACRO(-endif)");
+  t->assert_str_eq(join(strs, " "),
+                   "MACRO(-fset) TESTRUN MACRO(-funset) TESTRUN MACRO(-iffset) "
+                   "TESTRUN print ( x ) MACRO(-endif)");
 }
 
 } // namespace

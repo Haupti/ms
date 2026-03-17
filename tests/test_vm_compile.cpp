@@ -10,7 +10,7 @@ using namespace std;
 namespace {
 static string filename = "test.msl";
 string compile_and_show(string code) {
-  auto pptokens = preprocessor_tokenize(filename, code);
+  auto pptokens = preprocessor_tokenize(&filename, code);
   IncludedModules mods;
   auto tokens = preprocess_pptokens(filename, &mods, pptokens);
   nodes n = parse(tokens);
@@ -281,8 +281,7 @@ void test_for_loop(T *t) {
                         "6 ITER_FOREACH addr(9)\n"
                         "7 STORE mem(1)\n"
                         "8 JMP addr(6)\n"
-                        "9 POP\n"
-                        "10 HALT\n");
+                        "9 HALT\n");
 }
 
 } // namespace

@@ -9,7 +9,7 @@ using namespace std;
 namespace {
 static string filename = "test.msl";
 string parse_and_show(string code) {
-  auto pptokens = preprocessor_tokenize(filename, code);
+  auto pptokens = preprocessor_tokenize(&filename, code);
   IncludedModules mods;
   auto tokens = preprocess_pptokens(filename, &mods, pptokens);
   auto n = parse(tokens);
