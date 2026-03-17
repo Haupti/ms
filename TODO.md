@@ -48,6 +48,13 @@
 * [] tcp / upd
 * [] database connection?
 
+### terminal support stuff
+* [] ansi colors
+* [] ansi reset
+* [] ansi clears (line, screen, ...)
+* [] ansi cursor controls
+* [] terminal informations e.g. which terminal? which colors? etc
+
 ### other
 * [] coroutines? that is wyld but would be fun
 

@@ -261,6 +261,7 @@ void assert_isat_assign(PpParser *p) {
 
 namespace {
 vector<Token> parse_token(PpParser *p, const PreprocessorToken &token);
+
 void parse_define(PpParser *p) {
   ppparser_adv(p); // to definition name
 
