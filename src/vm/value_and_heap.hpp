@@ -106,18 +106,10 @@ struct VMHNode {
   VMHIDX first_child;
   VMHIDX next_child;
   VMHIDX last_child;
-  VMHNode() {
-    first_child = 0;
-    last_child = 0;
-    next_child = 0;
+  VMHNode() : first_child(0), next_child(0), last_child(0), gc_flag(GCFlag::FREE) {
+    value = Value();
   }
-  VMHNode(Value value) {
-    VMHNode node;
-    node.value = value;
-    first_child = 0;
-    last_child = 0;
-    next_child = 0;
-  }
+  VMHNode(Value value) : value(value), first_child(0), next_child(0), last_child(0), gc_flag(GCFlag::FREE) {}
   GCFlag gc_flag;
 };
 
@@ -137,35 +129,48 @@ struct VMHeap {
     add(Value()); // 0 slot must hold undefined value
     strings.reserve(string_capacity);
   }
+  StringIdx _get_next_string_idx() {
+    if (free_strings.size() > 0) {
+      StringIdx idx = free_strings.back();
+      free_strings.pop_back();
+      return idx;
+    }
+    strings.push_back("");
+    return strings.size() - 1;
+  }
+
   Value add_string(InternedString str) {
     if (static_strings.count(str.index) > 0) {
       auto new_str = Value::String(static_strings[str.index]);
       add(new_str);
       return new_str;
     }
-    strings.push_back(resolve_interned_string(str));
-    static_strings[str.index] = strings.size() - 1;
-    auto new_str = Value::String(strings.size() - 1);
+    StringIdx idx = _get_next_string_idx();
+    strings[idx] = resolve_interned_string(str);
+    static_strings[str.index] = idx;
+    auto new_str = Value::String(idx);
     add(new_str);
     return new_str;
   }
 
   Value add_string(std::string str) {
-    strings.push_back(str);
-    auto new_str = Value::String(strings.size() - 1);
+    StringIdx idx = _get_next_string_idx();
+    strings[idx] = str;
+    auto new_str = Value::String(idx);
     add(new_str);
     return new_str;
   }
+
   VMHIDX ref_add_string(std::string str) {
-    strings.push_back(str);
-    auto new_str = Value::String(strings.size() - 1);
+    StringIdx idx = _get_next_string_idx();
+    strings[idx] = str;
+    auto new_str = Value::String(idx);
     return add(new_str);
   }
 
   VMHIDX add(Value value) {
     if (free_list.size() == 0) {
-      elements.emplace_back();
-      elements.back().value = value;
+      elements.emplace_back(value);
       return elements.size() - 1;
     }
     uint64_t idx = free_list.back();
@@ -207,12 +212,13 @@ struct VMHeap {
            std::to_string(list_head));
       return INVALID;
     }
-    VMHNode *list_node = &elements.at(list_head);
-    if (list_node->value.tag != ValueTag::LIST) {
+    if (elements.at(list_head).value.tag != ValueTag::LIST) {
       warn("attempt to add child to non-list value");
       return INVALID;
     }
     VMHIDX value_idx = add(value);
+    // Re-fetch pointer as add() might have reallocated elements
+    VMHNode *list_node = &elements.at(list_head);
     if (list_node->last_child == 0) {
       list_node->last_child = value_idx;
       list_node->first_child = value_idx;
@@ -228,14 +234,13 @@ struct VMHeap {
            std::to_string(list_head));
       return;
     }
-    VMHNode *list_node = &elements.at(list_head);
-    if (list_node->value.tag != ValueTag::LIST) {
+    if (elements.at(list_head).value.tag != ValueTag::LIST) {
       warn("attempt to add child to non-list value");
       return;
     }
     VMHIDX nth_child_ref = nth_child_idx(list_head, n);
-    VMHNode *nth_child_val = node_at(nth_child_ref);
-    nth_child_val->value = value;
+    if (nth_child_ref == INVALID) return;
+    elements.at(nth_child_ref).value = value;
   }
   VMHIDX add_child_front(VMHIDX list_head, Value value) {
     if (elements.size() <= list_head) {
@@ -243,12 +248,13 @@ struct VMHeap {
            std::to_string(list_head));
       return INVALID;
     }
-    VMHNode *list_node = &elements.at(list_head);
-    if (list_node->value.tag != ValueTag::LIST) {
+    if (elements.at(list_head).value.tag != ValueTag::LIST) {
       warn("attempt to add child to non-list value");
       return INVALID;
     }
     VMHIDX value_idx = add(value);
+    // Re-fetch pointer as add() might have reallocated elements
+    VMHNode *list_node = &elements.at(list_head);
     if (list_node->first_child == 0) {
       list_node->first_child = value_idx;
       list_node->last_child = value_idx;

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+## THIS IS AN AI GENERATED SCRIPT
+
 # record_perf.sh - Record binary execution with perf and generate a flamegraph.
 # Usage: ./record_perf.sh <binary_path> [binary_args...]
 
