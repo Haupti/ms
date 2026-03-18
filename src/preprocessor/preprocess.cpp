@@ -33,11 +33,14 @@ PpParser build_PpParser(const string &absolute_current_path,
   p.tokens = std::move(tokens);
   p.pos = 0;
   p.len = p.tokens.size();
+
+  // PREDEFINED MACROS
   Token macro_file_value;
   macro_file_value.as.STR = create_interned_string(absolute_current_path);
   macro_file_value.tag = TokenTag::STRING;
   Token macro_main_value;
   if (is_main) {
+    p.flags.insert(Constants::MACRO_MAIN.index);
     macro_main_value.as.SYMBOL = create_symbol("#true");
   } else {
     macro_main_value.as.SYMBOL = create_symbol("#false");
@@ -45,6 +48,8 @@ PpParser build_PpParser(const string &absolute_current_path,
   macro_main_value.tag = TokenTag::SYMBOL;
   p.defines[Constants::MACRO_FILE.index] = macro_file_value;
   p.defines[Constants::MACRO_MAIN.index] = macro_main_value;
+  // CONTINUE
+
   return p;
 }
 bool ppparser_eof(PpParser *p) { return p->pos >= p->len; }

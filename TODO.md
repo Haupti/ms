@@ -68,8 +68,9 @@
 * [DONE] garbage collection
 
 ## flags/marcros set by the compiler
-* [] filename macro replaced at compile time with the LocationRef's filename
-* [] main flag: true if that file was passed to the interpreter as entrypoint, otherwise false
+* [DONE] filename macro replaced at compile time with the LocationRef's filename
+* [DONE] main macro: #true if that file was passed to the interpreter as entrypoint, otherwise #false
+* [DONE] main flag: set if that file was passed to the interpreter as entrypoint, otherwise not set
 * [] os flags: win, posix
 * [] line macro: is replaced with the line number of the file its in
 * [] column macro: is replaced with the column number 
