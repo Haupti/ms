@@ -106,10 +106,13 @@ struct VMHNode {
   VMHIDX first_child;
   VMHIDX next_child;
   VMHIDX last_child;
-  VMHNode() : first_child(0), next_child(0), last_child(0), gc_flag(GCFlag::FREE) {
+  VMHNode()
+      : first_child(0), next_child(0), last_child(0), gc_flag(GCFlag::FREE) {
     value = Value();
   }
-  VMHNode(Value value) : value(value), first_child(0), next_child(0), last_child(0), gc_flag(GCFlag::FREE) {}
+  VMHNode(Value value)
+      : value(value), first_child(0), next_child(0), last_child(0),
+        gc_flag(GCFlag::FREE) {}
   GCFlag gc_flag;
 };
 
@@ -122,14 +125,27 @@ struct VMHeap {
   std::vector<std::string> strings;
   std::vector<StringIdx> free_strings;
 
+  uint64_t current_length;
+  uint64_t reserved_length;
+
   // public
-  VMHNode *node_at(VMHIDX idx) { return &elements.at(idx); }
+  void reserve_factor(float factor) {
+    elements.reserve(elements.capacity() * factor);
+    strings.reserve(strings.capacity() * factor);
+    this->reserved_length = elements.capacity() + strings.capacity() - 1;
+  }
   VMHeap(uint64_t capacity, uint64_t string_capacity) {
     elements.reserve(capacity);
-    add(Value()); // 0 slot must hold undefined value
+    add(Value()); // 0 slot must hold the reserved INVALID node
     strings.reserve(string_capacity);
+    // -1 for the reserved INVALID node
+    this->reserved_length = capacity + string_capacity - 1;
+    this->current_length = 0;
   }
+
+  VMHNode *node_at(VMHIDX idx) { return &elements.at(idx); }
   StringIdx _get_next_string_idx() {
+    ++current_length;
     if (free_strings.size() > 0) {
       StringIdx idx = free_strings.back();
       free_strings.pop_back();
@@ -169,6 +185,7 @@ struct VMHeap {
   }
 
   VMHIDX add(Value value) {
+    ++current_length;
     if (free_list.size() == 0) {
       elements.emplace_back(value);
       return elements.size() - 1;
@@ -180,10 +197,10 @@ struct VMHeap {
   }
 
   VMHIDX new_list() {
+    ++current_length;
     if (free_list.size() == 0) {
       VMHIDX idx = elements.size();
-      elements.emplace_back();
-      elements.back().value = Value::List(idx);
+      elements.emplace_back(Value::List(idx));
       return idx;
     }
     uint64_t idx = free_list.back();
@@ -239,7 +256,9 @@ struct VMHeap {
       return;
     }
     VMHIDX nth_child_ref = nth_child_idx(list_head, n);
-    if (nth_child_ref == INVALID) return;
+    if (nth_child_ref == INVALID) {
+      return;
+    }
     elements.at(nth_child_ref).value = value;
   }
   VMHIDX add_child_front(VMHIDX list_head, Value value) {

@@ -1,6 +1,7 @@
 #include "../msl_runtime_error.hpp"
 #include "constants.hpp"
 #include "core.hpp"
+#include "garbage_collection.hpp"
 #include "stack.hpp"
 #include "value_and_heap.hpp"
 #include "vm_instr.hpp"
@@ -20,6 +21,22 @@ template <typename T> struct FastStack {
   }
   inline T pop() { return values[--ptr]; }
 };
+
+// GARBAGE COLLECTION TRIGGERS
+void run_gc_on_metric(VMHeap *heap, Stack *stack) {
+  // 50% of initial capacity
+  static uint64_t threshold = heap->reserved_length / 2;
+  // if exceeds 50% of initial capacity trigger GC
+  if (heap->current_length > threshold) {
+    run_gc(heap, stack);
+  } else {
+    return;
+  }
+  if (heap->current_length > heap->reserved_length * 0.7) {
+    heap->reserve_factor(1.5);
+    threshold = heap->reserved_length / 2;
+  }
+}
 
 // VM INSTRUCTIONS
 inline void vm_add(LocationRef where, Stack *stack) {
@@ -366,6 +383,7 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       ++iptr;
       break;
     case VMTag::PUSH_ALLOC_STRING:
+      run_gc_on_metric(&heap, &stack);
       stack.push(heap.add_string(instr.as.STRING));
       ++iptr;
       break;
@@ -473,10 +491,12 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       ++iptr;
     } break;
     case VMTag::CALL:
+      run_gc_on_metric(&heap, &stack);
       ret.push(iptr + 1);
       iptr = instr.as.INSTRADDR.addr;
       break;
     case VMTag::VMCALL: {
+      run_gc_on_metric(&heap, &stack);
       Value val = core::fns.at(instr.as.VMFN.index)(instr.where, &stack, &heap);
       stack.push(val);
       ++iptr;
