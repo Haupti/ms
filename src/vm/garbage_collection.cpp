@@ -93,4 +93,7 @@ void run_gc(VMHeap *heap, Stack *stack) {
 
   free_values(heap);
   free_strings(heap, &string_marks);
+
+  heap->current_length = (heap->elements.size() - heap->free_list.size()) +
+                         (heap->strings.size() - heap->free_strings.size());
 }

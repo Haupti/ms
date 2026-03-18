@@ -24,17 +24,13 @@ template <typename T> struct FastStack {
 
 // GARBAGE COLLECTION TRIGGERS
 void run_gc_on_metric(VMHeap *heap, Stack *stack) {
-  // 50% of initial capacity
-  static uint64_t threshold = heap->reserved_length / 2;
-  // if exceeds 50% of initial capacity trigger GC
-  if (heap->current_length > threshold) {
+  if (heap->current_length > (heap->reserved_length / 2)) {
     run_gc(heap, stack);
   } else {
     return;
   }
-  if (heap->current_length > heap->reserved_length * 0.7) {
+  if (heap->current_length > (heap->reserved_length * 0.7)) {
     heap->reserve_factor(1.5);
-    threshold = heap->reserved_length / 2;
   }
 }
 
