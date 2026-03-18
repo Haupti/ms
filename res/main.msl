@@ -1,3 +1,4 @@
+-iffset __MAIN__
 let init = sys_now()
 -include "util_assertions.msl"
 -include "test_fs.msl"
@@ -7,3 +8,5 @@ let init = sys_now()
 -include "test_binary.msl"
 -include "test_list_ops.msl"
 print("Took: " <> str([sys_now() - init] / 1000 / 1000) <> " millis")
+-endif
+print("entrypoint file path:" <> __FILE__)

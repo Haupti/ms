@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   }
 
   string path = entrypoint;
-  auto tokens = preprocess(path);
+  auto tokens = preprocess(path, true);
   auto nodes = parse(tokens);
   auto ir = compile_ir(nodes);
   auto instrs = compile_to_vm(ir);
