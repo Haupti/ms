@@ -65,8 +65,7 @@
 * [] `continue` loop keyword
 * [] `while` loop
 * [] structs or records for grouping data
-* [] binary operators for bitwise ops (`&`, `|`, `^`, `<<`, `>>`)
-* [] garbage collection
+* [DONE] garbage collection
 
 ## flags/marcros set by the compiler
 * [] filename macro replaced at compile time with the LocationRef's filename

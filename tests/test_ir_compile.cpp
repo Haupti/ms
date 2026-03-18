@@ -11,7 +11,7 @@ static string filename = "test.msl";
 string compile_and_show(string code) {
   auto pptokens = preprocessor_tokenize(&filename, code);
   IncludedModules mods;
-  auto tokens = preprocess_pptokens(filename, &mods, pptokens);
+  auto tokens = preprocess_pptokens(filename, &mods, pptokens, true);
   nodes n = parse(tokens);
   vector<IRInstr> ir = compile_ir(n);
   string out = "";

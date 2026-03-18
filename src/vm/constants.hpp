@@ -3,6 +3,9 @@
 #include "../symbol.hpp"
 
 namespace Constants {
+// macros
+static const InternedString MACRO_FILE = create_interned_string("__FILE__");
+static const InternedString MACRO_MAIN = create_interned_string("__MAIN__");
 // values
 static const Symbol SYM_TRUE = create_symbol("#true");
 static const Symbol SYM_FALSE = create_symbol("#false");

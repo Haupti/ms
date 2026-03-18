@@ -12,7 +12,7 @@ static string filename = "test.msl";
 string compile_and_show(string code) {
   auto pptokens = preprocessor_tokenize(&filename, code);
   IncludedModules mods;
-  auto tokens = preprocess_pptokens(filename, &mods, pptokens);
+  auto tokens = preprocess_pptokens(filename, &mods, pptokens, true);
   nodes n = parse(tokens);
   vector<IRInstr> ir = compile_ir(n);
   vector<VMInstr> vm = compile_to_vm(ir);
@@ -283,6 +283,17 @@ void test_for_loop(T *t) {
                         "8 JMP addr(6)\n"
                         "9 HALT\n");
 }
+void test_macros(T *t) {
+  string code = "let ismain = __MAIN__\n"
+                "let file = __FILE__\n";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "0 PROGRAM_INIT 2\n"
+                        "1 PUSH_SYMBOL #true\n"
+                        "2 STORE_GLOBAL mem(0)\n"
+                        "3 PUSH_ALLOC_STRING 'test.msl'\n"
+                        "4 STORE_GLOBAL mem(1)\n"
+                        "5 HALT\n");
+}
 
 } // namespace
 int main() {
@@ -303,5 +314,6 @@ int main() {
   t.test("complex", test_complex);
   t.test("fn call", test_fn_call);
   t.test("for loop", test_for_loop);
+  t.test("macros", test_macros);
   return 0;
 }

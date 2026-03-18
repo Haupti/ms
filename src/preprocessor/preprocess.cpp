@@ -1,6 +1,7 @@
 #include "preprocess.hpp"
 #include "../../lib/asap/util.hpp"
 #include "../compile_error.hpp"
+#include "../vm/constants.hpp"
 #include "preprocessor_token.hpp"
 #include "preprocessor_tokenize.hpp"
 #include "token.hpp"
@@ -25,13 +26,25 @@ struct PpParser {
 };
 PpParser build_PpParser(const string &absolute_current_path,
                         IncludedModules *includes,
-                        vector<PreprocessorToken> tokens) {
+                        vector<PreprocessorToken> tokens, bool is_main) {
   PpParser p;
   p.includes = includes;
   p.absolute_filepath = absolute_current_path;
   p.tokens = std::move(tokens);
   p.pos = 0;
   p.len = p.tokens.size();
+  Token macro_file_value;
+  macro_file_value.as.STR = create_interned_string(absolute_current_path);
+  macro_file_value.tag = TokenTag::STRING;
+  Token macro_main_value;
+  if (is_main) {
+    macro_main_value.as.SYMBOL = create_symbol("#true");
+  } else {
+    macro_main_value.as.SYMBOL = create_symbol("#false");
+  }
+  macro_main_value.tag = TokenTag::SYMBOL;
+  p.defines[Constants::MACRO_FILE.index] = macro_file_value;
+  p.defines[Constants::MACRO_MAIN.index] = macro_main_value;
   return p;
 }
 bool ppparser_eof(PpParser *p) { return p->pos >= p->len; }
@@ -369,7 +382,7 @@ vector<Token> run_include(PpParser *p) {
     string content = read_file(absolute_filepath);
     return preprocess_pptokens(
         absolute_filepath, p->includes,
-        preprocessor_tokenize(&absolute_filepath, content));
+        preprocessor_tokenize(&absolute_filepath, content), false);
   }
 }
 
@@ -404,13 +417,12 @@ vector<Token> parse_token(PpParser *p, const PreprocessorToken &token) {
 }
 } // namespace
 
-std::vector<Token>
-preprocess_pptokens(const string &absolute_current_path,
-                    IncludedModules *includes,
-                    const std::vector<PreprocessorToken> &tokens) {
+std::vector<Token> preprocess_pptokens(
+    const string &absolute_current_path, IncludedModules *includes,
+    const std::vector<PreprocessorToken> &tokens, bool is_main) {
   assert(includes != NULL);
 
-  PpParser p = build_PpParser(absolute_current_path, includes, tokens);
+  PpParser p = build_PpParser(absolute_current_path, includes, tokens, is_main);
   vector<Token> result;
 
   PreprocessorToken curr;
@@ -423,10 +435,11 @@ preprocess_pptokens(const string &absolute_current_path,
   return result;
 }
 
-std::vector<Token> preprocess(const std::string &entrypoint) {
+std::vector<Token> preprocess(const std::string &entrypoint, bool is_main) {
   string content = read_file(entrypoint);
   IncludedModules included_modules;
   string absolute_path = filesystem::canonical(entrypoint);
   auto pptokens = preprocessor_tokenize(&absolute_path, content);
-  return preprocess_pptokens(absolute_path, &included_modules, pptokens);
+  return preprocess_pptokens(absolute_path, &included_modules, pptokens,
+                             is_main);
 }

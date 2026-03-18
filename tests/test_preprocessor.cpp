@@ -17,7 +17,7 @@ void test_no_flag(T *t) {
                                             "print(\"testrun\") "
                                             "-endif x");
   vector<Token> tokens =
-      preprocess_pptokens(test_filename, &includes, pptokens);
+      preprocess_pptokens(test_filename, &includes, pptokens, true);
 
   vector<string> strs;
   strs.reserve(tokens.size());
@@ -31,7 +31,7 @@ void test_flag(T *t) {
       &test_filename, "-ifnfset TESTRUN "
                       "#nope print(\"testrun\") -endif print(x)");
   vector<Token> tokens =
-      preprocess_pptokens(test_filename, &includes, pptokens);
+      preprocess_pptokens(test_filename, &includes, pptokens, true);
 
   vector<string> strs;
   strs.reserve(tokens.size());
@@ -57,7 +57,7 @@ void test_nested_if(T *t) {
                                             "-endif "
                                             "outer");
   vector<Token> tokens =
-      preprocess_pptokens(test_filename, &includes, pptokens);
+      preprocess_pptokens(test_filename, &includes, pptokens, true);
 
   vector<string> strs;
   strs.reserve(tokens.size());

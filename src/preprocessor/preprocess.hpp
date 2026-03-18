@@ -11,10 +11,10 @@ struct IncludedModules {
   std::unordered_set<std::string> absolute_filepaths;
 };
 
-std::vector<Token> preprocess(const std::string &entrypoint);
+std::vector<Token> preprocess(const std::string &entrypoint, bool is_main);
 
 // for testing
 std::vector<Token>
 preprocess_pptokens(const std::string &absolute_current_path,
                     IncludedModules *includes,
-                    const std::vector<PreprocessorToken> &tokens);
+                    const std::vector<PreprocessorToken> &tokens, bool is_main);

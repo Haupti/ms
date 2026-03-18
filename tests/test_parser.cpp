@@ -11,7 +11,7 @@ static string filename = "test.msl";
 string parse_and_show(string code) {
   auto pptokens = preprocessor_tokenize(&filename, code);
   IncludedModules mods;
-  auto tokens = preprocess_pptokens(filename, &mods, pptokens);
+  auto tokens = preprocess_pptokens(filename, &mods, pptokens, true);
   auto n = parse(tokens);
   string out = "First Item = " + to_string(n.first_elem) + "\n\n";
   for (size_t i = 0; i < n.elements.size(); i++) {
