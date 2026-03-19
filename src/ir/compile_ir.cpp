@@ -1,3 +1,4 @@
+#include "../../lib/asap/util.hpp"
 #include "../compile_error.hpp"
 #include "../parser/node.hpp"
 #include "../vm/constants.hpp"

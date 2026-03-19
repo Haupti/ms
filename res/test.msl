@@ -1,0 +1,29 @@
+let x = 1;
+function print_x() {
+    print(x)
+}
+
+print_x()
+
+;function sub(a,b){
+;    print(str(a) <> " - " <> str(b) <> " = " <> str(a - b))
+;}
+;
+;sub(5,12)
+;5.sub(12)
+;5 | sub(12)
+;
+;function will_fail() {
+;}
+;
+;function might_fail(a) { 
+;    if(a > 5){
+;        return try will_fail()
+;    } else {
+;        return expect will_fail()
+;    }
+;}
+;
+;
+;print(might_fail(0))
+;print(might_fail(10))

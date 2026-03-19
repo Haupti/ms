@@ -294,6 +294,17 @@ void test_macros(T *t) {
                         "4 STORE_GLOBAL mem(1)\n"
                         "5 HALT\n");
 }
+void test_nested_fn(T *t) {
+  string code = "function add(a,b) { return a + b }\n"
+                "function dostuff() { return add(1,2) }\n";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "0 PROGRAM_INIT 2\n"
+                        "1 PUSH_SYMBOL #true\n"
+                        "2 STORE_GLOBAL mem(0)\n"
+                        "3 PUSH_ALLOC_STRING 'test.msl'\n"
+                        "4 STORE_GLOBAL mem(1)\n"
+                        "5 HALT\n");
+}
 
 } // namespace
 int main() {
@@ -315,5 +326,12 @@ int main() {
   t.test("fn call", test_fn_call);
   t.test("for loop", test_for_loop);
   t.test("macros", test_macros);
+  t.test("function 2", test_nested_fn);
   return 0;
 }
+// TODO the thing is: when i want to verify functions exists and have right
+// number of args is actually easiest when compiling from IR to VM because there
+// i have to lookup the jump label anyways and call AND frame_init know the
+// number of args given/expected
+//
+// DONT do it in compilation to IR because then i have to introduce complex context-parent relations.
