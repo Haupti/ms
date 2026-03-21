@@ -102,10 +102,17 @@ static const InternedString BUILDIN_FN_ANSI_SET_CURSOR = create_interned_string(
 static const InternedString BUILDIN_FN_ANSI_MOVE_CURSOR = create_interned_string("ansi_move_cursor");
 static const InternedString BUILDIN_FN_ANSI_CLEAR_LINE = create_interned_string("ansi_clear_line");
 static const InternedString BUILDIN_FN_ANSI_CLEAR_SCREEN = create_interned_string("ansi_clear_screen");
+static const InternedString BUILDIN_FN_ANSI_CLEAR = create_interned_string("ansi_clear");
 
 // ansi symbols
 static const Symbol SYM_ANSI_FG = create_symbol("#fg");
 static const Symbol SYM_ANSI_BG = create_symbol("#bg");
+static const Symbol SYM_ANSI_LINE = create_symbol("#line");
+static const Symbol SYM_ANSI_LINE_FROM_START = create_symbol("#line_from_start");
+static const Symbol SYM_ANSI_LINE_TO_END = create_symbol("#line_to_end");
+static const Symbol SYM_ANSI_SCREEN = create_symbol("#screen");
+static const Symbol SYM_ANSI_SCREEN_FROM_START = create_symbol("#screen_from_start");
+static const Symbol SYM_ANSI_SCREEN_TO_END = create_symbol("#screen_to_end");
 static const Symbol SYM_ANSI_BLACK = create_symbol("#black");
 static const Symbol SYM_ANSI_RED = create_symbol("#red");
 static const Symbol SYM_ANSI_GREEN = create_symbol("#green");

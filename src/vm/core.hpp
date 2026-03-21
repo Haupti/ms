@@ -106,6 +106,7 @@ Value ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_move_cursor(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_clear_line(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_clear_screen(LocationRef where, Stack *stack, VMHeap *heap);
+Value ansi_clear(LocationRef where, Stack *stack, VMHeap *heap);
 
 void set_args(const std::vector<std::string> &args);
 
@@ -211,7 +212,9 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_ANSI_CLEAR_LINE.index,
      ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_ANSI_CLEAR_SCREEN.index,
-     ArgsCount(0, ArgsCountType::ARGS)}};
+     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_CLEAR.index,
+     ArgsCount(1, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -287,6 +290,7 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_ANSI_SET_CURSOR.index, ansi_set_cursor},
            {Constants::BUILDIN_FN_ANSI_MOVE_CURSOR.index, ansi_move_cursor},
            {Constants::BUILDIN_FN_ANSI_CLEAR_LINE.index, ansi_clear_line},
-           {Constants::BUILDIN_FN_ANSI_CLEAR_SCREEN.index, ansi_clear_screen}};
+           {Constants::BUILDIN_FN_ANSI_CLEAR_SCREEN.index, ansi_clear_screen},
+           {Constants::BUILDIN_FN_ANSI_CLEAR.index, ansi_clear}};
 
 } // namespace core

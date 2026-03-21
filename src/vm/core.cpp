@@ -1285,3 +1285,32 @@ Value core::ansi_clear_screen(LocationRef, Stack *, VMHeap *) {
   std::cout.flush();
   return Value::None();
 }
+
+Value core::ansi_clear(LocationRef where, Stack *stack, VMHeap *) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::SYMBOL) {
+    throw msl_runtime_error(where, "ansi_clear expects a symbol");
+  }
+
+  uint64_t sym_idx = val.as.SYMBOL.index;
+
+  if (sym_idx == Constants::SYM_ANSI_LINE.index) {
+    std::cout << "\033[2K";
+  } else if (sym_idx == Constants::SYM_ANSI_LINE_FROM_START.index) {
+    std::cout << "\033[1K";
+  } else if (sym_idx == Constants::SYM_ANSI_LINE_TO_END.index) {
+    std::cout << "\033[0K";
+  } else if (sym_idx == Constants::SYM_ANSI_SCREEN.index) {
+    std::cout << "\033[2J";
+  } else if (sym_idx == Constants::SYM_ANSI_SCREEN_FROM_START.index) {
+    std::cout << "\033[1J";
+  } else if (sym_idx == Constants::SYM_ANSI_SCREEN_TO_END.index) {
+    std::cout << "\033[0J";
+  } else {
+    throw msl_runtime_error(
+        where, "ansi_clear: unknown clear symbol: " + resolve_symbol(val.as.SYMBOL));
+  }
+
+  std::cout.flush();
+  return Value::None();
+}

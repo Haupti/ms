@@ -51,9 +51,9 @@
 ### terminal support stuff
 * [DONE] ansi colors
 * [DONE] ansi reset
-* [] ansi clears (line, screen, ...)
-* [] ansi cursor controls
-* [] terminal informations e.g. which terminal? which colors? etc
+* [DONE] ansi clears (line, screen, ...)
+* [DONE] ansi cursor controls
+* [DONE] terminal informations e.g. which terminal? which colors? etc
 
 ### other
 * [] coroutines? that is wyld but would be fun
