@@ -1,0 +1,10 @@
+ansi_color(#fg, #red)
+print("This should be red")
+ansi_color(#bg, #blue)
+print("This should have a blue background")
+ansi_reset()
+print("This should be normal")
+
+ansi_color(#fg, #bright_green)
+print("Bright green!")
+ansi_reset()

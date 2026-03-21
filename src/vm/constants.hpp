@@ -94,4 +94,26 @@ static const InternedString BUILDIN_FN_LIST_SLICE = create_interned_string("list
 static const InternedString BUILDIN_FN_LIST_REMOVE = create_interned_string("list_remove");
 static const InternedString BUILDIN_FN_LIST_CONTAINS = create_interned_string("list_contains");
 static const InternedString BUILDIN_FN_RANGE = create_interned_string("range");
+static const InternedString BUILDIN_FN_ANSI_COLOR = create_interned_string("ansi_color");
+static const InternedString BUILDIN_FN_ANSI_RESET = create_interned_string("ansi_reset");
+
+// ansi symbols
+static const Symbol SYM_ANSI_FG = create_symbol("#fg");
+static const Symbol SYM_ANSI_BG = create_symbol("#bg");
+static const Symbol SYM_ANSI_BLACK = create_symbol("#black");
+static const Symbol SYM_ANSI_RED = create_symbol("#red");
+static const Symbol SYM_ANSI_GREEN = create_symbol("#green");
+static const Symbol SYM_ANSI_YELLOW = create_symbol("#yellow");
+static const Symbol SYM_ANSI_BLUE = create_symbol("#blue");
+static const Symbol SYM_ANSI_MAGENTA = create_symbol("#magenta");
+static const Symbol SYM_ANSI_CYAN = create_symbol("#cyan");
+static const Symbol SYM_ANSI_WHITE = create_symbol("#white");
+static const Symbol SYM_ANSI_BRIGHT_BLACK = create_symbol("#bright_black");
+static const Symbol SYM_ANSI_BRIGHT_RED = create_symbol("#bright_red");
+static const Symbol SYM_ANSI_BRIGHT_GREEN = create_symbol("#bright_green");
+static const Symbol SYM_ANSI_BRIGHT_YELLOW = create_symbol("#bright_yellow");
+static const Symbol SYM_ANSI_BRIGHT_BLUE = create_symbol("#bright_blue");
+static const Symbol SYM_ANSI_BRIGHT_MAGENTA = create_symbol("#bright_magenta");
+static const Symbol SYM_ANSI_BRIGHT_CYAN = create_symbol("#bright_cyan");
+static const Symbol SYM_ANSI_BRIGHT_WHITE = create_symbol("#bright_white");
 } // namespace Constants

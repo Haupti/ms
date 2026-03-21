@@ -1143,3 +1143,53 @@ Value core::bit_xor(LocationRef where, Stack *stack, VMHeap *) {
   assert_int(where, j);
   return Value::Int(i.as.INT ^ j.as.INT);
 }
+
+Value core::ansi_color(LocationRef where, Stack *stack, VMHeap *) {
+  Value color_val = stack->pop();
+  Value type_val = stack->pop();
+
+  if (type_val.tag != ValueTag::SYMBOL || color_val.tag != ValueTag::SYMBOL) {
+    throw msl_runtime_error(where, "ansi_color expects two symbols");
+  }
+
+  bool is_fg = type_val.as.SYMBOL.index == Constants::SYM_ANSI_FG.index;
+  bool is_bg = type_val.as.SYMBOL.index == Constants::SYM_ANSI_BG.index;
+
+  if (!is_fg && !is_bg) {
+    throw msl_runtime_error(where, "ansi_color: first argument must be #fg or #bg");
+  }
+
+  int color_code = -1;
+  uint64_t sym_idx = color_val.as.SYMBOL.index;
+
+  if (sym_idx == Constants::SYM_ANSI_BLACK.index) color_code = 0;
+  else if (sym_idx == Constants::SYM_ANSI_RED.index) color_code = 1;
+  else if (sym_idx == Constants::SYM_ANSI_GREEN.index) color_code = 2;
+  else if (sym_idx == Constants::SYM_ANSI_YELLOW.index) color_code = 3;
+  else if (sym_idx == Constants::SYM_ANSI_BLUE.index) color_code = 4;
+  else if (sym_idx == Constants::SYM_ANSI_MAGENTA.index) color_code = 5;
+  else if (sym_idx == Constants::SYM_ANSI_CYAN.index) color_code = 6;
+  else if (sym_idx == Constants::SYM_ANSI_WHITE.index) color_code = 7;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_BLACK.index) color_code = 60;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_RED.index) color_code = 61;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_GREEN.index) color_code = 62;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_YELLOW.index) color_code = 63;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_BLUE.index) color_code = 64;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_MAGENTA.index) color_code = 65;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_CYAN.index) color_code = 66;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_WHITE.index) color_code = 67;
+
+  if (color_code == -1) {
+    throw msl_runtime_error(where, "ansi_color: unknown color symbol: " + resolve_symbol(color_val.as.SYMBOL));
+  }
+
+  int final_code = (is_fg ? 30 : 40) + color_code;
+  std::cout << "\033[" << final_code << "m";
+
+  return Value::None();
+}
+
+Value core::ansi_reset(LocationRef, Stack *, VMHeap *) {
+  std::cout << "\033[0m";
+  return Value::None();
+}
