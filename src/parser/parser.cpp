@@ -430,6 +430,7 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::FLOAT:
   case TokenTag::SYMBOL:
   case TokenTag::STRING:
+  case TokenTag::NONE:
   case TokenTag::IDENTIFIER:
   case TokenTag::RETURN:
   case TokenTag::FOR:
@@ -458,6 +459,11 @@ node_idx parse_expression_lazy(Parser *p) {
   }
   case TokenTag::STRING: {
     Node node = make_node(t.location, NodeTag::LITERAL_STRING, t.as.STR);
+    p->adv();
+    return p->nodes.add_dangling(node);
+  }
+  case TokenTag::NONE: {
+    Node node = make_node(t.location, NodeTag::LITERAL_NONE);
     p->adv();
     return p->nodes.add_dangling(node);
   }
@@ -774,6 +780,8 @@ node_idx parse_one(Parser *p) {
   case TokenTag::SYMBOL:
     return parse_expression_eager(p);
   case TokenTag::STRING:
+    return parse_expression_eager(p);
+  case TokenTag::NONE:
     return parse_expression_eager(p);
   case TokenTag::LET:
     return parse_let(p);

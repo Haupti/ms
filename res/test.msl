@@ -18,13 +18,16 @@ function will_fail() {
 }
 
 function might_fail(a) { 
-    if(a > 5){
+    if([a > 5] and [a < 20]){
         return try will_fail()
-    } else {
+    } elif (a < 5) {
         return expect will_fail()
+    } else {
+      return none
     }
 }
 
 
+print(might_fail(200))
 print(might_fail(10))
 print(might_fail(0))

@@ -222,6 +222,8 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::FOR);
   } else if (value == "in") {
     return build_pptoken(get_location(t, start), PpTokenTag::IN);
+  } else if (value == "none") {
+    return build_pptoken(get_location(t, start), PpTokenTag::NONE);
   } else {
     return build_pptoken_identifier(get_location(t, start),
                                     create_interned_string(value));

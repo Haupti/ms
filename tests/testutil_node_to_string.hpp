@@ -36,6 +36,9 @@ inline std::string show_node(const Node &node) {
   case NodeTag::LITERAL_SYMBOL:
     s += " LITERAL_SYMBOL = " + resolve_symbol(node.as.SYMBOL);
     break;
+  case NodeTag::LITERAL_NONE:
+    s += " LITERAL_NONE";
+    break;
   case NodeTag::PREFIX_NOT:
     s += " NOT";
     break;

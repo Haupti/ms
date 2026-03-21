@@ -82,6 +82,10 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
     token.as.STR = pptoken.as.STR;
     token.tag = TokenTag::STRING;
     return token;
+  case PpTokenTag::NONE:
+    token.as.INT = pptoken.as.INT;
+    token.tag = TokenTag::NONE;
+    return token;
   case PpTokenTag::LET:
     token.tag = TokenTag::LET;
     return token;

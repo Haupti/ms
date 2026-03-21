@@ -12,6 +12,8 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return resolve_symbol(token.as.SYMBOL);
   case PpTokenTag::STRING:
     return "\"" + resolve_interned_string(token.as.STR) + "\"";
+  case PpTokenTag::NONE:
+    return "none";
   case PpTokenTag::LET:
     return "let";
   case PpTokenTag::SET:

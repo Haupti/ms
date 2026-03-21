@@ -17,6 +17,8 @@ syn region mslString start='"' end='"' skip='\\"'
 
 " Symbols (starting with #, including #true, #false, #error, etc.)
 syn match mslSymbol "#[a-zA-Z0-9_]\+"
+" Symbols (starting with #, including #true, #false, #error, etc.)
+syn match mslSymbol "#[a-zA-Z0-9_]\+"
 
 " Numbers (integers and floats)
 syn match mslNumber "\<\d\+\(\.\d\+\)\?\>"

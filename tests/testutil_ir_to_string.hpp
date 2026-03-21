@@ -12,6 +12,8 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "PUSH_ALLOC_STRING " + resolve_interned_string(instr.as.STRING);
   case IRTag::PUSH_SYMBOL:
     return "PUSH_SYMBOL " + resolve_symbol(instr.as.SYMBOL);
+  case IRTag::PUSH_NONE:
+    return "PUSH_NONE";
   case IRTag::STORE:
     return "STORE " + resolve_interned_string(instr.as.VAR);
   case IRTag::LOAD:
@@ -50,8 +52,6 @@ inline std::string ir_to_string(const IRInstr &instr) {
     return "LABEL " + resolve_label(instr.as.LABEL);
   case IRTag::JMP:
     return "JMP " + resolve_label(instr.as.LABEL);
-  case IRTag::PUSH_NONE:
-    return "PUSH_NONE";
   case IRTag::RETURN:
     return "RETURN";
   case IRTag::CALL:

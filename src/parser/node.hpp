@@ -22,6 +22,7 @@ enum class NodeTag : uint8_t {
   LITERAL_STRING,
   LITERAL_FLOAT,
   LITERAL_SYMBOL,
+  LITERAL_NONE,
   PREFIX_NOT,
   PREFIX_INVERS,
   INFIX_ADD,
@@ -81,6 +82,7 @@ struct Node {
 
 inline Node make_node(const LocationRef &start, NodeTag tag) {
   Node node;
+  node.as.INT = 0;
   node.start = start;
   node.tag = tag;
   return node;

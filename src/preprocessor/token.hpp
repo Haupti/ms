@@ -10,6 +10,7 @@ enum class TokenTag : uint8_t {
   FLOAT,
   SYMBOL,
   STRING,
+  NONE,
   LET,
   SET,
   IF,
@@ -71,6 +72,8 @@ inline std::string token_to_string(const Token &token) {
     return resolve_symbol(token.as.SYMBOL);
   case TokenTag::STRING:
     return "\"" + resolve_interned_string(token.as.STR) + "\"";
+  case TokenTag::NONE:
+    return "none";
   case TokenTag::LET:
     return "let";
   case TokenTag::SET:

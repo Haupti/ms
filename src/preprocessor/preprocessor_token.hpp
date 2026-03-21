@@ -10,6 +10,7 @@ enum class PpTokenTag : uint8_t {
   FLOAT,
   SYMBOL,
   STRING,
+  NONE,
   LET,
   SET,
   IF,

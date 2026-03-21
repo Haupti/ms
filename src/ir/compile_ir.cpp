@@ -579,6 +579,11 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
         ctx->add(ir_new_push_alloc_string(curr.start, curr.as.STRING));
       }
       break;
+    case NodeTag::LITERAL_NONE:
+      if (!is_standalone) {
+        ctx->add(ir_new_push_none(curr.start));
+      }
+      break;
     case NodeTag::VAR_DEF:
       compile_ir_var_def(ctx, ns, curr_idx, curr);
       break;
