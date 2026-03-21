@@ -49,8 +49,8 @@
 * [] database connection?
 
 ### terminal support stuff
-* [] ansi colors
-* [] ansi reset
+* [DONE] ansi colors
+* [DONE] ansi reset
 * [] ansi clears (line, screen, ...)
 * [] ansi cursor controls
 * [] terminal informations e.g. which terminal? which colors? etc

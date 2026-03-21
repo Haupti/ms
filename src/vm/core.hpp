@@ -100,6 +100,8 @@ Value math_exp(LocationRef where, Stack *stack, VMHeap *heap);
 
 Value ansi_color(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_reset(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_is_tty(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_has_color(LocationRef where, Stack *stack, VMHeap *heap);
 
 void set_args(const std::vector<std::string> &args);
 
@@ -194,6 +196,9 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_RANGE.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_ANSI_COLOR.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_ANSI_RESET.index,
+     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_SYS_IS_TTY.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_SYS_HAS_COLOR.index,
      ArgsCount(0, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
@@ -264,6 +269,8 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_BIT_AND.index, bit_and},
            {Constants::BUILDIN_FN_BIT_XOR.index, bit_xor},
            {Constants::BUILDIN_FN_ANSI_COLOR.index, ansi_color},
-           {Constants::BUILDIN_FN_ANSI_RESET.index, ansi_reset}};
+           {Constants::BUILDIN_FN_ANSI_RESET.index, ansi_reset},
+           {Constants::BUILDIN_FN_SYS_IS_TTY.index, sys_is_tty},
+           {Constants::BUILDIN_FN_SYS_HAS_COLOR.index, sys_has_color}};
 
 } // namespace core

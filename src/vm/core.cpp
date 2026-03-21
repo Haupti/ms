@@ -13,6 +13,16 @@
 #include <random>
 #include <sstream>
 #include <string>
+
+#ifdef _WIN32
+#include <io.h>
+#define ISATTY _isatty
+#define STDOUT_FILENO 1
+#else
+#include <unistd.h>
+#define ISATTY isatty
+#endif
+
 namespace {
 
 std::vector<std::string> msl_args;
@@ -1192,4 +1202,31 @@ Value core::ansi_color(LocationRef where, Stack *stack, VMHeap *) {
 Value core::ansi_reset(LocationRef, Stack *, VMHeap *) {
   std::cout << "\033[0m";
   return Value::None();
+}
+
+Value core::sys_is_tty(LocationRef, Stack *, VMHeap *) {
+  bool tty = ISATTY(STDOUT_FILENO);
+  return Value::Symbol(tty ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+}
+
+Value core::sys_has_color(LocationRef, Stack *, VMHeap *) {
+  if (!ISATTY(STDOUT_FILENO)) {
+    return Value::Symbol(Constants::SYM_FALSE);
+  }
+
+  const char *colorterm = std::getenv("COLORTERM");
+  if (colorterm != nullptr) {
+    return Value::Symbol(Constants::SYM_TRUE);
+  }
+
+  const char *term = std::getenv("TERM");
+  if (term != nullptr) {
+    std::string term_str(term);
+    if (term_str == "dumb") {
+      return Value::Symbol(Constants::SYM_FALSE);
+    }
+    return Value::Symbol(Constants::SYM_TRUE);
+  }
+
+  return Value::Symbol(Constants::SYM_FALSE);
 }

@@ -96,6 +96,8 @@ static const InternedString BUILDIN_FN_LIST_CONTAINS = create_interned_string("l
 static const InternedString BUILDIN_FN_RANGE = create_interned_string("range");
 static const InternedString BUILDIN_FN_ANSI_COLOR = create_interned_string("ansi_color");
 static const InternedString BUILDIN_FN_ANSI_RESET = create_interned_string("ansi_reset");
+static const InternedString BUILDIN_FN_SYS_IS_TTY = create_interned_string("sys_is_tty");
+static const InternedString BUILDIN_FN_SYS_HAS_COLOR = create_interned_string("sys_has_color");
 
 // ansi symbols
 static const Symbol SYM_ANSI_FG = create_symbol("#fg");

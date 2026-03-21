@@ -1,10 +1,10 @@
-ansi_color(#fg, #red)
-print("This should be red")
-ansi_color(#bg, #blue)
-print("This should have a blue background")
-ansi_reset()
-print("This should be normal")
+print("Is TTY: " <> str(sys_is_tty()))
+print("Has Color: " <> str(sys_has_color()))
 
-ansi_color(#fg, #bright_green)
-print("Bright green!")
-ansi_reset()
+if (sys_has_color()) {
+    ansi_color(#fg, #red)
+    print("This is red!")
+    ansi_reset()
+} else {
+    print("No color support detected.")
+}
