@@ -18,6 +18,7 @@ struct IRContext {
   std::vector<IRInstr> instructions;
   std::vector<std::vector<IRInstr>> functions;
   std::unordered_map<uint64_t, uint16_t> function_args;
+  IRContext *parent = nullptr;
 
   uint64_t next_jmp_idx() { return jmp_label_counter++; }
   void add(const IRInstr &instr) { instructions.push_back(instr); }
@@ -32,10 +33,23 @@ struct IRContext {
     function_args[fn_name.index] = args;
   }
   uint16_t get_function_args(InternedString fn_name) {
-    return function_args.at(fn_name.index);
+    if (function_args.count(fn_name.index) > 0) {
+      return function_args.at(fn_name.index);
+    }
+    if (parent == nullptr) {
+      panic("BUG: check has_function before calling this");
+    }
+    return parent->get_function_args(fn_name);
   }
   bool has_function(InternedString fn_name) {
-    return function_args.count(fn_name.index) > 0;
+    bool has_locally = function_args.count(fn_name.index) > 0;
+    if (has_locally) {
+      return true;
+    }
+    if (parent == nullptr) {
+      return false;
+    }
+    return parent->has_function(fn_name);
   }
 };
 
@@ -373,7 +387,11 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
 
 void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {
 
+  if (ctx->parent != nullptr) {
+    throw compile_error(curr.start, "function defintion not allowed here");
+  }
   IRContext fn_ctx = IRContext();
+  fn_ctx.parent = ctx;
 
   InternedString fn_name = curr.as.IDENTIFIER;
   // SET LOCALS COUNT TO 0
