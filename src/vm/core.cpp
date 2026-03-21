@@ -1230,3 +1230,58 @@ Value core::sys_has_color(LocationRef, Stack *, VMHeap *) {
 
   return Value::Symbol(Constants::SYM_FALSE);
 }
+
+Value core::ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *) {
+  Value col_val = stack->pop();
+  Value row_val = stack->pop();
+
+  if (row_val.tag == ValueTag::INT && col_val.tag == ValueTag::INT) {
+    std::cout << "\033[" << (row_val.as.INT + 1) << ";" << (col_val.as.INT + 1) << "H";
+  } else if (row_val.tag == ValueTag::INT && col_val.tag == ValueTag::NONE) {
+    std::cout << "\033[" << (row_val.as.INT + 1) << ";1H";
+  } else if (row_val.tag == ValueTag::NONE && col_val.tag == ValueTag::INT) {
+    std::cout << "\033[" << (col_val.as.INT + 1) << "G";
+  } else if (row_val.tag != ValueTag::NONE || col_val.tag != ValueTag::NONE) {
+    throw msl_runtime_error(where, "ansi_set_cursor expects (int|none, int|none)");
+  }
+  std::cout.flush();
+  return Value::None();
+}
+
+Value core::ansi_move_cursor(LocationRef where, Stack *stack, VMHeap *) {
+  Value dc_val = stack->pop();
+  Value dr_val = stack->pop();
+
+  if (dr_val.tag == ValueTag::INT) {
+    int64_t dr = dr_val.as.INT;
+    if (dr > 0) std::cout << "\033[" << dr << "B";
+    else if (dr < 0) std::cout << "\033[" << -dr << "A";
+  } else if (dr_val.tag != ValueTag::NONE) {
+    throw msl_runtime_error(where, "ansi_move_cursor expects (int|none, int|none)");
+  }
+
+  if (dc_val.tag == ValueTag::INT) {
+    int64_t dc = dc_val.as.INT;
+    if (dc > 0) std::cout << "\033[" << dc << "C";
+    else if (dc < 0) std::cout << "\033[" << -dc << "D";
+  } else if (dc_val.tag != ValueTag::NONE) {
+    throw msl_runtime_error(where, "ansi_move_cursor expects (int|none, int|none)");
+  }
+
+  std::cout.flush();
+  return Value::None();
+}
+
+Value core::ansi_clear_line(LocationRef, Stack *, VMHeap *) {
+  std::cout << "\033[2K"; // Clear entire line
+  std::cout << "\033[G";  // Move to beginning of line
+  std::cout.flush();
+  return Value::None();
+}
+
+Value core::ansi_clear_screen(LocationRef, Stack *, VMHeap *) {
+  std::cout << "\033[2J"; // Clear entire screen
+  std::cout << "\033[H";  // Move to home (1,1)
+  std::cout.flush();
+  return Value::None();
+}

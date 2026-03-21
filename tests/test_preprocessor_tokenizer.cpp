@@ -30,7 +30,7 @@ void test_stuff(T *t) {
 void test_fset_and_such(T *t) {
   vector<PreprocessorToken> tokens = preprocessor_tokenize(
       &test_filename,
-      "-fset TESTRUN -funset TESTRUN -iffset TESTRUN print(x) -endif");
+      "$fset TESTRUN $funset TESTRUN $iffset TESTRUN print(x) $endif");
 
   vector<string> strs;
   strs.reserve(tokens.size());
@@ -38,8 +38,8 @@ void test_fset_and_such(T *t) {
     strs.push_back(pptoken_to_string(t));
   }
   t->assert_str_eq(join(strs, " "),
-                   "MACRO(-fset) TESTRUN MACRO(-funset) TESTRUN MACRO(-iffset) "
-                   "TESTRUN print ( x ) MACRO(-endif)");
+                   "MACRO($fset) TESTRUN MACRO($funset) TESTRUN MACRO($iffset) "
+                   "TESTRUN print ( x ) MACRO($endif)");
 }
 
 } // namespace

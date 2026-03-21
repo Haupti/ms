@@ -81,19 +81,19 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
   case PpTokenTag::RETURN:
     return "return";
   case PpTokenTag::INCLUDE_MACRO:
-    return "MACRO(-include)";
+    return "MACRO($include)";
   case PpTokenTag::DEFINE_MACRO:
-    return "MACRO(-define)";
+    return "MACRO($define)";
   case PpTokenTag::FSET_MACRO:
-    return "MACRO(-fset)";
+    return "MACRO($fset)";
   case PpTokenTag::FUNSET_MACRO:
-    return "MACRO(-funset)";
+    return "MACRO($funset)";
   case PpTokenTag::IFFSET_MACRO:
-    return "MACRO(-iffset)";
+    return "MACRO($iffset)";
   case PpTokenTag::IFNFSET_MACRO:
-    return "MACRO(-ifnfset)";
+    return "MACRO($ifnfset)";
   case PpTokenTag::ENDIF_MACRO:
-    return "MACRO(-endif)";
+    return "MACRO($endif)";
   case PpTokenTag::BRACKETOPEN:
     return "[";
   case PpTokenTag::BRACKETCLOSE:

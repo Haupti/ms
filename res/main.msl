@@ -1,12 +1,14 @@
--iffset __MAIN__
-let init = sys_now()
--include "util_assertions.msl"
--include "test_fs.msl"
--include "test_math.msl"
--include "test_string.msl"
--include "test_loop.msl"
--include "test_binary.msl"
--include "test_list_ops.msl"
-print("Took: " <> str([sys_now() - init] / 1000 / 1000) <> " millis")
--endif
-print("entrypoint file path:" <> __FILE__)
+$iffset __MAIN__
+
+$include "util_assertions.msl"
+$include "test_fs.msl"
+$include "test_math.msl"
+$include "test_string.msl"
+$include "test_loop.msl"
+$include "test_binary.msl"
+$include "test_list_ops.msl"
+$include "test_fn_calls.msl"
+$include "test_ansi.msl"
+;$include "test_cursor.msl"
+
+$endif

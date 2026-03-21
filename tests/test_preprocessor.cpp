@@ -11,11 +11,11 @@ static IncludedModules includes;
 
 void test_no_flag(T *t) {
   vector<PreprocessorToken> pptokens =
-      preprocessor_tokenize(&test_filename, "-fset TESTRUN"
-                                            "-funset TESTRUN"
-                                            "-iffset TESTRUN"
+      preprocessor_tokenize(&test_filename, "$fset TESTRUN"
+                                            "$funset TESTRUN"
+                                            "$iffset TESTRUN"
                                             "print(\"testrun\") "
-                                            "-endif x");
+                                            "$endif x");
   vector<Token> tokens =
       preprocess_pptokens(test_filename, &includes, pptokens, true);
 
@@ -28,8 +28,8 @@ void test_no_flag(T *t) {
 }
 void test_flag(T *t) {
   vector<PreprocessorToken> pptokens = preprocessor_tokenize(
-      &test_filename, "-ifnfset TESTRUN "
-                      "#nope print(\"testrun\") -endif print(x)");
+      &test_filename, "$ifnfset TESTRUN "
+                      "#nope print(\"testrun\") $endif print(x)");
   vector<Token> tokens =
       preprocess_pptokens(test_filename, &includes, pptokens, true);
 
@@ -42,19 +42,19 @@ void test_flag(T *t) {
 }
 void test_nested_if(T *t) {
   vector<PreprocessorToken> pptokens =
-      preprocessor_tokenize(&test_filename, "-fset A "
-                                            "-iffset A "
+      preprocessor_tokenize(&test_filename, "$fset A "
+                                            "$iffset A "
                                             "  something"
-                                            "  -ifnfset B "
+                                            "  $ifnfset B "
                                             "    inner "
                                             "    inner2 "
-                                            "  -endif "
-                                            "-endif "
-                                            "-iffset B "
-                                            "  -iffset A "
+                                            "  $endif "
+                                            "$endif "
+                                            "$iffset B "
+                                            "  $iffset A "
                                             "    nope "
-                                            "  -endif "
-                                            "-endif "
+                                            "  $endif "
+                                            "$endif "
                                             "outer");
   vector<Token> tokens =
       preprocess_pptokens(test_filename, &includes, pptokens, true);

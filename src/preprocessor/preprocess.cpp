@@ -353,7 +353,7 @@ vector<Token> parse_iffset(PpParser *p, bool mod) {
         } else if (t.tag == PpTokenTag::ENDIF_MACRO) {
           depth--;
         }
-        ppparser_adv(p); // skip -endif
+        ppparser_adv(p); // skip $endif
       }
     } else {
       ppparser_adv(p); // just skip any token

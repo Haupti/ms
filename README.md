@@ -2,7 +2,7 @@
 
 here a more 'traditional' syntax idea with macros
 ```
--include "../file.msl"
+$include "../file.msl"
 
 function add(a,b) {
     return a+b
@@ -31,11 +31,11 @@ put(my_tab,"hello","World")
 1.add(2) // left apply operator -> add(1,2)
 1 | add(2) // right apply operator -> add(2,1)
 
--setflag HEAD
--ifflag HEAD 
+$setflag HEAD
+$ifflag HEAD 
 ...
 
--endif
+$endif
 
 // errors as values:
 function might_error(x) {
@@ -72,9 +72,9 @@ logic:
 1. discover all preprocessor macros
 2. produce respective output code for macros
     * for -assert(x) this just produces if(x) { panic("assertion failed") }
-    * for -ifndef/-ifdef/-endif/-define this is completely handled and erased before the the project runs
-    * for -include it tracks an import history (for circular imports) and tries to gather the token vectors and concatenates them together into one single large vector (skipping already included files). the result is then placed where the include directive was
-    * important is probably that the include must run last to not mess with -ifndef -endif pair finding
+    * for $ifndef/$ifdef/$endif/$define this is completely handled and erased before the the project runs
+    * for $include it tracks an import history (for circular imports) and tries to gather the token vectors and concatenates them together into one single large vector (skipping already included files). the result is then placed where the include directive was
+    * important is probably that the include must run last to not mess with $ifndef $endif pair finding
 
 
 

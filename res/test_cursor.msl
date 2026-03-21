@@ -1,0 +1,11 @@
+print("Line 1")
+print("Line 2")
+print("Line 3")
+
+ansi_move_cursor(-2, none)
+ansi_clear_line()
+ansi_set_cursor(none, 0)
+print("Line 2 IS OVERWRITTEN")
+
+ansi_set_cursor(5, 0)
+print("This is row 5, col 0")

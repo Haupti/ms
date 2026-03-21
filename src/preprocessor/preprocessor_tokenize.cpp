@@ -147,7 +147,7 @@ PreprocessorToken tokenize_operator(Tokenizer *t) {
                         "unknown operator '" + value + "'\n");
   }
 }
-PreprocessorToken tokenize_macro_or_subtraction_operator(Tokenizer *t) {
+PreprocessorToken tokenize_macro(Tokenizer *t) {
   uint64_t start = t->pos;
   tok_adv(t);
   while (!tok_eof(t)) {
@@ -159,26 +159,29 @@ PreprocessorToken tokenize_macro_or_subtraction_operator(Tokenizer *t) {
     }
   }
   string value = t->code.substr(start, t->pos - start);
-  if (value == "-define") {
+  if (value == "$define") {
     return build_pptoken(get_location(t, start), PpTokenTag::DEFINE_MACRO);
-  } else if (value == "-fset") {
+  } else if (value == "$fset") {
     return build_pptoken(get_location(t, start), PpTokenTag::FSET_MACRO);
-  } else if (value == "-funset") {
+  } else if (value == "$funset") {
     return build_pptoken(get_location(t, start), PpTokenTag::FUNSET_MACRO);
-  } else if (value == "-endif") {
+  } else if (value == "$endif") {
     return build_pptoken(get_location(t, start), PpTokenTag::ENDIF_MACRO);
-  } else if (value == "-include") {
+  } else if (value == "$include") {
     return build_pptoken(get_location(t, start), PpTokenTag::INCLUDE_MACRO);
-  } else if (value == "-iffset") {
+  } else if (value == "$iffset") {
     return build_pptoken(get_location(t, start), PpTokenTag::IFFSET_MACRO);
-  } else if (value == "-ifnfset") {
+  } else if (value == "$ifnfset") {
     return build_pptoken(get_location(t, start), PpTokenTag::IFNFSET_MACRO);
-  } else if (value == "-") {
-    return build_pptoken(get_location(t, start), PpTokenTag::OP_SUB);
   } else {
     throw compile_error(get_location(t, start),
                         "unknown macro '" + value + "'\n");
   }
+}
+PreprocessorToken tokenize_subtraction_operator(Tokenizer *t) {
+  uint64_t start = t->pos;
+  tok_adv(t);
+  return build_pptoken(get_location(t, start), PpTokenTag::OP_SUB);
 }
 PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
   uint64_t start = t->pos;
@@ -270,8 +273,10 @@ preprocessor_tokenize(const string *const filename, const std::string &code) {
       tokens.push_back(tokenize_string(&t));
     } else if (c == '#') {
       tokens.push_back(tokenize_symbol(&t));
+    } else if (c == '$') {
+      tokens.push_back(tokenize_macro(&t));
     } else if (c == '-') {
-      tokens.push_back(tokenize_macro_or_subtraction_operator(&t));
+      tokens.push_back(tokenize_subtraction_operator(&t));
     } else if (is_operator_char(c)) {
       tokens.push_back(tokenize_operator(&t));
     } else if (is_letter(c) or c == '_') {

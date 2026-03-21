@@ -75,5 +75,5 @@
 * [] line macro: is replaced with the line number of the file its in
 * [] column macro: is replaced with the column number 
 * [] make flags defineable as interpreter arguments via e.g. "--flag FLAG1" and such. (repeatable)
-* [] make macro values defineable as interpreter arguments via e.g. "--define SOMENAME <somevalue>" (repeatable)
+* [] make macro values defineable as interpreter arguments via e.g. "$define SOMENAME <somevalue>" (repeatable)
 

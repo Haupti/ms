@@ -98,6 +98,10 @@ static const InternedString BUILDIN_FN_ANSI_COLOR = create_interned_string("ansi
 static const InternedString BUILDIN_FN_ANSI_RESET = create_interned_string("ansi_reset");
 static const InternedString BUILDIN_FN_SYS_IS_TTY = create_interned_string("sys_is_tty");
 static const InternedString BUILDIN_FN_SYS_HAS_COLOR = create_interned_string("sys_has_color");
+static const InternedString BUILDIN_FN_ANSI_SET_CURSOR = create_interned_string("ansi_set_cursor");
+static const InternedString BUILDIN_FN_ANSI_MOVE_CURSOR = create_interned_string("ansi_move_cursor");
+static const InternedString BUILDIN_FN_ANSI_CLEAR_LINE = create_interned_string("ansi_clear_line");
+static const InternedString BUILDIN_FN_ANSI_CLEAR_SCREEN = create_interned_string("ansi_clear_screen");
 
 // ansi symbols
 static const Symbol SYM_ANSI_FG = create_symbol("#fg");

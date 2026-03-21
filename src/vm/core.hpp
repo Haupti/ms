@@ -102,6 +102,10 @@ Value ansi_color(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_reset(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_is_tty(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_has_color(LocationRef where, Stack *stack, VMHeap *heap);
+Value ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *heap);
+Value ansi_move_cursor(LocationRef where, Stack *stack, VMHeap *heap);
+Value ansi_clear_line(LocationRef where, Stack *stack, VMHeap *heap);
+Value ansi_clear_screen(LocationRef where, Stack *stack, VMHeap *heap);
 
 void set_args(const std::vector<std::string> &args);
 
@@ -199,6 +203,14 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
      ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_IS_TTY.index, ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_HAS_COLOR.index,
+     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_SET_CURSOR.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_MOVE_CURSOR.index,
+     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_CLEAR_LINE.index,
+     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_CLEAR_SCREEN.index,
      ArgsCount(0, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
@@ -271,6 +283,10 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_ANSI_COLOR.index, ansi_color},
            {Constants::BUILDIN_FN_ANSI_RESET.index, ansi_reset},
            {Constants::BUILDIN_FN_SYS_IS_TTY.index, sys_is_tty},
-           {Constants::BUILDIN_FN_SYS_HAS_COLOR.index, sys_has_color}};
+           {Constants::BUILDIN_FN_SYS_HAS_COLOR.index, sys_has_color},
+           {Constants::BUILDIN_FN_ANSI_SET_CURSOR.index, ansi_set_cursor},
+           {Constants::BUILDIN_FN_ANSI_MOVE_CURSOR.index, ansi_move_cursor},
+           {Constants::BUILDIN_FN_ANSI_CLEAR_LINE.index, ansi_clear_line},
+           {Constants::BUILDIN_FN_ANSI_CLEAR_SCREEN.index, ansi_clear_screen}};
 
 } // namespace core
