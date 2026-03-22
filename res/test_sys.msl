@@ -1,0 +1,4 @@
+print(sys_now())
+print("sleeping for 1s...")
+sys_sleep(1000)
+print("woke up!")

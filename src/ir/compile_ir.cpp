@@ -291,8 +291,7 @@ void compile_ir_infix_neq(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(instr);
 }
 void compile_ir_infix_str_concat(IRContext *ctx, nodes *ns, Node curr) {
-  IRInstr instr =
-      ir_new_vm_call(curr.start, Constants::BUILDIN_FN_STR_CONCAT, 2);
+  IRInstr instr = ir_new_vm_call(curr.start, Constants::CORE_FN_STR_CONCAT, 2);
   compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   compile_one(ctx, ns, ns->nth_child(curr, 1), false);
   ctx->add(instr);
@@ -353,7 +352,7 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr push_panic_msg =
       ir_new_push_alloc_string(curr.start, Constants::EXPECT_ERROR_MSG);
   ctx->add(push_panic_msg);
-  IRInstr instr = ir_new_vm_call(curr.start, Constants::BUILDIN_FN_PANIC, 1);
+  IRInstr instr = ir_new_vm_call(curr.start, Constants::CORE_FN_PANIC, 1);
   ctx->add(instr);
   IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_error);
   ctx->add(label_skip_return_instr);
@@ -377,12 +376,12 @@ void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
     core::ArgsCount expected_args = core::fns_args.at(fn_name.index);
     // DECIDE VARARGS OR ARGS-COUNTED FUNCTION
     switch (expected_args.type) {
-    case core::ArgsCountType::VARARGS:
+    case core::ArgsT::VARARGS:
       // on varargs the actual number of args does not matter
       // but the number of args must be on top of the stack
       ctx->add(ir_new_push_int(curr.start, args_count));
       break;
-    case core::ArgsCountType::ARGS: {
+    case core::ArgsT::ARGS: {
       // on non-varargs function call, the count of arguments does matter
       if (args_count != expected_args.count) {
         throw compile_error(curr.start,

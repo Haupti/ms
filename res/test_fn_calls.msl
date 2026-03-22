@@ -19,9 +19,8 @@ function will_fail() {
 
 function might_fail(a) { 
     if([a > 5] and [a < 20]){
-        return try will_fail()
-    } elif (a < 5) {
-        return expect will_fail()
+        try will_fail()
+        return #ok
     } else {
       return none
     }

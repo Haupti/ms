@@ -62,7 +62,7 @@
 * [] `sys_env()` - return table of all environment variables
 * [DONE] `process_args()` - return list of command line arguments passed to script
 * [DONE] `sys_exit(code)`
-* [] `sys_sleep(ms)`
+* [DONE] `sys_sleep(ms)`
 * [] `sys_signal_handle(signal, fn)`
 * [] `str_quote_shell(s)` - quote string for use in shell commands
 
@@ -101,7 +101,7 @@
 * [DONE] `time_iso8601()`
 
 ### other
-* [] coroutines? that is wyld but would be fun
+* [] coroutines/async? that is wyld but would be fun
 * [] `path_join(...)`, `path_base(p)`, `path_dir(p)`, `path_ext(p)`
 
 ## language & vm features

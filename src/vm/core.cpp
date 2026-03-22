@@ -13,6 +13,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <thread>
 
 #ifdef _WIN32
 #include <io.h>
@@ -473,7 +474,7 @@ Value core::value_to_string_fn(LocationRef, Stack *stack, VMHeap *heap) {
   return heap->add_string(value_to_string(stack, heap, val));
 }
 
-Value core::file_read(LocationRef where, Stack *stack, VMHeap *heap) {
+Value core::fs_read(LocationRef where, Stack *stack, VMHeap *heap) {
   Value path_val = stack->pop();
   if (path_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected a string for file path");
@@ -489,7 +490,7 @@ Value core::file_read(LocationRef where, Stack *stack, VMHeap *heap) {
   return heap->add_string(buffer.str());
 }
 
-Value core::file_write(LocationRef where, Stack *stack, VMHeap *heap) {
+Value core::fs_write(LocationRef where, Stack *stack, VMHeap *heap) {
   Value content_val = stack->pop();
   Value path_val = stack->pop();
   if (path_val.tag != ValueTag::STRING || content_val.tag != ValueTag::STRING) {
@@ -506,7 +507,7 @@ Value core::file_write(LocationRef where, Stack *stack, VMHeap *heap) {
   return Value::None();
 }
 
-Value core::file_append(LocationRef where, Stack *stack, VMHeap *heap) {
+Value core::fs_append(LocationRef where, Stack *stack, VMHeap *heap) {
   Value content_val = stack->pop();
   Value path_val = stack->pop();
   if (path_val.tag != ValueTag::STRING || content_val.tag != ValueTag::STRING) {
@@ -536,6 +537,12 @@ Value core::sys_env_get(LocationRef where, Stack *stack, VMHeap *heap) {
                                    heap->get_string(name_val.as.STRING))));
   }
   return heap->add_string(std::string(val));
+}
+
+Value core::sys_sleep(LocationRef where, Stack *stack, VMHeap *) {
+  Value ms_val = stack->pop();
+  std::this_thread::sleep_for(std::chrono::milliseconds(as_int(where, ms_val)));
+  return Value::None();
 }
 
 Value core::process_args(LocationRef, Stack *, VMHeap *heap) {
@@ -1166,31 +1173,49 @@ Value core::ansi_color(LocationRef where, Stack *stack, VMHeap *) {
   bool is_bg = type_val.as.SYMBOL.index == Constants::SYM_ANSI_BG.index;
 
   if (!is_fg && !is_bg) {
-    throw msl_runtime_error(where, "ansi_color: first argument must be #fg or #bg");
+    throw msl_runtime_error(where,
+                            "ansi_color: first argument must be #fg or #bg");
   }
 
   int color_code = -1;
   uint64_t sym_idx = color_val.as.SYMBOL.index;
 
-  if (sym_idx == Constants::SYM_ANSI_BLACK.index) color_code = 0;
-  else if (sym_idx == Constants::SYM_ANSI_RED.index) color_code = 1;
-  else if (sym_idx == Constants::SYM_ANSI_GREEN.index) color_code = 2;
-  else if (sym_idx == Constants::SYM_ANSI_YELLOW.index) color_code = 3;
-  else if (sym_idx == Constants::SYM_ANSI_BLUE.index) color_code = 4;
-  else if (sym_idx == Constants::SYM_ANSI_MAGENTA.index) color_code = 5;
-  else if (sym_idx == Constants::SYM_ANSI_CYAN.index) color_code = 6;
-  else if (sym_idx == Constants::SYM_ANSI_WHITE.index) color_code = 7;
-  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_BLACK.index) color_code = 60;
-  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_RED.index) color_code = 61;
-  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_GREEN.index) color_code = 62;
-  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_YELLOW.index) color_code = 63;
-  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_BLUE.index) color_code = 64;
-  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_MAGENTA.index) color_code = 65;
-  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_CYAN.index) color_code = 66;
-  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_WHITE.index) color_code = 67;
+  if (sym_idx == Constants::SYM_ANSI_BLACK.index)
+    color_code = 0;
+  else if (sym_idx == Constants::SYM_ANSI_RED.index)
+    color_code = 1;
+  else if (sym_idx == Constants::SYM_ANSI_GREEN.index)
+    color_code = 2;
+  else if (sym_idx == Constants::SYM_ANSI_YELLOW.index)
+    color_code = 3;
+  else if (sym_idx == Constants::SYM_ANSI_BLUE.index)
+    color_code = 4;
+  else if (sym_idx == Constants::SYM_ANSI_MAGENTA.index)
+    color_code = 5;
+  else if (sym_idx == Constants::SYM_ANSI_CYAN.index)
+    color_code = 6;
+  else if (sym_idx == Constants::SYM_ANSI_WHITE.index)
+    color_code = 7;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_BLACK.index)
+    color_code = 60;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_RED.index)
+    color_code = 61;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_GREEN.index)
+    color_code = 62;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_YELLOW.index)
+    color_code = 63;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_BLUE.index)
+    color_code = 64;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_MAGENTA.index)
+    color_code = 65;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_CYAN.index)
+    color_code = 66;
+  else if (sym_idx == Constants::SYM_ANSI_BRIGHT_WHITE.index)
+    color_code = 67;
 
   if (color_code == -1) {
-    throw msl_runtime_error(where, "ansi_color: unknown color symbol: " + resolve_symbol(color_val.as.SYMBOL));
+    throw msl_runtime_error(where, "ansi_color: unknown color symbol: " +
+                                       resolve_symbol(color_val.as.SYMBOL));
   }
 
   int final_code = (is_fg ? 30 : 40) + color_code;
@@ -1236,13 +1261,15 @@ Value core::ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *) {
   Value row_val = stack->pop();
 
   if (row_val.tag == ValueTag::INT && col_val.tag == ValueTag::INT) {
-    std::cout << "\033[" << (row_val.as.INT + 1) << ";" << (col_val.as.INT + 1) << "H";
+    std::cout << "\033[" << (row_val.as.INT + 1) << ";" << (col_val.as.INT + 1)
+              << "H";
   } else if (row_val.tag == ValueTag::INT && col_val.tag == ValueTag::NONE) {
     std::cout << "\033[" << (row_val.as.INT + 1) << ";1H";
   } else if (row_val.tag == ValueTag::NONE && col_val.tag == ValueTag::INT) {
     std::cout << "\033[" << (col_val.as.INT + 1) << "G";
   } else if (row_val.tag != ValueTag::NONE || col_val.tag != ValueTag::NONE) {
-    throw msl_runtime_error(where, "ansi_set_cursor expects (int|none, int|none)");
+    throw msl_runtime_error(where,
+                            "ansi_set_cursor expects (int|none, int|none)");
   }
   std::cout.flush();
   return Value::None();
@@ -1254,18 +1281,24 @@ Value core::ansi_move_cursor(LocationRef where, Stack *stack, VMHeap *) {
 
   if (dr_val.tag == ValueTag::INT) {
     int64_t dr = dr_val.as.INT;
-    if (dr > 0) std::cout << "\033[" << dr << "B";
-    else if (dr < 0) std::cout << "\033[" << -dr << "A";
+    if (dr > 0)
+      std::cout << "\033[" << dr << "B";
+    else if (dr < 0)
+      std::cout << "\033[" << -dr << "A";
   } else if (dr_val.tag != ValueTag::NONE) {
-    throw msl_runtime_error(where, "ansi_move_cursor expects (int|none, int|none)");
+    throw msl_runtime_error(where,
+                            "ansi_move_cursor expects (int|none, int|none)");
   }
 
   if (dc_val.tag == ValueTag::INT) {
     int64_t dc = dc_val.as.INT;
-    if (dc > 0) std::cout << "\033[" << dc << "C";
-    else if (dc < 0) std::cout << "\033[" << -dc << "D";
+    if (dc > 0)
+      std::cout << "\033[" << dc << "C";
+    else if (dc < 0)
+      std::cout << "\033[" << -dc << "D";
   } else if (dc_val.tag != ValueTag::NONE) {
-    throw msl_runtime_error(where, "ansi_move_cursor expects (int|none, int|none)");
+    throw msl_runtime_error(where,
+                            "ansi_move_cursor expects (int|none, int|none)");
   }
 
   std::cout.flush();
@@ -1307,8 +1340,8 @@ Value core::ansi_clear(LocationRef where, Stack *stack, VMHeap *) {
   } else if (sym_idx == Constants::SYM_ANSI_SCREEN_TO_END.index) {
     std::cout << "\033[0J";
   } else {
-    throw msl_runtime_error(
-        where, "ansi_clear: unknown clear symbol: " + resolve_symbol(val.as.SYMBOL));
+    throw msl_runtime_error(where, "ansi_clear: unknown clear symbol: " +
+                                       resolve_symbol(val.as.SYMBOL));
   }
 
   std::cout.flush();

@@ -8,7 +8,7 @@ endif
 syn keyword mslKeyword function let set if elif else return for in try expect 
 syn keyword mslBuiltin print str int float len typeof list put at append prepend link copy panic error assert assert_type random 
 syn keyword mslBuiltin ansi_color ansi_reset ansi_set_cursor ansi_move_cursor ansi_clear_line ansi_clear_screen ansi_clear
-syn keyword mslBuiltin sys_env_get process_args sys_exit sys_exec sys_now sys_is_tty sys_has_color 
+syn keyword mslBuiltin sys_env_get process_args sys_exit sys_exec sys_now sys_is_tty sys_has_color sys_sleep
 syn keyword mslBuiltin time_epoch_ms time_epoch_sec time_iso8601 
 syn keyword mslBuiltin str_split str_replace str_contains str_has_prefix str_has_suffix str_lower str_upper str_trim str_slice str_find str_index str_fmt
 syn keyword mslBuildin fs_exists fs_mkdir fs_rm fs_ls fs_read fs_write fs_append
