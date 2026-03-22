@@ -45,14 +45,11 @@ Value value_to_string_fn(LocationRef where, Stack *stack, VMHeap *heap);
 Value vmassert(LocationRef where, Stack *stack, VMHeap *heap);
 Value vmassert_type(LocationRef where, Stack *stack, VMHeap *heap);
 
-Value file_read(LocationRef where, Stack *stack, VMHeap *heap);
-Value file_write(LocationRef where, Stack *stack, VMHeap *heap);
-Value file_append(LocationRef where, Stack *stack, VMHeap *heap);
-
 Value process_args(LocationRef where, Stack *stack, VMHeap *heap);
 
-Value sys_env(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_env_get(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exit(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_now(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exec(LocationRef where, Stack *stack, VMHeap *heap);
 
 Value random_int(LocationRef where, Stack *stack, VMHeap *heap);
@@ -78,7 +75,9 @@ Value fs_exists(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_mkdir(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_rm(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_ls(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_now(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_read(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_write(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_append(LocationRef where, Stack *stack, VMHeap *heap);
 
 Value bit_shift_left(LocationRef where, Stack *stack, VMHeap *heap);
 Value bit_shift_right(LocationRef where, Stack *stack, VMHeap *heap);
@@ -138,32 +137,22 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_STR.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_ASSERT.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_ASSERTTYPE.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_FILE_READ.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_FILE_WRITE.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_FILE_APPEND.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_SYS_ENV.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_PROCESS_ARGS.index,
-     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FS_READ.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FS_WRITE.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_FS_APPEND.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_SYS_ENV_GET.index, ArgsCount(1, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_PROCESS_ARGS.index, ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_EXIT.index, ArgsCount(1, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_SYS_EXEC.index,
-     ArgsCount(1, ArgsCountType::VARARGS)},
+    {Constants::BUILDIN_FN_SYS_EXEC.index, ArgsCount(1, ArgsCountType::VARARGS)},
     {Constants::BUILDIN_FN_RANDOM.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_TIME_EPOCH_MS.index,
-     ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_TIME_EPOCH_SEC.index,
-     ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_TIME_ISO8601.index,
-     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_EPOCH_MS.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_EPOCH_SEC.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_TIME_ISO8601.index, ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_SPLIT.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_REPLACE.index,
-     ArgsCount(3, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_CONTAINS.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_HAS_PREFIX.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_STR_HAS_SUFFIX.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_REPLACE.index, ArgsCount(3, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_CONTAINS.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_HAS_PREFIX.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_STR_HAS_SUFFIX.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_LOWER.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_UPPER.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_STR_TRIM.index, ArgsCount(1, ArgsCountType::ARGS)},
@@ -187,34 +176,24 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::BUILDIN_FN_FS_RM.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_FS_LS.index, ArgsCount(1, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_NOW.index, ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_BIT_SHIFT_LEFT.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_BIT_SHIFT_RIGHT.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_BIT_SHIFT_LEFT.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_BIT_SHIFT_RIGHT.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_BIT_OR.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_BIT_AND.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_BIT_XOR.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_LIST_SLICE.index, ArgsCount(3, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_LIST_REMOVE.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_LIST_CONTAINS.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_LIST_CONTAINS.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_RANGE.index, ArgsCount(2, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_ANSI_COLOR.index, ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_ANSI_RESET.index,
-     ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_RESET.index, ArgsCount(0, ArgsCountType::ARGS)},
     {Constants::BUILDIN_FN_SYS_IS_TTY.index, ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_SYS_HAS_COLOR.index,
-     ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_ANSI_SET_CURSOR.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_ANSI_MOVE_CURSOR.index,
-     ArgsCount(2, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_ANSI_CLEAR_LINE.index,
-     ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_ANSI_CLEAR_SCREEN.index,
-     ArgsCount(0, ArgsCountType::ARGS)},
-    {Constants::BUILDIN_FN_ANSI_CLEAR.index,
-     ArgsCount(1, ArgsCountType::ARGS)}};
+    {Constants::BUILDIN_FN_SYS_HAS_COLOR.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_SET_CURSOR.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_MOVE_CURSOR.index, ArgsCount(2, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_CLEAR_LINE.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_CLEAR_SCREEN.index, ArgsCount(0, ArgsCountType::ARGS)},
+    {Constants::BUILDIN_FN_ANSI_CLEAR.index, ArgsCount(1, ArgsCountType::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::BUILDIN_FN_PRINT.index, print},
@@ -239,10 +218,10 @@ static std::unordered_map<
            {Constants::BUILDIN_FN_STR.index, value_to_string_fn},
            {Constants::BUILDIN_FN_ASSERT.index, vmassert},
            {Constants::BUILDIN_FN_ASSERTTYPE.index, vmassert_type},
-           {Constants::BUILDIN_FN_FILE_READ.index, file_read},
-           {Constants::BUILDIN_FN_FILE_WRITE.index, file_write},
-           {Constants::BUILDIN_FN_FILE_APPEND.index, file_append},
-           {Constants::BUILDIN_FN_SYS_ENV.index, sys_env},
+           {Constants::BUILDIN_FN_FS_READ.index, fs_read},
+           {Constants::BUILDIN_FN_FS_WRITE.index, fs_write},
+           {Constants::BUILDIN_FN_FS_APPEND.index, fs_append},
+           {Constants::BUILDIN_FN_SYS_ENV_GET.index, sys_env_get},
            {Constants::BUILDIN_FN_PROCESS_ARGS.index, process_args},
            {Constants::BUILDIN_FN_SYS_EXIT.index, sys_exit},
            {Constants::BUILDIN_FN_SYS_EXEC.index, sys_exec},

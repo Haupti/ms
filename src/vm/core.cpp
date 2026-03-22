@@ -523,7 +523,7 @@ Value core::file_append(LocationRef where, Stack *stack, VMHeap *heap) {
   return Value::None();
 }
 
-Value core::sys_env(LocationRef where, Stack *stack, VMHeap *heap) {
+Value core::sys_env_get(LocationRef where, Stack *stack, VMHeap *heap) {
   Value name_val = stack->pop();
   if (name_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where,

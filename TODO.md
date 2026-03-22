@@ -13,12 +13,24 @@
 * [DONE] `str_find(s, sub)` - Return index of substring
 * [DONE] `str_index(s, i)` - Get character at index (as string)
 * [DONE] `str_fmt(fmt, ...)` - Basic string formatting
+* [DONE] `str_split(s, sep)`
+* [] `str_join(list, sep)`
+* [DONE] `str_trim(s)`
+* [] `str_trim_left(s)`, `str_trim_right(s)`
+* [DONE] `str_replace(s, old, new)`
+* [DONE] `str_contains(s, sub)`
+* [DONE] `str_starts_with(s, prefix)`, `str_ends_with(s, suffix)`
+* [] `str_regex_match(s, re)`, `str_regex_replace(s, re, new)`
 
 ### list operations
 * [DONE] `list_slice(l, start, end)`
 * [DONE] `list_remove(l, i)` - remove element at index
 * [DONE] `list_contains(l, val)`
 * [DONE] `range(i,j)` -> create a list of numbers including i but excluding j
+* [DONE] `list_append(l, val)` - add to end
+* [] `list_pop(l)` - remove and return last
+* [] `list_map(l, fn)`, `list_filter(l, fn)`, `list_reduce(l, fn, init)`
+* [] `list_sort(l)`
 
 ### tables
 * [] implement type `ValueTag::TABLE` (hash map)
@@ -26,27 +38,52 @@
 * [] `table_get(t, key)`
 * [] `table_set(t, key, val)`
 * [] `table_keys(t)` - return list of keys
+* [] `table_values(t)` - return list of values
 * [] `table_remove(t, key)`
+* [] `table_merge(t1, t2)`
 
 ### file system & system
 * [DONE] `fs_exists(path)`
 * [DONE] `fs_mkdir(path)`
 * [DONE] `fs_rm(path)`
 * [DONE] `fs_ls(path)` - list directory contents
+* [DONE] `fs_read(path)` - read entire file to string
+* [DONE] `fs_write(path, content)` - write string to file
+* [DONE] `fs_append(path, content)` - append string to file
+* [] `fs_stat(path)` - return table with size, mtime, is_dir, etc.
+* [] `fs_copy(src, dst)`
+* [] `fs_move(src, dst)`
+* [] `fs_glob(pattern)` - find paths matching pattern
+
 * [DONE] `sys_now()` - high-res timestamp
+* [DONE] `sys_exec(cmd, args)` - run command, return {exit_code, stdout, stderr}
+* [] `sys_spawn(cmd, args)` - run command in background, return pid/handle
+* [DONE] `sys_env_get(key)`, `sys_env_set(key, val)`
+* [] `sys_env()` - return table of all environment variables
+* [DONE] `process_args()` - return list of command line arguments passed to script
+* [DONE] `sys_exit(code)`
+* [] `sys_sleep(ms)`
+* [] `sys_signal_handle(signal, fn)`
+* [] `str_quote_shell(s)` - quote string for use in shell commands
 
 ### encoding
 * [] `table_to_json(t)`, `table_from_json(json_string)`
 * [] `str_url_encode(s)`, `str_url_decode(s)`
+* [] `base64_encode(s)`, `base64_decode(s)`
 
 ### binary
 * [DONE] `bit_shift_left(i, n)`, `bit_shift_right(i,n)`
 * [DONE] `bit_or(i, j)`, `bit_and(i, j)`, `bit_xor(i, j)`
+* [] `hex_encode(s)`, `hex_decode(s)`
 
 ### network
-* [] `http_request(r)` where r is a table
-* [] tcp / upd
-* [] database connection?
+* [] `http_request(method, url, body, headers)` -> returns table {status, body, headers}
+* [] `http_get(url)`, `http_post(url, body)` wrappers
+* [] `tcp_connect(host, port)` -> returns socket handle
+* [] `tcp_listen(port)` -> returns server socket handle
+* [] `socket_read(s, n)`, `socket_write(s, data)`, `socket_close(s)`
+* [] `dns_resolve(host)`
+* [] database connection? (e.g. sqlite_open(path))
 
 ### terminal support stuff
 * [DONE] ansi colors
@@ -54,9 +91,18 @@
 * [DONE] ansi clears (line, screen, ...)
 * [DONE] ansi cursor controls
 * [DONE] terminal informations e.g. which terminal? which colors? etc
+* [] `term_width()`, `term_height()`
+* [DONE] `term_is_tty()`
+* [] `term_is_atty()`
+
+### time
+* [] `time_parse(s, fmt)`, `time_format(t, fmt)`
+* [DONE] `time_epoch_sec()`, `time_epoch_ms()`
+* [DONE] `time_iso8601()`
 
 ### other
 * [] coroutines? that is wyld but would be fun
+* [] `path_join(...)`, `path_base(p)`, `path_dir(p)`, `path_ext(p)`
 
 ## language & vm features
 * [DONE] verify variables and functions that are referenced actually exist
@@ -66,6 +112,10 @@
 * [] `while` loop
 * [] structs or records for grouping data
 * [DONE] garbage collection
+* [] optional/default arguments for functions
+* [] string interpolation e.g. `"hello {name}"`
+* [] improved stack traces on error
+* [] debugger support (step by step execution)
 
 ## flags/marcros set by the compiler
 * [DONE] filename macro replaced at compile time with the LocationRef's filename

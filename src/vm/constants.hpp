@@ -41,17 +41,22 @@ static const InternedString BUILDIN_FN_FLOAT = create_interned_string("float");
 static const InternedString BUILDIN_FN_STR = create_interned_string("str");
 static const InternedString BUILDIN_FN_ASSERT = create_interned_string("assert");
 static const InternedString BUILDIN_FN_ASSERTTYPE = create_interned_string("assert_type");
-static const InternedString BUILDIN_FN_FILE_READ = create_interned_string("file_read");
-static const InternedString BUILDIN_FN_FILE_WRITE = create_interned_string("file_write");
-static const InternedString BUILDIN_FN_FILE_APPEND = create_interned_string("file_append");
-static const InternedString BUILDIN_FN_SYS_ENV = create_interned_string("sys_env");
+
 static const InternedString BUILDIN_FN_PROCESS_ARGS = create_interned_string("process_args");
+
+static const InternedString BUILDIN_FN_SYS_ENV_GET = create_interned_string("sys_env_get");
 static const InternedString BUILDIN_FN_SYS_EXIT = create_interned_string("sys_exit");
 static const InternedString BUILDIN_FN_SYS_EXEC = create_interned_string("sys_exec");
+static const InternedString BUILDIN_FN_SYS_NOW = create_interned_string("sys_now");
+static const InternedString BUILDIN_FN_SYS_IS_TTY = create_interned_string("sys_is_tty");
+static const InternedString BUILDIN_FN_SYS_HAS_COLOR = create_interned_string("sys_has_color");
+
 static const InternedString BUILDIN_FN_RANDOM = create_interned_string("random");
+
 static const InternedString BUILDIN_FN_TIME_EPOCH_MS = create_interned_string("time_epoch_ms");
 static const InternedString BUILDIN_FN_TIME_EPOCH_SEC = create_interned_string("time_epoch_sec");
 static const InternedString BUILDIN_FN_TIME_ISO8601 = create_interned_string("time_iso8601");
+
 static const InternedString BUILDIN_FN_STR_SPLIT = create_interned_string("str_split");
 static const InternedString BUILDIN_FN_STR_REPLACE = create_interned_string("str_replace");
 static const InternedString BUILDIN_FN_STR_CONTAINS = create_interned_string("str_contains");
@@ -60,6 +65,10 @@ static const InternedString BUILDIN_FN_STR_HAS_SUFFIX = create_interned_string("
 static const InternedString BUILDIN_FN_STR_LOWER = create_interned_string("str_lower");
 static const InternedString BUILDIN_FN_STR_UPPER = create_interned_string("str_upper");
 static const InternedString BUILDIN_FN_STR_TRIM = create_interned_string("str_trim");
+static const InternedString BUILDIN_FN_STR_SLICE = create_interned_string("str_slice");
+static const InternedString BUILDIN_FN_STR_FIND = create_interned_string("str_find");
+static const InternedString BUILDIN_FN_STR_INDEX = create_interned_string("str_index");
+static const InternedString BUILDIN_FN_STR_FMT = create_interned_string("str_fmt");
 
 static const InternedString BUILDIN_FN_MATH_ABS = create_interned_string("math_abs");
 static const InternedString BUILDIN_FN_MATH_FLOOR = create_interned_string("math_floor");
@@ -73,16 +82,13 @@ static const InternedString BUILDIN_FN_MATH_TAN = create_interned_string("math_t
 static const InternedString BUILDIN_FN_MATH_LOG = create_interned_string("math_log");
 static const InternedString BUILDIN_FN_MATH_EXP = create_interned_string("math_exp");
 
-static const InternedString BUILDIN_FN_STR_SLICE = create_interned_string("str_slice");
-static const InternedString BUILDIN_FN_STR_FIND = create_interned_string("str_find");
-static const InternedString BUILDIN_FN_STR_INDEX = create_interned_string("str_index");
-static const InternedString BUILDIN_FN_STR_FMT = create_interned_string("str_fmt");
-
 static const InternedString BUILDIN_FN_FS_EXISTS = create_interned_string("fs_exists");
 static const InternedString BUILDIN_FN_FS_MKDIR = create_interned_string("fs_mkdir");
 static const InternedString BUILDIN_FN_FS_RM = create_interned_string("fs_rm");
 static const InternedString BUILDIN_FN_FS_LS = create_interned_string("fs_ls");
-static const InternedString BUILDIN_FN_SYS_NOW = create_interned_string("sys_now");
+static const InternedString BUILDIN_FN_FS_READ = create_interned_string("fs_read");
+static const InternedString BUILDIN_FN_FS_WRITE = create_interned_string("fs_write");
+static const InternedString BUILDIN_FN_FS_APPEND = create_interned_string("fs_append");
 
 static const InternedString BUILDIN_FN_BIT_SHIFT_LEFT = create_interned_string("bit_shift_left");
 static const InternedString BUILDIN_FN_BIT_SHIFT_RIGHT = create_interned_string("bit_shift_right");
@@ -94,10 +100,9 @@ static const InternedString BUILDIN_FN_LIST_SLICE = create_interned_string("list
 static const InternedString BUILDIN_FN_LIST_REMOVE = create_interned_string("list_remove");
 static const InternedString BUILDIN_FN_LIST_CONTAINS = create_interned_string("list_contains");
 static const InternedString BUILDIN_FN_RANGE = create_interned_string("range");
+
 static const InternedString BUILDIN_FN_ANSI_COLOR = create_interned_string("ansi_color");
 static const InternedString BUILDIN_FN_ANSI_RESET = create_interned_string("ansi_reset");
-static const InternedString BUILDIN_FN_SYS_IS_TTY = create_interned_string("sys_is_tty");
-static const InternedString BUILDIN_FN_SYS_HAS_COLOR = create_interned_string("sys_has_color");
 static const InternedString BUILDIN_FN_ANSI_SET_CURSOR = create_interned_string("ansi_set_cursor");
 static const InternedString BUILDIN_FN_ANSI_MOVE_CURSOR = create_interned_string("ansi_move_cursor");
 static const InternedString BUILDIN_FN_ANSI_CLEAR_LINE = create_interned_string("ansi_clear_line");
