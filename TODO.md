@@ -61,8 +61,8 @@
 ## language & vm features
 * [DONE] verify variables and functions that are referenced actually exist
 * [DONE] `for` loop 
-* [] `break` loop keyword
-* [] `continue` loop keyword
+* [DONE] `break` loop keyword
+* [DONE] `continue` loop keyword
 * [] `while` loop
 * [] structs or records for grouping data
 * [DONE] garbage collection

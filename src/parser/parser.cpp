@@ -435,6 +435,8 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::RETURN:
   case TokenTag::FOR:
   case TokenTag::IN:
+  case TokenTag::CONTINUE:
+  case TokenTag::BREAK:
     return left;
   }
 }
@@ -442,6 +444,16 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
 node_idx parse_expression_lazy(Parser *p) {
   Token t = p->peek();
   switch (t.tag) {
+  case TokenTag::CONTINUE: {
+    Node node = make_node(t.location, NodeTag::CONTINUE);
+    p->adv();
+    return p->nodes.add_dangling(node);
+  } break;
+  case TokenTag::BREAK: {
+    Node node = make_node(t.location, NodeTag::BREAK);
+    p->adv();
+    return p->nodes.add_dangling(node);
+  } break;
   case TokenTag::INT: {
     Node node = make_node(t.location, NodeTag::LITERAL_INT, t.as.INT);
     p->adv();
@@ -857,6 +869,10 @@ node_idx parse_one(Parser *p) {
     return parse_expression_eager(p);
   case TokenTag::IN:
     throw compile_error(token.location, "unexpected token");
+  case TokenTag::CONTINUE:
+    return parse_expression_lazy(p);
+  case TokenTag::BREAK:
+    return parse_expression_lazy(p);
   }
 }
 }; // namespace

@@ -20,6 +20,8 @@ enum class TokenTag : uint8_t {
   TRY,
   EXPECT,
   RETURN,
+  CONTINUE,
+  BREAK,
   FOR,
   IN,
   ASSIGN,
@@ -148,5 +150,9 @@ inline std::string token_to_string(const Token &token) {
     return "for";
   case TokenTag::IN:
     return "in";
+  case TokenTag::CONTINUE:
+    return "continue";
+  case TokenTag::BREAK:
+    return "break";
   }
 }

@@ -20,6 +20,17 @@ struct IRContext {
   std::unordered_map<uint64_t, uint16_t> function_args;
   IRContext *parent = nullptr;
 
+  Label start_label;
+  Label end_label;
+  bool is_in_loop;
+
+  void enter_loop(Label start_label, Label end_label) {
+    this->start_label = start_label;
+    this->end_label = end_label;
+    this->is_in_loop = true;
+  }
+  void exit_loop() { this->is_in_loop = false; }
+
   uint64_t next_jmp_idx() { return jmp_label_counter++; }
   void add(const IRInstr &instr) { instructions.push_back(instr); }
   void add_function(LocationRef where, InternedString fn_name,
@@ -291,6 +302,20 @@ void compile_ir_return(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr instr = ir_new(curr.start, IRTag::RETURN);
   ctx->add(instr);
 }
+void compile_ir_continue(IRContext *ctx, Node curr) {
+  if (!ctx->is_in_loop) {
+    throw compile_error(curr.start, "'continue' is not allowed here");
+  }
+  IRInstr instr = ir_new_jump(curr.start, IRTag::JMP, ctx->start_label);
+  ctx->add(instr);
+}
+void compile_ir_break(IRContext *ctx, Node curr) {
+  if (!ctx->is_in_loop) {
+    throw compile_error(curr.start, "'break' is not allowed here");
+  }
+  IRInstr instr = ir_new_jump(curr.start, IRTag::JMP, ctx->end_label);
+  ctx->add(instr);
+}
 void compile_ir_try(IRContext *ctx, nodes *ns, Node curr) {
   compile_one(ctx, ns, ns->nth_child(curr, 0), false);
   IRInstr dup = ir_new(curr.start, IRTag::DUP);
@@ -534,6 +559,7 @@ void compile_ir_if(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
 void compile_ir_for(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   Label label_start = create_next_label("START_LOOP");
   Label label_end = create_next_label("END_LOOP");
+  ctx->enter_loop(label_start, label_end);
 
   node_idx list_expr = ns->nth_child(curr_idx, 0);
   compile_one(ctx, ns, list_expr, false);                     // list to iterate
@@ -545,6 +571,8 @@ void compile_ir_for(IRContext *ctx, nodes *ns, node_idx curr_idx, Node curr) {
   ctx->add(ir_new_jump(curr.start, IRTag::JMP, label_start)); // repeat
   ctx->add(ir_new_label(curr.start, label_end));              // end
   ctx->add(ir_new(curr.start, IRTag::SCOPE_END));             // scope end
+
+  ctx->exit_loop();
 }
 
 // standalone flag must be true if this is not used by anything
@@ -702,6 +730,12 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
       break;
     case NodeTag::RETURN:
       compile_ir_return(ctx, ns, curr);
+      break;
+    case NodeTag::CONTINUE:
+      compile_ir_continue(ctx, curr);
+      break;
+    case NodeTag::BREAK:
+      compile_ir_break(ctx, curr);
       break;
     case NodeTag::TRY:
       compile_ir_try(ctx, ns, curr);

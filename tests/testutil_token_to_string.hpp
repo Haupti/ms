@@ -102,5 +102,9 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return "for";
   case PpTokenTag::IN:
     return "in";
+  case PpTokenTag::CONTINUE:
+    return "continue";
+  case PpTokenTag::BREAK:
+    return "break";
   }
 }

@@ -227,6 +227,10 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::IN);
   } else if (value == "none") {
     return build_pptoken(get_location(t, start), PpTokenTag::NONE);
+  } else if (value == "continue") {
+    return build_pptoken(get_location(t, start), PpTokenTag::CONTINUE);
+  } else if (value == "break") {
+    return build_pptoken(get_location(t, start), PpTokenTag::BREAK);
   } else {
     return build_pptoken_identifier(get_location(t, start),
                                     create_interned_string(value));

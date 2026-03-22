@@ -192,6 +192,12 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
   case PpTokenTag::RETURN:
     token.tag = TokenTag::RETURN;
     return token;
+  case PpTokenTag::CONTINUE:
+    token.tag = TokenTag::CONTINUE;
+    return token;
+  case PpTokenTag::BREAK:
+    token.tag = TokenTag::BREAK;
+    return token;
   case PpTokenTag::FOR:
     token.tag = TokenTag::FOR;
     return token;

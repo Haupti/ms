@@ -44,6 +44,8 @@ enum class NodeTag : uint8_t {
   FOR_LOOP,
   TRY,
   EXPECT,
+  CONTINUE,
+  BREAK,
   // INTERNAL_ prefixed tags are for internal structuring of nodes
   INTERNAL_PARTIAL_CONDITION,
   INTERNAL_PARTIAL_DEFAULT_CONDITION,

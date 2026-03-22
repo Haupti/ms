@@ -110,6 +110,13 @@ inline std::string show_node(const Node &node) {
     break;
   case NodeTag::FOR_LOOP:
     s += " FOR " + resolve_interned_string(node.as.IDENTIFIER);
+    break;
+  case NodeTag::CONTINUE:
+    s += " CONTINUE ";
+    break;
+  case NodeTag::BREAK:
+    s += " BREAK ";
+    break;
   }
   s += ":\n";
   if (node.tag != NodeTag::NIL) {
