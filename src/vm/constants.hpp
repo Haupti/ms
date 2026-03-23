@@ -51,6 +51,8 @@ static const InternedString CORE_FN_SYS_NOW = create_interned_string("sys_now");
 static const InternedString CORE_FN_SYS_IS_TTY = create_interned_string("sys_is_tty");
 static const InternedString CORE_FN_SYS_HAS_COLOR = create_interned_string("sys_has_color");
 static const InternedString CORE_FN_SYS_SLEEP = create_interned_string("sys_sleep");
+static const InternedString CORE_FN_SYS_TERM_WIDTH = create_interned_string("sys_term_width");
+static const InternedString CORE_FN_SYS_TERM_HEIGHT = create_interned_string("sys_term_height");
 
 static const InternedString CORE_FN_RANDOM = create_interned_string("random");
 
@@ -66,6 +68,8 @@ static const InternedString CORE_FN_STR_HAS_SUFFIX = create_interned_string("str
 static const InternedString CORE_FN_STR_LOWER = create_interned_string("str_lower");
 static const InternedString CORE_FN_STR_UPPER = create_interned_string("str_upper");
 static const InternedString CORE_FN_STR_TRIM = create_interned_string("str_trim");
+static const InternedString CORE_FN_STR_TRIM_LEFT = create_interned_string("str_trim_left");
+static const InternedString CORE_FN_STR_TRIM_RIGHT = create_interned_string("str_trim_right");
 static const InternedString CORE_FN_STR_SLICE = create_interned_string("str_slice");
 static const InternedString CORE_FN_STR_FIND = create_interned_string("str_find");
 static const InternedString CORE_FN_STR_INDEX = create_interned_string("str_index");

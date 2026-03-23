@@ -61,6 +61,10 @@ Value sys_exit(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_now(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_exec(LocationRef where, Stack *stack, VMHeap *heap);
 Value sys_sleep(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_term_height(LocationRef ref, Stack *, VMHeap *heap);
+Value sys_term_width(LocationRef ref, Stack *, VMHeap *heap);
+Value sys_is_tty(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_has_color(LocationRef where, Stack *stack, VMHeap *heap);
 
 Value random_int(LocationRef where, Stack *stack, VMHeap *heap);
 
@@ -76,6 +80,8 @@ Value str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_lower(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_upper(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_trim(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_trim_left(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_trim_right(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_slice(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_find(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_index(LocationRef where, Stack *stack, VMHeap *heap);
@@ -109,8 +115,6 @@ Value math_exp(LocationRef where, Stack *stack, VMHeap *heap);
 
 Value ansi_color(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_reset(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_is_tty(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_has_color(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_move_cursor(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_clear_line(LocationRef where, Stack *stack, VMHeap *heap);
@@ -155,6 +159,8 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_SYS_IS_TTY.index, ArgsCount(0, ArgsT::ARGS)},
     {Constants::CORE_FN_SYS_HAS_COLOR.index, ArgsCount(0, ArgsT::ARGS)},
     {Constants::CORE_FN_SYS_SLEEP.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_SYS_TERM_WIDTH.index, ArgsCount(0, ArgsT::ARGS)},
+    {Constants::CORE_FN_SYS_TERM_HEIGHT.index, ArgsCount(0, ArgsT::ARGS)},
     {Constants::CORE_FN_RANDOM.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_TIME_EPOCH_MS.index, ArgsCount(0, ArgsT::ARGS)},
     {Constants::CORE_FN_TIME_EPOCH_SEC.index, ArgsCount(0, ArgsT::ARGS)},
@@ -167,6 +173,8 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_STR_LOWER.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_STR_UPPER.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_STR_TRIM.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_STR_TRIM_LEFT.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_STR_TRIM_RIGHT.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_STR_SLICE.index, ArgsCount(3, ArgsT::ARGS)},
     {Constants::CORE_FN_STR_FIND.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_STR_INDEX.index, ArgsCount(2, ArgsT::ARGS)},
@@ -237,6 +245,8 @@ static std::unordered_map<
            {Constants::CORE_FN_SYS_IS_TTY.index, sys_is_tty},
            {Constants::CORE_FN_SYS_HAS_COLOR.index, sys_has_color},
            {Constants::CORE_FN_SYS_SLEEP.index, sys_sleep},
+           {Constants::CORE_FN_SYS_TERM_WIDTH.index, sys_term_width},
+           {Constants::CORE_FN_SYS_TERM_HEIGHT.index, sys_term_height},
            {Constants::CORE_FN_RANDOM.index, random_int},
            {Constants::CORE_FN_TIME_EPOCH_MS.index, time_epoch_ms},
            {Constants::CORE_FN_TIME_EPOCH_SEC.index, time_epoch_sec},
@@ -249,6 +259,8 @@ static std::unordered_map<
            {Constants::CORE_FN_STR_LOWER.index, str_lower},
            {Constants::CORE_FN_STR_UPPER.index, str_upper},
            {Constants::CORE_FN_STR_TRIM.index, str_trim},
+           {Constants::CORE_FN_STR_TRIM_LEFT.index, str_trim_left},
+           {Constants::CORE_FN_STR_TRIM_RIGHT.index, str_trim_right},
            {Constants::CORE_FN_STR_SLICE.index, str_slice},
            {Constants::CORE_FN_STR_FIND.index, str_find},
            {Constants::CORE_FN_STR_INDEX.index, str_index},

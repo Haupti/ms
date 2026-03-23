@@ -16,7 +16,7 @@
 * [DONE] `str_split(s, sep)`
 * [] `str_join(list, sep)`
 * [DONE] `str_trim(s)`
-* [] `str_trim_left(s)`, `str_trim_right(s)`
+* [DONE] `str_trim_left(s)`, `str_trim_right(s)`
 * [DONE] `str_replace(s, old, new)`
 * [DONE] `str_contains(s, sub)`
 * [DONE] `str_starts_with(s, prefix)`, `str_ends_with(s, suffix)`
@@ -91,9 +91,8 @@
 * [DONE] ansi clears (line, screen, ...)
 * [DONE] ansi cursor controls
 * [DONE] terminal informations e.g. which terminal? which colors? etc
-* [] `term_width()`, `term_height()`
+* [DONE] `term_width()`, `term_height()`
 * [DONE] `term_is_tty()`
-* [] `term_is_atty()`
 
 ### time
 * [] `time_parse(s, fmt)`, `time_format(t, fmt)`
@@ -109,6 +108,7 @@
 * [DONE] `for` loop 
 * [DONE] `break` loop keyword
 * [DONE] `continue` loop keyword
+* [] string escape codes for newline, tab, quotes
 * [] `while` loop
 * [] structs or records for grouping data
 * [DONE] garbage collection

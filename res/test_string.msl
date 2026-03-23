@@ -19,4 +19,13 @@ assert_eq(str_fmt("The number is {}", 42), "The number is 42", "str_fmt with int
 assert_eq(str_fmt("Pi is approx. {}", 3.14), "Pi is approx. 3.140000", "str_fmt with float")
 assert_eq(str_fmt("No args here"), "No args here", "str_fmt no args")
 
+; Test str_trim*
+assert_eq(str_trim("No args here"), "No args here", "str_trim no args")
+assert_eq(str_trim(" No args here "), "No args here", "str_trim no args")
+assert_eq(str_trim_left("No args here"), "No args here", "str_trim_left no args")
+assert_eq(str_trim_left(" No args here "), "No args here ", "str_trim_left no args")
+assert_eq(str_trim_right("No args here"), "No args here", "str_trim_right no args")
+assert_eq(str_trim_right(" No args here "), " No args here", "str_trim_right no args")
+
+
 print("All string tests passed!")

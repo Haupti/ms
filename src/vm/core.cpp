@@ -1,6 +1,7 @@
 #include "core.hpp"
 #include "../../lib/asap/util.hpp"
 #include "../msl_runtime_error.hpp"
+#include "core_utils.hpp"
 #include "stack.hpp"
 #include <algorithm>
 #include <chrono>
@@ -746,6 +747,30 @@ Value core::str_trim(LocationRef where, Stack *stack, VMHeap *heap) {
           s.end());
   return heap->add_string(s);
 }
+Value core::str_trim_left(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected string for str_trim_left");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+            return !std::isspace(ch);
+          }));
+  return heap->add_string(s);
+}
+Value core::str_trim_right(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected string for str_trim_right");
+  }
+  std::string s = heap->get_string(str_val.as.STRING);
+  s.erase(std::find_if(s.rbegin(), s.rend(),
+                       [](unsigned char ch) { return !std::isspace(ch); })
+              .base(),
+          s.end());
+  return heap->add_string(s);
+}
+
 Value core::vmassert(LocationRef where, Stack *stack, VMHeap *) {
   Value value = stack->pop();
   if (!core::as_bool(where, value)) {
@@ -1254,6 +1279,25 @@ Value core::sys_has_color(LocationRef, Stack *, VMHeap *) {
   }
 
   return Value::Symbol(Constants::SYM_FALSE);
+}
+
+Value core::sys_term_width(LocationRef, Stack *, VMHeap *heap) {
+  core_utils::TerminalSize size = core_utils::get_terminal_size();
+  if (size.success) {
+    return Value::Int(size.width);
+  } else {
+    return Value::Error(
+        heap->ref_add_string("failed to get terminal dimensions"));
+  }
+}
+Value core::sys_term_height(LocationRef, Stack *, VMHeap *heap) {
+  core_utils::TerminalSize size = core_utils::get_terminal_size();
+  if (size.success) {
+    return Value::Int(size.height);
+  } else {
+    return Value::Error(
+        heap->ref_add_string("failed to get terminal dimensions"));
+  }
 }
 
 Value core::ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *) {
