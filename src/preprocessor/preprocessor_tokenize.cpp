@@ -80,14 +80,43 @@ PreprocessorToken tokenize_number(Tokenizer *t) {
   }
 }
 PreprocessorToken tokenize_string(Tokenizer *t) {
-  tok_adv(t);
   uint64_t start = t->pos;
-  while (tok_peek(t) != '"') {
-    tok_adv(t);
-  }
-  string value = t->code.substr(start, t->pos - start);
   tok_adv(t);
-  return build_pptoken_string(get_location(t, start - 1),
+  string value;
+  while (!tok_eof(t) && tok_peek(t) != '"') {
+    char c = tok_peek(t);
+    if (c == '\\') {
+      tok_adv(t);
+      if (tok_eof(t)) {
+        throw compile_error(get_location(t, start), "unclosed string literal");
+      }
+      char next = tok_peek(t);
+      if (next == 'n') {
+        value += '\n';
+      } else if (next == 't') {
+        value += '\t';
+      } else if (next == 'r') {
+        value += '\r';
+      } else if (next == '"') {
+        value += '"';
+      } else if (next == '\\') {
+        value += '\\';
+      } else {
+        throw compile_error(get_location(t, t->pos - 1),
+                            "invalid escape sequence '\\" + string(1, next) +
+                                "'");
+      }
+      tok_adv(t);
+    } else {
+      value += c;
+      tok_adv(t);
+    }
+  }
+  if (tok_eof(t)) {
+    throw compile_error(get_location(t, start), "unclosed string literal");
+  }
+  tok_adv(t);
+  return build_pptoken_string(get_location(t, start),
                               create_interned_string(value));
 }
 PreprocessorToken tokenize_symbol(Tokenizer *t) {

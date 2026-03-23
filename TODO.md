@@ -19,8 +19,13 @@
 * [DONE] `str_replace(s, old, new)`
 * [DONE] `str_contains(s, sub)`
 * [DONE] `str_starts_with(s, prefix)`, `str_ends_with(s, suffix)`
-* [] `str_regex_match(s, re)`, `str_regex_replace(s, re, new)`
 * [] `str_join(list, sep)`
+
+### Regexp 
+* [] `regex_match(re, str)`
+* [] `regex_replace(re, new, str)`
+* [] `regex_has_match(re, str)`
+* [] `=~` operator which expects a string left and regexp right (also a string)
 
 ### list operations
 * [DONE] `list_slice(l, start, end)`
@@ -104,7 +109,7 @@
 * [DONE] `for` loop 
 * [DONE] `break` loop keyword
 * [DONE] `continue` loop keyword
-* [] string escape codes for newline, tab, quotes
+* [DONE] string escape codes for newline, tab, quotes
 * [] `while` loop
 * [] structs or records for grouping data
 * [DONE] garbage collection
