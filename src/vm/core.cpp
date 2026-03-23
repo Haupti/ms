@@ -28,121 +28,6 @@
 namespace {
 
 std::vector<std::string> msl_args;
-inline std::string type_to_string(ValueTag tag) {
-  switch (tag) {
-  case ValueTag::INT:
-    return "int";
-  case ValueTag::FLOAT:
-    return "float";
-  case ValueTag::SYMBOL:
-    return "symbol";
-  case ValueTag::STRING:
-    return "string";
-  case ValueTag::LIST:
-    return "list";
-  case ValueTag::ERROR:
-    return "error";
-  case ValueTag::NONE:
-    return "none";
-  case ValueTag::ITERATOR:
-    return "iterator";
-  }
-}
-
-inline Value create_error(VMHeap *heap, const std::string &str) {
-  return Value::Error(heap->ref_add_string(str));
-}
-
-Value type_to_symbol(const Value &value) {
-  switch (value.tag) {
-  case ValueTag::INT:
-    return (Value::Symbol(Constants::SYM_T_INT));
-  case ValueTag::FLOAT:
-    return (Value::Symbol(Constants::SYM_T_FLOAT));
-  case ValueTag::SYMBOL:
-    return (Value::Symbol(Constants::SYM_T_SYMBOL));
-  case ValueTag::STRING:
-    return (Value::Symbol(Constants::SYM_T_STRING));
-  case ValueTag::LIST:
-    return (Value::Symbol(Constants::SYM_T_LIST));
-  case ValueTag::ERROR:
-    return (Value::Symbol(Constants::SYM_T_ERROR));
-  case ValueTag::NONE:
-    return (Value::Symbol(Constants::SYM_T_NONE));
-  case ValueTag::ITERATOR:
-    return (Value::Symbol(Constants::SYM_T_ITERATOR));
-  }
-}
-ValueTag symbol_to_type(LocationRef where, const Symbol &symbol) {
-  if (symbol.index == Constants::SYM_T_INT.index) {
-    return ValueTag::INT;
-  } else if (symbol.index == Constants::SYM_T_FLOAT.index) {
-    return ValueTag::FLOAT;
-  } else if (symbol.index == Constants::SYM_T_STRING.index) {
-    return ValueTag::STRING;
-  } else if (symbol.index == Constants::SYM_T_SYMBOL.index) {
-    return ValueTag::SYMBOL;
-  } else if (symbol.index == Constants::SYM_T_NONE.index) {
-    return ValueTag::NONE;
-  } else if (symbol.index == Constants::SYM_T_LIST.index) {
-    return ValueTag::LIST;
-  } else if (symbol.index == Constants::SYM_T_ERROR.index) {
-    return ValueTag::ERROR;
-  } else if (symbol.index == Constants::SYM_T_ITERATOR.index) {
-    return ValueTag::ITERATOR;
-  } else {
-    throw msl_runtime_error(where, "'" + resolve_symbol(symbol) +
-                                       "' does not denote a type");
-  }
-}
-
-inline void assert_list(LocationRef where, Value value) {
-  if (value.tag != ValueTag::LIST) {
-    throw msl_runtime_error(where, "expected a list but got a(n) " +
-                                       type_to_string(value.tag));
-  }
-}
-inline void assert_int(LocationRef where, Value value) {
-  if (value.tag != ValueTag::INT) {
-    throw msl_runtime_error(where, "expected an int but got a(n) " +
-                                       type_to_string(value.tag));
-  }
-}
-
-Value internal_copy_value(Stack *stack, VMHeap *heap, Value value) {
-  switch (value.tag) {
-  case ValueTag::INT:
-    return value;
-  case ValueTag::FLOAT:
-    return value;
-  case ValueTag::SYMBOL:
-    return value;
-  case ValueTag::STRING: {
-    std::string underlying_string = heap->get_string(value.as.STRING);
-    return heap->add_string(underlying_string);
-  } break;
-  case ValueTag::LIST: {
-    VMHIDX new_list = heap->new_list();
-    VMHIDX curr = heap->node_at(value.as.LIST)->first_child;
-    while (curr != INVALID) {
-      heap->add_child(new_list, heap->at(curr));
-      curr = heap->node_at(curr)->next_child;
-    }
-    return heap->at(new_list);
-  } break;
-  case ValueTag::ERROR: {
-    Value underlying_value = heap->at(value.as.ERROR);
-    VMHIDX underlying_value_idx =
-        heap->add(internal_copy_value(stack, heap, underlying_value));
-    return Value::Error(underlying_value_idx);
-  } break;
-  case ValueTag::NONE:
-    return value;
-  case ValueTag::ITERATOR:
-    // an iterator is a view into a list thus a copy stays the same
-    return value;
-  }
-}
 
 }; // namespace
 bool core::values_equal(VMHeap *heap, Value left, Value right) {
@@ -187,39 +72,8 @@ bool core::values_equal(VMHeap *heap, Value left, Value right) {
   }
 }
 
-std::string core::value_to_string(Stack *stack, VMHeap *heap, Value value) {
-  switch (value.tag) {
-  case ValueTag::INT:
-    return std::to_string(value.as.INT);
-  case ValueTag::FLOAT:
-    return std::to_string(value.as.FLOAT);
-  case ValueTag::SYMBOL:
-    return resolve_symbol(value.as.SYMBOL);
-  case ValueTag::STRING:
-    return heap->get_string(value.as.STRING);
-  case ValueTag::LIST: {
-    std::vector<std::string> args;
-    uint64_t i = 0;
-    Value val = heap->nth_child(value.as.LIST, i);
-    while (!val.undefined) {
-      args.push_back(value_to_string(stack, heap, val));
-      ++i;
-      val = heap->nth_child(value.as.LIST, i);
-    }
-    return "list(" + join(args, ",") + ")";
-  }
-  case ValueTag::ERROR:
-    return "error(" + value_to_string(stack, heap, heap->at(value.as.ERROR)) +
-           ")";
-  case ValueTag::NONE:
-    return "none";
-  case ValueTag::ITERATOR:
-    return "iterator(" + std::to_string(value.as.ITERATOR) + ")";
-  }
-}
-
 Value core::print(LocationRef, Stack *stack, VMHeap *heap) {
-  println(value_to_string(stack, heap, stack->pop()));
+  println(core_utils::value_to_string(stack, heap, stack->pop()));
   return Value::None();
 }
 Value core::make_error(LocationRef, Stack *stack, VMHeap *heap) {
@@ -228,7 +82,8 @@ Value core::make_error(LocationRef, Stack *stack, VMHeap *heap) {
 }
 [[noreturn]] Value core::vmpanic(LocationRef where, Stack *stack,
                                  VMHeap *heap) {
-  throw msl_runtime_error(where, value_to_string(stack, heap, stack->pop()));
+  throw msl_runtime_error(
+      where, core_utils::value_to_string(stack, heap, stack->pop()));
 }
 Value core::list(LocationRef, Stack *stack, VMHeap *heap) {
   int64_t args_count = stack->pop().as.INT;
@@ -240,39 +95,39 @@ Value core::list(LocationRef, Stack *stack, VMHeap *heap) {
 }
 Value core::list_at(LocationRef where, Stack *stack, VMHeap *heap) {
   Value index_value = stack->pop();
-  assert_int(where, index_value);
+  core_utils::assert_int(where, index_value);
   Value list_value = stack->pop();
-  assert_list(where, list_value);
+  core_utils::assert_list(where, list_value);
   return heap->nth_child(list_value.as.LIST, index_value.as.INT);
 }
 Value core::list_put(LocationRef where, Stack *stack, VMHeap *heap) {
   Value new_value = stack->pop();
   Value index_value = stack->pop();
-  assert_int(where, index_value);
+  core_utils::assert_int(where, index_value);
   Value list_value = stack->pop();
-  assert_list(where, list_value);
+  core_utils::assert_list(where, list_value);
   heap->set_nth_child(list_value.as.LIST, index_value.as.INT, new_value);
   return Value::None();
 }
 Value core::list_append(LocationRef where, Stack *stack, VMHeap *heap) {
   Value value = stack->pop();
   Value list = stack->pop();
-  assert_list(where, list);
+  core_utils::assert_list(where, list);
   heap->add_child(list.as.LIST, value);
   return list;
 }
 Value core::list_prepend(LocationRef where, Stack *stack, VMHeap *heap) {
   Value value = stack->pop();
   Value list = stack->pop();
-  assert_list(where, list);
+  core_utils::assert_list(where, list);
   heap->add_child_front(list.as.LIST, value);
   return list;
 }
 Value core::list_link(LocationRef where, Stack *stack, VMHeap *heap) {
   Value right_list = stack->pop();
-  assert_list(where, right_list);
+  core_utils::assert_list(where, right_list);
   Value left_list = stack->pop();
-  assert_list(where, left_list);
+  core_utils::assert_list(where, left_list);
   if (left_list.as.LIST == right_list.as.LIST) {
     throw msl_runtime_error(
         where,
@@ -288,9 +143,9 @@ Value core::list_slice(LocationRef where, Stack *stack, VMHeap *heap) {
   Value start_val = stack->pop();
   Value list_val = stack->pop();
 
-  assert_list(where, list_val);
-  assert_int(where, start_val);
-  assert_int(where, end_val);
+  core_utils::assert_list(where, list_val);
+  core_utils::assert_int(where, start_val);
+  core_utils::assert_int(where, end_val);
 
   int64_t start = start_val.as.INT;
   int64_t end = end_val.as.INT;
@@ -316,8 +171,8 @@ Value core::list_remove(LocationRef where, Stack *stack, VMHeap *heap) {
   Value index_val = stack->pop();
   Value list_val = stack->pop();
 
-  assert_list(where, list_val);
-  assert_int(where, index_val);
+  core_utils::assert_list(where, list_val);
+  core_utils::assert_int(where, index_val);
 
   int64_t index = index_val.as.INT;
   if (index < 0) {
@@ -360,7 +215,7 @@ Value core::list_contains(LocationRef where, Stack *stack, VMHeap *heap) {
   Value val = stack->pop();
   Value list_val = stack->pop();
 
-  assert_list(where, list_val);
+  core_utils::assert_list(where, list_val);
 
   VMHIDX curr = heap->node_at(list_val.as.LIST)->first_child;
   while (curr != INVALID) {
@@ -376,8 +231,8 @@ Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
   Value end_val = stack->pop();
   Value start_val = stack->pop();
 
-  assert_int(where, start_val);
-  assert_int(where, end_val);
+  core_utils::assert_int(where, start_val);
+  core_utils::assert_int(where, end_val);
 
   int64_t start = start_val.as.INT;
   int64_t end = end_val.as.INT;
@@ -391,11 +246,11 @@ Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
 
 Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
   Value value = stack->pop();
-  return internal_copy_value(stack, heap, value);
+  return core_utils::copy_value(stack, heap, value);
 }
 Value core::vmtypeof(LocationRef, Stack *stack, VMHeap *) {
   Value value = stack->pop();
-  return type_to_symbol(value);
+  return core_utils::type_to_symbol(value);
 }
 Value core::string_concat(LocationRef where, Stack *stack, VMHeap *heap) {
   Value right = stack->pop();
@@ -443,7 +298,8 @@ Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {
     }
   }
   default:
-    throw msl_runtime_error(where, "cannot convert " + type_to_string(val.tag) +
+    throw msl_runtime_error(where, "cannot convert " +
+                                       core_utils::type_to_string(val.tag) +
                                        " to int");
   }
 }
@@ -459,20 +315,21 @@ Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
     try {
       return Value::Float(std::stod(heap->get_string(val.as.STRING)));
     } catch (...) {
-      return create_error(heap, "could not convert '" +
-                                    heap->get_string(val.as.STRING) +
-                                    "' to float");
+      return core_utils::create_error(
+          heap, "could not convert '" + heap->get_string(val.as.STRING) +
+                    "' to float");
     }
   }
   default:
-    throw msl_runtime_error(where, "cannot convert " + type_to_string(val.tag) +
+    throw msl_runtime_error(where, "cannot convert " +
+                                       core_utils::type_to_string(val.tag) +
                                        " to float");
   }
 }
 
 Value core::value_to_string_fn(LocationRef, Stack *stack, VMHeap *heap) {
   Value val = stack->pop();
-  return heap->add_string(value_to_string(stack, heap, val));
+  return heap->add_string(core_utils::value_to_string(stack, heap, val));
 }
 
 Value core::fs_read(LocationRef where, Stack *stack, VMHeap *heap) {
@@ -542,7 +399,8 @@ Value core::sys_env_get(LocationRef where, Stack *stack, VMHeap *heap) {
 
 Value core::sys_sleep(LocationRef where, Stack *stack, VMHeap *) {
   Value ms_val = stack->pop();
-  std::this_thread::sleep_for(std::chrono::milliseconds(as_int(where, ms_val)));
+  std::this_thread::sleep_for(
+      std::chrono::milliseconds(core_utils::as_int(where, ms_val)));
   return Value::None();
 }
 
@@ -568,8 +426,9 @@ Value core::sys_exec(LocationRef, Stack *stack, VMHeap *heap) {
   int64_t args_count = stack->pop().as.INT;
   std::string command = "";
   for (int64_t i = 0; i < args_count; ++i) {
-    command =
-        value_to_string(stack, heap, stack->pop()).append(" ").append(command);
+    command = core_utils::value_to_string(stack, heap, stack->pop())
+                  .append(" ")
+                  .append(command);
   }
   int result = std::system(command.c_str());
   return Value::Int(result);
@@ -773,7 +632,7 @@ Value core::str_trim_right(LocationRef where, Stack *stack, VMHeap *heap) {
 
 Value core::vmassert(LocationRef where, Stack *stack, VMHeap *) {
   Value value = stack->pop();
-  if (!core::as_bool(where, value)) {
+  if (!core_utils::as_bool(where, value)) {
     throw msl_runtime_error(where, "assertion failed");
   }
   return Value::None();
@@ -784,13 +643,13 @@ Value core::vmassert_type(LocationRef where, Stack *stack, VMHeap *) {
   if (typeval.tag != ValueTag::SYMBOL) {
     throw msl_runtime_error(
         where, "expected a symbol as second argument but got a(n) " +
-                   type_to_string(typeval.tag));
+                   core_utils::type_to_string(typeval.tag));
   }
-  ValueTag expected = symbol_to_type(where, typeval.as.SYMBOL);
+  ValueTag expected = core_utils::symbol_to_type(where, typeval.as.SYMBOL);
   if (val.tag != expected) {
-    throw msl_runtime_error(where, "expected a " + type_to_string(expected) +
-                                       " but got " + type_to_string(val.tag) +
-                                       "");
+    throw msl_runtime_error(
+        where, "expected a " + core_utils::type_to_string(expected) +
+                   " but got " + core_utils::type_to_string(val.tag) + "");
   }
   return Value::None();
 }
@@ -1062,7 +921,7 @@ Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
         throw msl_runtime_error(where,
                                 "not enough arguments for format string");
       }
-      result += value_to_string(stack, heap, args[arg_idx]);
+      result += core_utils::value_to_string(stack, heap, args[arg_idx]);
       ++arg_idx;
       ++i; // Skip the '}'
     } else {
@@ -1095,11 +954,11 @@ Value core::fs_mkdir(LocationRef where, Stack *stack, VMHeap *heap) {
   std::string path = heap->get_string(path_val.as.STRING);
   try {
     if (!std::filesystem::create_directory(path)) {
-      return create_error(heap, "failed to create directory");
+      return core_utils::create_error(heap, "failed to create directory");
     }
   } catch (const std::filesystem::filesystem_error &e) {
-    return create_error(heap,
-                        "failed to create directory: " + std::string(e.what()));
+    return core_utils::create_error(heap, "failed to create directory: " +
+                                              std::string(e.what()));
   }
   return Value::None();
 }
@@ -1112,10 +971,11 @@ Value core::fs_rm(LocationRef where, Stack *stack, VMHeap *heap) {
   std::string path = heap->get_string(path_val.as.STRING);
   try {
     if (!std::filesystem::remove(path)) {
-      return create_error(heap, "file or directory not found");
+      return core_utils::create_error(heap, "file or directory not found");
     }
   } catch (const std::filesystem::filesystem_error &e) {
-    return create_error(heap, "failed to remove: " + std::string(e.what()));
+    return core_utils::create_error(heap, "failed to remove: " +
+                                              std::string(e.what()));
   }
   return Value::None();
 }
@@ -1132,8 +992,8 @@ Value core::fs_ls(LocationRef where, Stack *stack, VMHeap *heap) {
       heap->add_child(list_head, heap->add_string(entry.path().string()));
     }
   } catch (const std::filesystem::filesystem_error &e) {
-    return create_error(heap, "failed to list directory contents: " +
-                                  std::string(e.what()));
+    return core_utils::create_error(
+        heap, "failed to list directory contents: " + std::string(e.what()));
   }
   return heap->at(list_head);
 }
@@ -1149,40 +1009,40 @@ Value core::sys_now(LocationRef, Stack *, VMHeap *) {
 Value core::bit_shift_left(LocationRef where, Stack *stack, VMHeap *) {
   Value n = stack->pop(); // right
   Value i = stack->pop(); // left
-  assert_int(where, i);
-  assert_int(where, n);
+  core_utils::assert_int(where, i);
+  core_utils::assert_int(where, n);
   return Value::Int(i.as.INT << n.as.INT);
 }
 
 Value core::bit_shift_right(LocationRef where, Stack *stack, VMHeap *) {
   Value n = stack->pop(); // right
   Value i = stack->pop(); // left
-  assert_int(where, i);
-  assert_int(where, n);
+  core_utils::assert_int(where, i);
+  core_utils::assert_int(where, n);
   return Value::Int(i.as.INT >> n.as.INT);
 }
 
 Value core::bit_or(LocationRef where, Stack *stack, VMHeap *) {
   Value j = stack->pop(); // right
   Value i = stack->pop(); // left
-  assert_int(where, i);
-  assert_int(where, j);
+  core_utils::assert_int(where, i);
+  core_utils::assert_int(where, j);
   return Value::Int(i.as.INT | j.as.INT);
 }
 
 Value core::bit_and(LocationRef where, Stack *stack, VMHeap *) {
   Value j = stack->pop(); // right
   Value i = stack->pop(); // left
-  assert_int(where, i);
-  assert_int(where, j);
+  core_utils::assert_int(where, i);
+  core_utils::assert_int(where, j);
   return Value::Int(i.as.INT & j.as.INT);
 }
 
 Value core::bit_xor(LocationRef where, Stack *stack, VMHeap *) {
   Value j = stack->pop(); // right
   Value i = stack->pop(); // left
-  assert_int(where, i);
-  assert_int(where, j);
+  core_utils::assert_int(where, i);
+  core_utils::assert_int(where, j);
   return Value::Int(i.as.INT ^ j.as.INT);
 }
 
@@ -1286,8 +1146,7 @@ Value core::sys_term_width(LocationRef, Stack *, VMHeap *heap) {
   if (size.success) {
     return Value::Int(size.width);
   } else {
-    return Value::Error(
-        heap->ref_add_string("failed to get terminal dimensions"));
+    return core_utils::create_error(heap, "failed to get terminal dimensions");
   }
 }
 Value core::sys_term_height(LocationRef, Stack *, VMHeap *heap) {
@@ -1295,8 +1154,7 @@ Value core::sys_term_height(LocationRef, Stack *, VMHeap *heap) {
   if (size.success) {
     return Value::Int(size.height);
   } else {
-    return Value::Error(
-        heap->ref_add_string("failed to get terminal dimensions"));
+    return core_utils::create_error(heap, "failed to get terminal dimensions");
   }
 }
 

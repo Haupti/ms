@@ -14,13 +14,13 @@
 * [DONE] `str_index(s, i)` - Get character at index (as string)
 * [DONE] `str_fmt(fmt, ...)` - Basic string formatting
 * [DONE] `str_split(s, sep)`
-* [] `str_join(list, sep)`
 * [DONE] `str_trim(s)`
 * [DONE] `str_trim_left(s)`, `str_trim_right(s)`
 * [DONE] `str_replace(s, old, new)`
 * [DONE] `str_contains(s, sub)`
 * [DONE] `str_starts_with(s, prefix)`, `str_ends_with(s, suffix)`
 * [] `str_regex_match(s, re)`, `str_regex_replace(s, re, new)`
+* [] `str_join(list, sep)`
 
 ### list operations
 * [DONE] `list_slice(l, start, end)`
@@ -29,7 +29,6 @@
 * [DONE] `range(i,j)` -> create a list of numbers including i but excluding j
 * [DONE] `list_append(l, val)` - add to end
 * [] `list_pop(l)` - remove and return last
-* [] `list_map(l, fn)`, `list_filter(l, fn)`, `list_reduce(l, fn, init)`
 * [] `list_sort(l)`
 
 ### tables
@@ -57,14 +56,11 @@
 
 * [DONE] `sys_now()` - high-res timestamp
 * [DONE] `sys_exec(cmd, args)` - run command, return {exit_code, stdout, stderr}
-* [] `sys_spawn(cmd, args)` - run command in background, return pid/handle
 * [DONE] `sys_env_get(key)`, `sys_env_set(key, val)`
-* [] `sys_env()` - return table of all environment variables
 * [DONE] `process_args()` - return list of command line arguments passed to script
 * [DONE] `sys_exit(code)`
 * [DONE] `sys_sleep(ms)`
-* [] `sys_signal_handle(signal, fn)`
-* [] `str_quote_shell(s)` - quote string for use in shell commands
+* [] `sys_spawn(cmd, args)` - run command in background, return pid/handle
 
 ### encoding
 * [] `table_to_json(t)`, `table_from_json(json_string)`

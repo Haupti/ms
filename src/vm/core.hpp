@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../location.hpp"
-#include "../msl_runtime_error.hpp"
 #include "constants.hpp"
 #include "stack.hpp"
 #include "value_and_heap.hpp"
@@ -10,24 +9,6 @@
 #include <unordered_map>
 
 namespace core {
-inline bool as_bool(LocationRef ref, Value value) {
-  switch (value.tag) {
-  case ValueTag::SYMBOL:
-    return value.as.SYMBOL.index == Constants::SYM_TRUE.index;
-  default:
-    throw msl_runtime_error(ref, "expected a symbol");
-    break;
-  }
-}
-inline int64_t as_int(LocationRef ref, Value value) {
-  switch (value.tag) {
-  case ValueTag::INT:
-    return value.as.INT;
-  default:
-    throw msl_runtime_error(ref, "expected an integer");
-    break;
-  }
-}
 std::string value_to_string(Stack *stack, VMHeap *heap, Value value);
 bool values_equal(VMHeap *heap, Value left, Value right);
 

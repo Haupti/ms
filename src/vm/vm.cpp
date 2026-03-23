@@ -1,6 +1,7 @@
 #include "../msl_runtime_error.hpp"
 #include "constants.hpp"
 #include "core.hpp"
+#include "core_utils.hpp"
 #include "garbage_collection.hpp"
 #include "stack.hpp"
 #include "value_and_heap.hpp"
@@ -413,7 +414,7 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
     } break;
     case VMTag::NOT: {
       Value val = stack.pop();
-      if (core::as_bool(instr.where, val)) {
+      if (core_utils::as_bool(instr.where, val)) {
         stack.push(Value::Symbol(Constants::SYM_FALSE));
       } else {
         stack.push(Value::Symbol(Constants::SYM_TRUE));
@@ -548,14 +549,14 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       }
     } break;
     case VMTag::PEEK_JMPIF: {
-      if (core::as_bool(instr.where, stack.peek())) {
+      if (core_utils::as_bool(instr.where, stack.peek())) {
         iptr = instr.as.INSTRADDR.addr;
       } else {
         ++iptr;
       }
     } break;
     case VMTag::PEEK_JMPIFN: {
-      if (!core::as_bool(instr.where, stack.peek())) {
+      if (!core_utils::as_bool(instr.where, stack.peek())) {
         iptr = instr.as.INSTRADDR.addr;
       } else {
         ++iptr;
@@ -567,7 +568,7 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
     } break;
     case VMTag::JMPIFN: {
       Value val = stack.pop();
-      if (!core::as_bool(instr.where, val)) {
+      if (!core_utils::as_bool(instr.where, val)) {
         iptr = instr.as.INSTRADDR.addr;
       } else {
         ++iptr;
@@ -575,7 +576,7 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
     } break;
     case VMTag::JMPIF: {
       Value val = stack.pop();
-      if (core::as_bool(instr.where, val)) {
+      if (core_utils::as_bool(instr.where, val)) {
         iptr = instr.as.INSTRADDR.addr;
       } else {
         ++iptr;

@@ -3,7 +3,6 @@
 #include "../../lib/asap/util.hpp"
 #include "../interned_string.hpp"
 #include "../symbol.hpp"
-#include "stack.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>
