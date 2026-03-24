@@ -24,6 +24,14 @@ struct PpParser {
   uint64_t pos;
   uint64_t len;
 };
+
+void ppparser_add_include(PpParser *p, const std::string &path) {
+  p->includes->absolute_filepaths.insert(path);
+}
+bool ppparser_has_include(PpParser *p, const std::string &path) {
+  return p->includes->absolute_filepaths.count(path) > 0;
+}
+
 PpParser build_PpParser(const string &absolute_current_path,
                         IncludedModules *includes,
                         vector<PreprocessorToken> tokens, bool is_main) {
@@ -391,9 +399,10 @@ vector<Token> run_include(PpParser *p) {
   string absolute_filepath = filesystem::canonical(
       filesystem::path(p->absolute_filepath).parent_path() /
       resolve_interned_string(rel_path.as.STR));
-  if (p->includes->absolute_filepaths.count(absolute_filepath) > 0) {
+  if (ppparser_has_include(p, absolute_filepath)) {
     return vector<Token>({});
   } else {
+    ppparser_add_include(p, absolute_filepath);
     string content = read_file(absolute_filepath);
     return preprocess_pptokens(
         absolute_filepath, p->includes,
