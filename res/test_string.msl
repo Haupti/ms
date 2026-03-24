@@ -27,5 +27,8 @@ assert_eq(str_trim_left(" No args here "), "No args here ", "str_trim_left no ar
 assert_eq(str_trim_right("No args here"), "No args here", "str_trim_right no args")
 assert_eq(str_trim_right(" No args here "), " No args here", "str_trim_right no args")
 
+; Test escape codes
+print("\"\\\tsucc\ness")
+
 
 print("All string tests passed!")
