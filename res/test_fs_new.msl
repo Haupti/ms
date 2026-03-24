@@ -1,0 +1,31 @@
+$include "util_assertions.msl"
+
+let test_file = "test_fs_new_file.txt"
+let copy_file = "test_fs_new_file_copy.txt"
+let move_file = "test_fs_new_file_move.txt"
+
+; Cleanup
+if (fs_exists(test_file)) { fs_rm(test_file) }
+if (fs_exists(copy_file)) { fs_rm(copy_file) }
+if (fs_exists(move_file)) { fs_rm(move_file) }
+
+; Write a file
+fs_write(test_file, "hello filesystem")
+assert(fs_exists(test_file))
+
+; Copy the file
+fs_copy(test_file, copy_file)
+assert(fs_exists(copy_file))
+assert(fs_read(copy_file) == "hello filesystem")
+
+; Move the file
+fs_move(copy_file, move_file)
+assert(not fs_exists(copy_file))
+assert(fs_exists(move_file))
+assert(fs_read(move_file) == "hello filesystem")
+
+; Cleanup
+fs_rm(test_file)
+fs_rm(move_file)
+
+print("FS NEW TESTS PASSED")

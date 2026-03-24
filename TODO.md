@@ -46,7 +46,7 @@
 * [] `table_remove(t, key)`
 * [] `table_merge(t1, t2)`
 
-### file system & system
+### file system 
 * [DONE] `fs_exists(path)`
 * [DONE] `fs_mkdir(path)`
 * [DONE] `fs_rm(path)`
@@ -55,10 +55,10 @@
 * [DONE] `fs_write(path, content)` - write string to file
 * [DONE] `fs_append(path, content)` - append string to file
 * [] `fs_stat(path)` - return table with size, mtime, is_dir, etc.
-* [] `fs_copy(src, dst)`
-* [] `fs_move(src, dst)`
-* [] `fs_glob(pattern)` - find paths matching pattern
+* [DONE] `fs_copy(src, dst)`
+* [DONE] `fs_move(src, dst)`
 
+### system
 * [DONE] `sys_now()` - high-res timestamp
 * [DONE] `sys_exec(cmd, args)` - run command, return {exit_code, stdout, stderr}
 * [DONE] `sys_env_get(key)`, `sys_env_set(key, val)`

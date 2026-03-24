@@ -2,6 +2,7 @@ $iffset __MAIN__
 
 $include "util_assertions.msl"
 $include "test_fs.msl"
+$include "test_fs_new.msl"
 $include "test_math.msl"
 $include "test_string.msl"
 $include "test_loop.msl"

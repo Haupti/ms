@@ -998,6 +998,40 @@ Value core::fs_ls(LocationRef where, Stack *stack, VMHeap *heap) {
   return heap->at(list_head);
 }
 
+Value core::fs_copy(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value dst_val = stack->pop();
+  Value src_val = stack->pop();
+  if (src_val.tag != ValueTag::STRING || dst_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for src and dst paths");
+  }
+  std::string src = heap->get_string(src_val.as.STRING);
+  std::string dst = heap->get_string(dst_val.as.STRING);
+  try {
+    std::filesystem::copy(src, dst, std::filesystem::copy_options::recursive);
+  } catch (const std::filesystem::filesystem_error &e) {
+    return core_utils::create_error(heap,
+                                    "failed to copy: " + std::string(e.what()));
+  }
+  return Value::None();
+}
+
+Value core::fs_move(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value dst_val = stack->pop();
+  Value src_val = stack->pop();
+  if (src_val.tag != ValueTag::STRING || dst_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected strings for src and dst paths");
+  }
+  std::string src = heap->get_string(src_val.as.STRING);
+  std::string dst = heap->get_string(dst_val.as.STRING);
+  try {
+    std::filesystem::rename(src, dst);
+  } catch (const std::filesystem::filesystem_error &e) {
+    return core_utils::create_error(heap,
+                                    "failed to move: " + std::string(e.what()));
+  }
+  return Value::None();
+}
+
 Value core::sys_now(LocationRef, Stack *, VMHeap *) {
   auto now = std::chrono::high_resolution_clock::now();
   auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(

@@ -75,6 +75,8 @@ Value fs_ls(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_read(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_write(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_append(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_copy(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_move(LocationRef where, Stack *stack, VMHeap *heap);
 
 Value bit_shift_left(LocationRef where, Stack *stack, VMHeap *heap);
 Value bit_shift_right(LocationRef where, Stack *stack, VMHeap *heap);
@@ -178,6 +180,8 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_FS_MKDIR.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_FS_RM.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_FS_LS.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_FS_COPY.index, ArgsCount(2, ArgsT::ARGS)},
+    {Constants::CORE_FN_FS_MOVE.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_BIT_SHIFT_LEFT.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_BIT_SHIFT_RIGHT.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_BIT_OR.index, ArgsCount(2, ArgsT::ARGS)},
@@ -264,6 +268,8 @@ static std::unordered_map<
            {Constants::CORE_FN_FS_MKDIR.index, fs_mkdir},
            {Constants::CORE_FN_FS_RM.index, fs_rm},
            {Constants::CORE_FN_FS_LS.index, fs_ls},
+           {Constants::CORE_FN_FS_COPY.index, fs_copy},
+           {Constants::CORE_FN_FS_MOVE.index, fs_move},
            {Constants::CORE_FN_BIT_SHIFT_LEFT.index, bit_shift_left},
            {Constants::CORE_FN_BIT_SHIFT_RIGHT.index, bit_shift_right},
            {Constants::CORE_FN_BIT_OR.index, bit_or},

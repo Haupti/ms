@@ -94,6 +94,8 @@ static const InternedString CORE_FN_FS_LS = create_interned_string("fs_ls");
 static const InternedString CORE_FN_FS_READ = create_interned_string("fs_read");
 static const InternedString CORE_FN_FS_WRITE = create_interned_string("fs_write");
 static const InternedString CORE_FN_FS_APPEND = create_interned_string("fs_append");
+static const InternedString CORE_FN_FS_COPY = create_interned_string("fs_copy");
+static const InternedString CORE_FN_FS_MOVE = create_interned_string("fs_move");
 
 static const InternedString CORE_FN_BIT_SHIFT_LEFT = create_interned_string("bit_shift_left");
 static const InternedString CORE_FN_BIT_SHIFT_RIGHT = create_interned_string("bit_shift_right");
