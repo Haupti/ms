@@ -12,6 +12,7 @@
 #include <fstream>
 #include <iomanip>
 #include <random>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -539,7 +540,7 @@ Value core::str_contains(LocationRef where, Stack *stack, VMHeap *heap) {
   std::string s = heap->get_string(str_val.as.STRING);
   std::string sub = heap->get_string(sub_val.as.STRING);
   bool found = s.find(sub) != std::string::npos;
-  return Value::Symbol(found ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+  return core_utils::to_bool(found);
 }
 
 Value core::str_has_prefix(LocationRef where, Stack *stack, VMHeap *heap) {
@@ -551,7 +552,7 @@ Value core::str_has_prefix(LocationRef where, Stack *stack, VMHeap *heap) {
   std::string s = heap->get_string(str_val.as.STRING);
   std::string prefix = heap->get_string(prefix_val.as.STRING);
   bool res = s.compare(0, prefix.length(), prefix) == 0;
-  return Value::Symbol(res ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+  return core_utils::to_bool(res);
 }
 
 Value core::str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap) {
@@ -566,7 +567,7 @@ Value core::str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap) {
   if (s.length() >= suffix.length()) {
     res = s.compare(s.length() - suffix.length(), suffix.length(), suffix) == 0;
   }
-  return Value::Symbol(res ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+  return core_utils::to_bool(res);
 }
 
 Value core::str_lower(LocationRef where, Stack *stack, VMHeap *heap) {
@@ -943,7 +944,7 @@ Value core::fs_exists(LocationRef where, Stack *stack, VMHeap *heap) {
   }
   std::string path = heap->get_string(path_val.as.STRING);
   bool exists = std::filesystem::exists(path);
-  return Value::Symbol(exists ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+  return core_utils::to_bool(exists);
 }
 
 Value core::fs_mkdir(LocationRef where, Stack *stack, VMHeap *heap) {
@@ -1150,7 +1151,7 @@ Value core::ansi_reset(LocationRef, Stack *, VMHeap *) {
 
 Value core::sys_is_tty(LocationRef, Stack *, VMHeap *) {
   bool tty = ISATTY(STDOUT_FILENO);
-  return Value::Symbol(tty ? Constants::SYM_TRUE : Constants::SYM_FALSE);
+  return core_utils::to_bool(tty);
 }
 
 Value core::sys_has_color(LocationRef, Stack *, VMHeap *) {
@@ -1282,4 +1283,50 @@ Value core::ansi_clear(LocationRef where, Stack *stack, VMHeap *) {
 
   std::cout.flush();
   return Value::None();
+}
+
+Value core::regex_has_match(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value regexp_val = stack->pop();
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING || regexp_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "regex_has_match: expected two strings");
+  }
+  bool has_match =
+      std::regex_search(heap->get_string(str_val.as.STRING),
+                        std::regex(heap->get_string(regexp_val.as.STRING)));
+  return core_utils::to_bool(has_match);
+}
+
+Value core::regex_match(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value regexp_val = stack->pop();
+  Value str_val = stack->pop();
+  if (str_val.tag != ValueTag::STRING || regexp_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "regex_has_match: expected two strings");
+  }
+  std::smatch result;
+  std::string string_to_search = heap->get_string(str_val.as.STRING);
+  std::regex regex = std::regex(heap->get_string(regexp_val.as.STRING));
+  std::regex_search(string_to_search, result, regex);
+
+  VMHIDX list_head = heap->new_list();
+  for (size_t i = 0; i < result.size(); ++i) {
+    heap->add_child(list_head, heap->add_string(result[i]));
+  }
+  return Value::List(list_head);
+}
+
+Value core::regex_replace(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value replacement_val = stack->pop();
+  Value regexp_val = stack->pop();
+  Value str_val = stack->pop();
+  if (replacement_val.tag != ValueTag::STRING ||
+      str_val.tag != ValueTag::STRING || regexp_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where,
+                            "regex_replace: expected three string arguments");
+  }
+  std::string str = heap->get_string(str_val.as.STRING);
+  std::string replacement = heap->get_string(replacement_val.as.STRING);
+  std::regex regex = std::regex(heap->get_string(regexp_val.as.STRING));
+  std::string result = std::regex_replace(str, regex, replacement);
+  return Value::String(heap->ref_add_string(result));
 }

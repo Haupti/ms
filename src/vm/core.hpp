@@ -104,6 +104,10 @@ Value ansi_clear_line(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_clear_screen(LocationRef where, Stack *stack, VMHeap *heap);
 Value ansi_clear(LocationRef where, Stack *stack, VMHeap *heap);
 
+Value regex_has_match(LocationRef where, Stack *stack, VMHeap *heap);
+Value regex_match(LocationRef where, Stack *stack, VMHeap *heap);
+Value regex_replace(LocationRef where, Stack *stack, VMHeap *heap);
+
 void set_args(const std::vector<std::string> &args);
 
 enum class ArgsT : uint8_t {
@@ -197,7 +201,10 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_ANSI_MOVE_CURSOR.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_ANSI_CLEAR_LINE.index, ArgsCount(0, ArgsT::ARGS)},
     {Constants::CORE_FN_ANSI_CLEAR_SCREEN.index, ArgsCount(0, ArgsT::ARGS)},
-    {Constants::CORE_FN_ANSI_CLEAR.index, ArgsCount(1, ArgsT::ARGS)}};
+    {Constants::CORE_FN_ANSI_CLEAR.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_REGEX_HAS_MATCH.index, ArgsCount(2, ArgsT::ARGS)},
+    {Constants::CORE_FN_REGEX_MATCH.index, ArgsCount(2, ArgsT::ARGS)},
+    {Constants::CORE_FN_REGEX_REPLACE.index, ArgsCount(3, ArgsT::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {{Constants::CORE_FN_PRINT.index, print},
@@ -281,6 +288,10 @@ static std::unordered_map<
            {Constants::CORE_FN_ANSI_MOVE_CURSOR.index, ansi_move_cursor},
            {Constants::CORE_FN_ANSI_CLEAR_LINE.index, ansi_clear_line},
            {Constants::CORE_FN_ANSI_CLEAR_SCREEN.index, ansi_clear_screen},
-           {Constants::CORE_FN_ANSI_CLEAR.index, ansi_clear}};
+           {Constants::CORE_FN_ANSI_CLEAR.index, ansi_clear},
+           {Constants::CORE_FN_REGEX_HAS_MATCH.index, regex_has_match},
+           {Constants::CORE_FN_REGEX_MATCH.index, regex_match},
+           {Constants::CORE_FN_REGEX_REPLACE.index, regex_replace},
+    };
 
 } // namespace core

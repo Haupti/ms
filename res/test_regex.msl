@@ -1,0 +1,5 @@
+assert("hallo".regex_replace("l+", "1") == "ha11o")
+assert("hallo".regex_has_match("l+") == #true)
+let matches = "hallo".regex_match("l+")
+assert(len(matches) == 1)
+assert(matches.at(0) == "ll")

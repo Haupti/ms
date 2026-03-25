@@ -73,6 +73,13 @@ inline bool as_bool(LocationRef ref, Value value) {
     break;
   }
 }
+inline Value to_bool(bool b) {
+  if (b) {
+    return Value::Symbol(Constants::SYM_TRUE);
+  }
+  return Value::Symbol(Constants::SYM_FALSE);
+}
+
 inline int64_t as_int(LocationRef ref, Value value) {
   switch (value.tag) {
   case ValueTag::INT:

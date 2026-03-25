@@ -116,6 +116,10 @@ static const InternedString CORE_FN_ANSI_CLEAR_LINE = create_interned_string("an
 static const InternedString CORE_FN_ANSI_CLEAR_SCREEN = create_interned_string("ansi_clear_screen");
 static const InternedString CORE_FN_ANSI_CLEAR = create_interned_string("ansi_clear");
 
+static const InternedString CORE_FN_REGEX_MATCH = create_interned_string("regex_match");
+static const InternedString CORE_FN_REGEX_HAS_MATCH = create_interned_string("regex_has_match");
+static const InternedString CORE_FN_REGEX_REPLACE = create_interned_string("regex_replace");
+
 // ansi symbols
 static const Symbol SYM_ANSI_FG = create_symbol("#fg");
 static const Symbol SYM_ANSI_BG = create_symbol("#bg");
