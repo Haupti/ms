@@ -213,8 +213,10 @@ struct VMHeap {
 
   VMHIDX nth_child_idx(VMHIDX container_head, uint64_t n) {
     VMHNode *head = node_at(container_head);
-    if (head->value.tag != ValueTag::LIST && head->value.tag != ValueTag::TABLE) {
-      warn("attempt to get " + std::to_string(n) + "'th child of non-container");
+    if (head->value.tag != ValueTag::LIST &&
+        head->value.tag != ValueTag::TABLE) {
+      warn("attempt to get " + std::to_string(n) +
+           "'th child of non-container");
       return INVALID;
     }
     VMHIDX curr = head->first_child;
@@ -288,6 +290,23 @@ struct VMHeap {
     return;
   }
 
+  void set_nth_child(VMHIDX list_head, uint64_t n, Value value) {
+    if (elements.size() <= list_head) {
+      warn("attempt to access out of bounds element " +
+           std::to_string(list_head));
+      return;
+    }
+    if (elements.at(list_head).value.tag != ValueTag::LIST) {
+      warn("attempt to add child to non-list value");
+      return;
+    }
+    VMHIDX nth_child_ref = nth_child_idx(list_head, n);
+    if (nth_child_ref == INVALID) {
+      return;
+    }
+    elements.at(nth_child_ref).value = value;
+  }
+
   VMHIDX add_child(VMHIDX container_head, Value value) {
     VMHIDX value_idx = add(value);
     return link_existing_child(container_head, value_idx);
@@ -306,8 +325,8 @@ struct VMHeap {
     }
     VMHNode *container_node = node_at(container_head);
     if (container_node->last_child == 0) {
-      container_node->last_child = value_idx;
       container_node->first_child = value_idx;
+      container_node->last_child = value_idx;
     } else {
       elements.at(container_node->last_child).next_child = value_idx;
       container_node->last_child = value_idx;
@@ -315,35 +334,22 @@ struct VMHeap {
     return value_idx;
   }
 
-  void set_nth_child(VMHIDX list_head, uint64_t n, Value value) {
-    if (elements.size() <= list_head) {
-      warn("attempt to access out of bounds element " +
-           std::to_string(list_head));
-      return;
-    }
-    if (elements.at(list_head).value.tag != ValueTag::LIST) {
-      warn("attempt to add child to non-list value");
-      return;
-    }
-    VMHIDX nth_child_ref = nth_child_idx(list_head, n);
-    if (nth_child_ref == INVALID) {
-      return;
-    }
-    elements.at(nth_child_ref).value = value;
-  }
   VMHIDX add_child_front(VMHIDX list_head, Value value) {
-    if (elements.size() <= list_head) {
-      warn("attempt to access out of bounds element " +
-           std::to_string(list_head));
-      return INVALID;
-    }
-    if (elements.at(list_head).value.tag != ValueTag::LIST) {
-      warn("attempt to add child to non-list value");
-      return INVALID;
-    }
     VMHIDX value_idx = add(value);
-    // Re-fetch pointer as add() might have reallocated elements
-    VMHNode *list_node = &elements.at(list_head);
+    return link_existing_child_front(list_head, value_idx);
+  }
+  VMHIDX link_existing_child_front(VMHIDX container_head, VMHIDX value_idx) {
+    if (elements.size() <= container_head) {
+      warn("attempt to access out of bounds element " +
+           std::to_string(container_head));
+      return INVALID;
+    }
+    if (elements.at(container_head).value.tag != ValueTag::LIST &&
+        elements.at(container_head).value.tag != ValueTag::TABLE) {
+      warn("attempt to add child to non-container value");
+      return INVALID;
+    }
+    VMHNode *list_node = &elements.at(container_head);
     if (list_node->first_child == 0) {
       list_node->first_child = value_idx;
       list_node->last_child = value_idx;

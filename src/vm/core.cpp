@@ -175,7 +175,7 @@ Value core::table(LocationRef where, Stack *stack, VMHeap *heap) {
     Value key = stack->pop();
     heap->add_child(kv_pair, key);
     heap->add_child(kv_pair, value);
-    heap->link_existing_child(list_head, kv_pair);
+    heap->link_existing_child_front(list_head, kv_pair);
   }
   return heap->at(list_head);
 }
