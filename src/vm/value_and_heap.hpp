@@ -19,6 +19,7 @@ enum class ValueTag : uint8_t {
   STRING,
   LIST,
   ITERATOR,
+  TABLE,
   ERROR,
   NONE,
 };
@@ -30,6 +31,7 @@ struct Value {
     StringIdx STRING;
     Symbol SYMBOL;
     VMHIDX LIST;
+    VMHIDX TABLE;
     VMHIDX ITERATOR;
     VMHIDX ERROR;
     int64_t NONE;
@@ -79,6 +81,13 @@ struct Value {
     val.undefined = false;
     return val;
   }
+  static Value Table(VMHIDX ref) {
+    Value val;
+    val.as.TABLE = ref;
+    val.tag = ValueTag::TABLE;
+    val.undefined = false;
+    return val;
+  }
   static Value Error(VMHIDX boxed_value) {
     Value val;
     val.as.ERROR = boxed_value;
@@ -93,6 +102,8 @@ struct Value {
     val.undefined = false;
     return val;
   }
+
+  size_t hash() {}
 };
 
 enum class GCFlag : uint8_t {
@@ -106,12 +117,14 @@ struct VMHNode {
   VMHIDX next_child;
   VMHIDX last_child;
   VMHNode()
-      : first_child(0), next_child(0), last_child(0), gc_flag(GCFlag::FREE) {
+      : first_child(0), next_child(0), last_child(0), table_size(0),
+        gc_flag(GCFlag::FREE) {
     value = Value();
   }
   VMHNode(Value value)
       : value(value), first_child(0), next_child(0), last_child(0),
-        gc_flag(GCFlag::FREE) {}
+        table_size(0), gc_flag(GCFlag::FREE) {}
+  uint32_t table_size;
   GCFlag gc_flag;
 };
 
@@ -142,7 +155,37 @@ struct VMHeap {
     this->current_length = 0;
   }
 
+  // ============== GENERAL AND STRINGS ===============
   VMHNode *node_at(VMHIDX idx) { return &elements.at(idx); }
+  VMHIDX add(Value value) {
+    ++current_length;
+    if (free_list.size() == 0) {
+      elements.emplace_back(value);
+      return elements.size() - 1;
+    }
+    uint64_t idx = free_list.back();
+    elements[idx] = VMHNode(value);
+    free_list.pop_back();
+    return idx;
+  }
+
+  Value at(VMHIDX idx) {
+    if (elements.size() <= idx) {
+      return Value();
+    }
+    return elements.at(idx).value;
+  }
+
+  VMHIDX replace(VMHIDX idx, Value value) {
+    if (elements.size() <= idx) {
+      warn("attempt to overwrite out of bounds index " + std::to_string(idx));
+      return INVALID;
+    }
+    elements[idx].value = value;
+    return idx;
+  }
+
+  // ============== STRINGS ===============
   StringIdx _get_next_string_idx() {
     ++current_length;
     if (free_strings.size() > 0) {
@@ -183,18 +226,100 @@ struct VMHeap {
     return add(new_str);
   }
 
-  VMHIDX add(Value value) {
+  std::string get_string(StringIdx idx) { return strings.at(idx); }
+
+  // =============== TABLES ===============
+  // TODO GC for table
+  VMHIDX new_table() {
     ++current_length;
+    VMHIDX key_bucket;
     if (free_list.size() == 0) {
-      elements.emplace_back(value);
-      return elements.size() - 1;
+      key_bucket = elements.size();
+      elements.emplace_back(Value::Table(key_bucket));
+    } else {
+      key_bucket = free_list.back();
+      elements[key_bucket] = VMHNode(Value::Table(key_bucket));
+      free_list.pop_back();
     }
-    uint64_t idx = free_list.back();
-    elements[idx] = VMHNode(value);
-    free_list.pop_back();
-    return idx;
+
+    elements[key_bucket].table_size = 16;
+    for (uint64_t i = 0; i < 16; ++i) {
+      add_child(key_bucket, Value::Int(0));
+    }
+
+    return key_bucket;
   }
 
+private:
+  size_t hash(Value key, uint32_t mod) {
+    size_t hash;
+    switch (key.tag) {
+    case ValueTag::INT:
+      hash = std::hash<int64_t>{}(key.as.INT);
+      break;
+    case ValueTag::FLOAT:
+      hash = std::hash<double>{}(key.as.FLOAT);
+      break;
+    case ValueTag::SYMBOL:
+      hash = std::hash<double>{}(key.as.SYMBOL.index);
+      break;
+    case ValueTag::STRING:
+      hash = std::hash<std::string>{}(strings.at(key.as.STRING));
+      break;
+    case ValueTag::LIST:
+      hash = std::hash<int64_t>{}(key.as.LIST);
+      break;
+    case ValueTag::ITERATOR:
+      hash = std::hash<int64_t>{}(key.as.ITERATOR);
+      break;
+    case ValueTag::TABLE:
+      hash = std::hash<int64_t>{}(key.as.TABLE);
+      break;
+    case ValueTag::ERROR:
+      // TODO maybe hash the value inside ?
+      hash = std::hash<int64_t>{}(key.as.ERROR);
+      break;
+    case ValueTag::NONE:
+      hash = std::hash<int64_t>{}(0);
+      break;
+    }
+    return hash & (mod - 1);
+  }
+
+public:
+  void table_set(VMHIDX table_idx, Value key, Value val) {
+    VMHNode *table = node_at(table_idx);
+
+    size_t hash_value = hash(key, table->table_size);
+    Value bucket_val = nth_child(table_idx, hash_value);
+    VMHIDX val_idx = add(val);
+
+    if (bucket_val.as.INT == 0) {
+      // initialized bucket slot and add collision list
+      bucket_val.as.INT = val_idx;
+      set_nth_child(table_idx, hash_value, bucket_val);
+    } else {
+      // set next_child of collision lists tail
+      VMHNode *slot = node_at(bucket_val.as.INT);
+      while (slot->next_child != 0) {
+        slot = node_at(slot->next_child);
+      }
+      slot->next_child = val_idx;
+    }
+    // TODO check if min 75% of bucket full
+    // if so -> increase bucket size, rehash etc
+  }
+
+  VMHIDX table_get(VMHIDX table_idx, Value key){
+    VMHNode *table = node_at(table_idx);
+    size_t hash_value = hash(key, table->table_size);
+    Value bucket_val = nth_child(table_idx, hash_value);
+
+    VMHNode * slot = node_at(bucket_val.as.INT);
+    // TODO unfinished
+  }
+
+  // =============== LISTS ===============
   VMHIDX new_list() {
     ++current_length;
     if (free_list.size() == 0) {
@@ -284,13 +409,6 @@ struct VMHeap {
     return value_idx;
   }
 
-  Value at(VMHIDX idx) {
-    if (elements.size() <= idx) {
-      return Value();
-    }
-    return elements.at(idx).value;
-  }
-
   VMHIDX nth_child_idx(VMHIDX list_head, uint64_t n) {
     VMHNode *head = node_at(list_head);
     if (head->value.tag != ValueTag::LIST) {
@@ -309,15 +427,4 @@ struct VMHeap {
     VMHIDX idx = nth_child_idx(list_head, n);
     return elements.at(idx).value;
   }
-
-  VMHIDX replace(VMHIDX idx, Value value) {
-    if (elements.size() <= idx) {
-      warn("attempt to overwrite out of bounds index " + std::to_string(idx));
-      return INVALID;
-    }
-    elements[idx].value = value;
-    return idx;
-  }
-
-  std::string get_string(StringIdx idx) { return strings.at(idx); }
 };

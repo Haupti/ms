@@ -22,9 +22,9 @@
 * [] `str_join(list, sep)`
 
 ### Regexp 
-* [] `regex_match(re, str)`
-* [] `regex_replace(re, new, str)`
-* [] `regex_has_match(re, str)`
+* [DONE] `regex_match(re, str)`
+* [DONE] `regex_replace(re, new, str)`
+* [DONE] `regex_has_match(re, str)`
 * [] `=~` operator which expects a string left and regexp right (also a string)
 
 ### list operations
