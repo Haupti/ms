@@ -11,6 +11,7 @@ $include "test_list_ops.msl"
 $include "test_fn_calls.msl"
 $include "test_ansi.msl"
 $include "test_sys.msl"
+$include "test_table.msl"
 ;$include "test_cursor.msl"
 
 $endif

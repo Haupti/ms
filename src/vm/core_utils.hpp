@@ -62,6 +62,9 @@ inline Value type_to_symbol(const Value &value) {
     return (Value::Symbol(Constants::SYM_T_NONE));
   case ValueTag::ITERATOR:
     return (Value::Symbol(Constants::SYM_T_ITERATOR));
+  case ValueTag::TABLE:
+    return (Value::Symbol(Constants::SYM_T_TABLE));
+    break;
   }
 }
 inline bool as_bool(LocationRef ref, Value value) {
@@ -110,6 +113,8 @@ inline ValueTag symbol_to_type(LocationRef where, const Symbol &symbol) {
     return ValueTag::ERROR;
   } else if (symbol.index == Constants::SYM_T_ITERATOR.index) {
     return ValueTag::ITERATOR;
+  } else if (symbol.index == Constants::SYM_T_TABLE.index) {
+    return ValueTag::TABLE;
   } else {
     throw msl_runtime_error(where, "'" + resolve_symbol(symbol) +
                                        "' does not denote a type");
@@ -133,6 +138,9 @@ inline std::string type_to_string(ValueTag tag) {
     return "none";
   case ValueTag::ITERATOR:
     return "iterator";
+  case ValueTag::TABLE:
+    return "table";
+    break;
   }
 }
 inline void assert_list(LocationRef where, Value value) {
@@ -180,6 +188,15 @@ inline Value copy_value(Stack *stack, VMHeap *heap, Value value) {
   case ValueTag::ITERATOR:
     // an iterator is a view into a list thus a copy stays the same
     return value;
+  case ValueTag::TABLE: {
+    VMHIDX new_table = heap->new_table();
+    VMHIDX curr = heap->node_at(value.as.TABLE)->first_child;
+    while (curr != INVALID) {
+      heap->add_child(new_table, copy_value(stack, heap, heap->at(curr)));
+      curr = heap->node_at(curr)->next_child;
+    }
+    return heap->at(new_table);
+  } break;
   }
 }
 
@@ -211,6 +228,16 @@ inline std::string value_to_string(Stack *stack, VMHeap *heap, Value value) {
     return "none";
   case ValueTag::ITERATOR:
     return "iterator(" + std::to_string(value.as.ITERATOR) + ")";
+  case ValueTag::TABLE: {
+    std::vector<std::string> args;
+    VMHIDX curr = heap->node_at(value.as.TABLE)->first_child;
+    while (curr != INVALID) {
+      args.push_back(value_to_string(stack, heap, heap->nth_child(curr, 0)));
+      args.push_back(value_to_string(stack, heap, heap->nth_child(curr, 1)));
+      curr = heap->node_at(curr)->next_child;
+    }
+    return "table(" + join(args, ",") + ")";
+  } break;
   }
 }
 }; // namespace core_utils

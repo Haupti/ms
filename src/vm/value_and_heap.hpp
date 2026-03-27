@@ -19,6 +19,7 @@ enum class ValueTag : uint8_t {
   STRING,
   LIST,
   ITERATOR,
+  TABLE,
   ERROR,
   NONE,
 };
@@ -30,6 +31,7 @@ struct Value {
     StringIdx STRING;
     Symbol SYMBOL;
     VMHIDX LIST;
+    VMHIDX TABLE;
     VMHIDX ITERATOR;
     VMHIDX ERROR;
     int64_t NONE;
@@ -76,6 +78,13 @@ struct Value {
     Value val;
     val.as.LIST = ref;
     val.tag = ValueTag::LIST;
+    val.undefined = false;
+    return val;
+  }
+  static Value Table(VMHIDX ref) {
+    Value val;
+    val.as.TABLE = ref;
+    val.tag = ValueTag::TABLE;
     val.undefined = false;
     return val;
   }
@@ -195,6 +204,50 @@ struct VMHeap {
     return idx;
   }
 
+  Value at(VMHIDX idx) {
+    if (elements.size() <= idx) {
+      return Value();
+    }
+    return elements.at(idx).value;
+  }
+
+  VMHIDX nth_child_idx(VMHIDX container_head, uint64_t n) {
+    VMHNode *head = node_at(container_head);
+    if (head->value.tag != ValueTag::LIST && head->value.tag != ValueTag::TABLE) {
+      warn("attempt to get " + std::to_string(n) + "'th child of non-container");
+      return INVALID;
+    }
+    VMHIDX curr = head->first_child;
+    uint64_t i = 0;
+    while (curr != INVALID && i != n) {
+      curr = node_at(curr)->next_child;
+      i++;
+    }
+    return curr;
+  }
+  Value nth_child(VMHIDX container_head, uint64_t n) {
+    VMHIDX idx = nth_child_idx(container_head, n);
+    if (idx == INVALID) {
+      return Value();
+    }
+    return elements.at(idx).value;
+  }
+
+  inline VMHIDX next_child(VMHIDX list_element) {
+    return node_at(list_element)->next_child;
+  }
+
+  VMHIDX replace(VMHIDX idx, Value value) {
+    if (elements.size() <= idx) {
+      warn("attempt to overwrite out of bounds index " + std::to_string(idx));
+      return INVALID;
+    }
+    elements[idx].value = value;
+    return idx;
+  }
+
+  std::string get_string(StringIdx idx) { return strings.at(idx); }
+
   VMHIDX new_list() {
     ++current_length;
     if (free_list.size() == 0) {
@@ -204,6 +257,19 @@ struct VMHeap {
     }
     uint64_t idx = free_list.back();
     elements[idx] = VMHNode(Value::List(idx));
+    free_list.pop_back();
+    return idx;
+  }
+
+  VMHIDX new_table() {
+    ++current_length;
+    if (free_list.size() == 0) {
+      VMHIDX idx = elements.size();
+      elements.emplace_back(Value::Table(idx));
+      return idx;
+    }
+    uint64_t idx = free_list.back();
+    elements[idx] = VMHNode(Value::Table(idx));
     free_list.pop_back();
     return idx;
   }
@@ -222,28 +288,33 @@ struct VMHeap {
     return;
   }
 
-  VMHIDX add_child(VMHIDX list_head, Value value) {
-    if (elements.size() <= list_head) {
-      warn("attempt to access out of bounds element " +
-           std::to_string(list_head));
-      return INVALID;
-    }
-    if (elements.at(list_head).value.tag != ValueTag::LIST) {
-      warn("attempt to add child to non-list value");
-      return INVALID;
-    }
+  VMHIDX add_child(VMHIDX container_head, Value value) {
     VMHIDX value_idx = add(value);
-    // Re-fetch pointer as add() might have reallocated elements
-    VMHNode *list_node = &elements.at(list_head);
-    if (list_node->last_child == 0) {
-      list_node->last_child = value_idx;
-      list_node->first_child = value_idx;
+    return link_existing_child(container_head, value_idx);
+  }
+
+  VMHIDX link_existing_child(VMHIDX container_head, VMHIDX value_idx) {
+    if (elements.size() <= container_head) {
+      warn("attempt to access out of bounds element " +
+           std::to_string(container_head));
+      return INVALID;
+    }
+    if (elements.at(container_head).value.tag != ValueTag::LIST &&
+        elements.at(container_head).value.tag != ValueTag::TABLE) {
+      warn("attempt to add child to non-container value");
+      return INVALID;
+    }
+    VMHNode *container_node = node_at(container_head);
+    if (container_node->last_child == 0) {
+      container_node->last_child = value_idx;
+      container_node->first_child = value_idx;
     } else {
-      elements.at(list_node->last_child).next_child = value_idx;
-      list_node->last_child = value_idx;
+      elements.at(container_node->last_child).next_child = value_idx;
+      container_node->last_child = value_idx;
     }
     return value_idx;
   }
+
   void set_nth_child(VMHIDX list_head, uint64_t n, Value value) {
     if (elements.size() <= list_head) {
       warn("attempt to access out of bounds element " +
@@ -283,41 +354,4 @@ struct VMHeap {
     }
     return value_idx;
   }
-
-  Value at(VMHIDX idx) {
-    if (elements.size() <= idx) {
-      return Value();
-    }
-    return elements.at(idx).value;
-  }
-
-  VMHIDX nth_child_idx(VMHIDX list_head, uint64_t n) {
-    VMHNode *head = node_at(list_head);
-    if (head->value.tag != ValueTag::LIST) {
-      warn("attempt to get " + std::to_string(n) + "'th child of non-list");
-      return INVALID;
-    }
-    VMHIDX curr = head->first_child;
-    uint64_t i = 0;
-    while (i != n) {
-      curr = node_at(curr)->next_child;
-      i++;
-    }
-    return curr;
-  }
-  Value nth_child(VMHIDX list_head, uint64_t n) {
-    VMHIDX idx = nth_child_idx(list_head, n);
-    return elements.at(idx).value;
-  }
-
-  VMHIDX replace(VMHIDX idx, Value value) {
-    if (elements.size() <= idx) {
-      warn("attempt to overwrite out of bounds index " + std::to_string(idx));
-      return INVALID;
-    }
-    elements[idx].value = value;
-    return idx;
-  }
-
-  std::string get_string(StringIdx idx) { return strings.at(idx); }
 };

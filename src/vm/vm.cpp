@@ -545,7 +545,9 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       case ValueTag::STRING:
       case ValueTag::ERROR:
       case ValueTag::NONE:
+      case ValueTag::TABLE:
         throw msl_runtime_error(instr.where, "value not iterable");
+        break;
       }
     } break;
     case VMTag::PEEK_JMPIF: {

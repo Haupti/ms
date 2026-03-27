@@ -1,4 +1,11 @@
 function assert_eq(actual, expected, msg) {
+    if(msg == none){
+      if (actual != expected) {
+          print("FAIL: expected '" <> str(expected) <> "' but got '" <> str(actual) <> "'")
+          sys_exit(1)
+      }
+      return none;
+    }
     assert_type(msg, #string)
     if (actual != expected) {
         print("FAIL: " <> msg <> " - expected '" <> str(expected) <> "' but got '" <> str(actual) <> "'")

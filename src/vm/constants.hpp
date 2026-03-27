@@ -21,20 +21,24 @@ static const Symbol SYM_T_SYMBOL = create_symbol("#symbol");
 static const Symbol SYM_T_LIST = create_symbol("#list");
 static const Symbol SYM_T_NONE = create_symbol("#none");
 static const Symbol SYM_T_ITERATOR = create_symbol("#iterator");
+static const Symbol SYM_T_TABLE = create_symbol("#table");
 
 // fn names
 static const InternedString CORE_FN_PRINT = create_interned_string("print");
+static const InternedString CORE_FN_COPY = create_interned_string("copy");
+static const InternedString CORE_FN_TYPEOF = create_interned_string("typeof");
+static const InternedString CORE_FN_PANIC = create_interned_string("panic");
+static const InternedString CORE_FN_ERROR = create_interned_string("error");
+static const InternedString CORE_FN_STR_CONCAT = create_interned_string("<>");
+
+static const InternedString CORE_FN_TABLE = create_interned_string("table");
+
 static const InternedString CORE_FN_LIST = create_interned_string("list");
 static const InternedString CORE_FN_PUT = create_interned_string("put");
 static const InternedString CORE_FN_AT = create_interned_string("at");
 static const InternedString CORE_FN_APPEND = create_interned_string("append");
 static const InternedString CORE_FN_PREPEND = create_interned_string("prepend");
 static const InternedString CORE_FN_LINK = create_interned_string("link");
-static const InternedString CORE_FN_COPY = create_interned_string("copy");
-static const InternedString CORE_FN_TYPEOF = create_interned_string("typeof");
-static const InternedString CORE_FN_PANIC = create_interned_string("panic");
-static const InternedString CORE_FN_ERROR = create_interned_string("error");
-static const InternedString CORE_FN_STR_CONCAT = create_interned_string("<>");
 static const InternedString CORE_FN_LEN = create_interned_string("len");
 static const InternedString CORE_FN_INT = create_interned_string("int");
 static const InternedString CORE_FN_FLOAT = create_interned_string("float");

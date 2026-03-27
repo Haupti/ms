@@ -4,6 +4,7 @@
 #include "core_utils.hpp"
 #include "stack.hpp"
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -70,6 +71,9 @@ bool core::values_equal(VMHeap *heap, Value left, Value right) {
   case ValueTag::ITERATOR:
     return right.tag == ValueTag::ITERATOR &&
            left.as.ITERATOR == right.as.ITERATOR;
+  case ValueTag::TABLE:
+    return right.tag == ValueTag::TABLE && left.as.TABLE == right.as.TABLE;
+    break;
   }
 }
 
@@ -86,6 +90,100 @@ Value core::make_error(LocationRef, Stack *stack, VMHeap *heap) {
   throw msl_runtime_error(
       where, core_utils::value_to_string(stack, heap, stack->pop()));
 }
+// =====================
+// ===== CONTAINER =====
+// =====================
+
+Value core::container_at(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value key_value = stack->pop();
+  Value container_value = stack->pop();
+  switch (container_value.tag) {
+  case ValueTag::LIST:
+    core_utils::assert_int(where, key_value);
+    return heap->nth_child(container_value.as.LIST, key_value.as.INT);
+  case ValueTag::TABLE: {
+    VMHIDX idx = heap->nth_child_idx(container_value.as.TABLE, 0);
+    while (idx != INVALID) {
+      // that element is a list and the key is the first element in that list
+      Value value = heap->nth_child(idx, 0);
+      if (values_equal(heap, key_value, value)) {
+        // the second element is the value
+        return heap->nth_child(idx, 1);
+      }
+      idx = heap->next_child(idx);
+    }
+    return Value::None();
+  } break;
+  default:
+    throw msl_runtime_error(
+        where, "expected a list or table but got a(n) " +
+                   core_utils::type_to_string(container_value.tag));
+  }
+}
+
+Value core::container_put(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value new_value = stack->pop();
+  Value key_value = stack->pop();
+  Value container_value = stack->pop();
+  switch (container_value.tag) {
+  case ValueTag::LIST: {
+    core_utils::assert_int(where, key_value);
+    heap->set_nth_child(container_value.as.LIST, key_value.as.INT, new_value);
+  } break;
+  case ValueTag::TABLE: {
+    VMHIDX idx = heap->nth_child_idx(container_value.as.TABLE, 0);
+    while (idx != INVALID) {
+      Value value = heap->nth_child(idx, 0);
+      if (values_equal(heap, key_value, value)) {
+        heap->replace(heap->nth_child_idx(idx, 1), new_value);
+        return Value::None();
+      }
+      idx = heap->next_child(idx);
+    }
+    VMHIDX new_pair = heap->new_list();
+    heap->add_child(new_pair, key_value);
+    heap->add_child(new_pair, new_value);
+    heap->link_existing_child(container_value.as.TABLE, new_pair);
+    return Value::None();
+  } break;
+  default:
+    throw msl_runtime_error(
+        where, "expected a list or table but got a(n) " +
+                   core_utils::type_to_string(container_value.tag));
+  }
+  return Value::None();
+}
+
+// =================
+// ===== TABLE =====
+// =================
+
+Value core::table(LocationRef where, Stack *stack, VMHeap *heap) {
+  int64_t args_count = stack->pop().as.INT;
+  if (args_count % 2 != 0) {
+    throw msl_runtime_error(where, "table: expected key-value pairs");
+  }
+  VMHIDX list_head = heap->new_table();
+  // table(k1, v1, k2, v2)
+  // stack: [k1, v1, k2, v2, 4]
+  // after popping count: [k1, v1, k2, v2]
+  // we need to pop k and v in pairs.
+  // since it is a stack, it pops from right to left: v2, then k2, then v1, then k1.
+  for (int64_t i = 0; i < args_count / 2; ++i) {
+    VMHIDX kv_pair = heap->new_list();
+    Value value = stack->pop();
+    Value key = stack->pop();
+    heap->add_child(kv_pair, key);
+    heap->add_child(kv_pair, value);
+    heap->link_existing_child(list_head, kv_pair);
+  }
+  return heap->at(list_head);
+}
+
+// ================
+// ===== LIST =====
+// ================
+
 Value core::list(LocationRef, Stack *stack, VMHeap *heap) {
   int64_t args_count = stack->pop().as.INT;
   VMHIDX list_head = heap->new_list();
@@ -93,22 +191,6 @@ Value core::list(LocationRef, Stack *stack, VMHeap *heap) {
     heap->add_child_front(list_head, stack->pop());
   }
   return heap->at(list_head);
-}
-Value core::list_at(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value index_value = stack->pop();
-  core_utils::assert_int(where, index_value);
-  Value list_value = stack->pop();
-  core_utils::assert_list(where, list_value);
-  return heap->nth_child(list_value.as.LIST, index_value.as.INT);
-}
-Value core::list_put(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value new_value = stack->pop();
-  Value index_value = stack->pop();
-  core_utils::assert_int(where, index_value);
-  Value list_value = stack->pop();
-  core_utils::assert_list(where, list_value);
-  heap->set_nth_child(list_value.as.LIST, index_value.as.INT, new_value);
-  return Value::None();
 }
 Value core::list_append(LocationRef where, Stack *stack, VMHeap *heap) {
   Value value = stack->pop();
@@ -245,6 +327,9 @@ Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
   return heap->at(list_head);
 }
 
+// =================
+// ===== OTHER =====
+// =================
 Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
   Value value = stack->pop();
   return core_utils::copy_value(stack, heap, value);
