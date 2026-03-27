@@ -126,6 +126,9 @@ Value regex_has_match(LocationRef where, Stack *stack, VMHeap *heap);
 Value regex_match(LocationRef where, Stack *stack, VMHeap *heap);
 Value regex_replace(LocationRef where, Stack *stack, VMHeap *heap);
 
+Value base64_encode(LocationRef where, Stack *stack, VMHeap *heap);
+Value base64_decode(LocationRef where, Stack *stack, VMHeap *heap);
+
 void set_args(const std::vector<std::string> &args);
 
 enum class ArgsT : uint8_t {
@@ -238,7 +241,9 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     // ===== REGEX
     {Constants::CORE_FN_REGEX_HAS_MATCH.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_REGEX_MATCH.index, ArgsCount(2, ArgsT::ARGS)},
-    {Constants::CORE_FN_REGEX_REPLACE.index, ArgsCount(3, ArgsT::ARGS)}};
+    {Constants::CORE_FN_REGEX_REPLACE.index, ArgsCount(3, ArgsT::ARGS)},
+    {Constants::CORE_FN_BASE64_ENCODE.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_BASE64_DECODE.index, ArgsCount(1, ArgsT::ARGS)}};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {
@@ -343,6 +348,8 @@ static std::unordered_map<
         {Constants::CORE_FN_REGEX_HAS_MATCH.index, regex_has_match},
         {Constants::CORE_FN_REGEX_MATCH.index, regex_match},
         {Constants::CORE_FN_REGEX_REPLACE.index, regex_replace},
+        {Constants::CORE_FN_BASE64_ENCODE.index, base64_encode},
+        {Constants::CORE_FN_BASE64_DECODE.index, base64_decode},
 };
 
 } // namespace core

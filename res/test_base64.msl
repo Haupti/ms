@@ -1,0 +1,14 @@
+$include "util_assertions.msl"
+
+let original = "Hello World!"
+let encoded = base64_encode(original)
+assert_eq(encoded, "SGVsbG8gV29ybGQh", "base64 encode failed")
+
+let decoded = base64_decode(encoded)
+assert_eq(decoded, original, "base64 decode failed")
+
+let empty = ""
+assert_eq(base64_encode(empty), "", "empty base64 encode failed")
+assert_eq(base64_decode(""), "", "empty base64 decode failed")
+
+print("BASE64 TESTS PASSED")

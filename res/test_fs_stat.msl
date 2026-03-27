@@ -10,10 +10,12 @@ assert_eq(s.at(#size), 10, "size should be 10")
 assert_true(s.at(#mtime) > 0, "mtime should be > 0")
 
 let s_dir = fs_stat("src")
+assert_true(s_dir.at(#exists), "dir should exist")
 assert_eq(s_dir.at(#type), #directory, "type should be #directory")
 
 let s_none = fs_stat("non_existent_file_xyz")
-assert_eq(str(s_none), "error(no such file or directory)", "should be an error")
+assert_false(s_none.at(#exists), "file should not exist")
+assert_eq(s_none.at(#type), #not_found, "type should be #not_found")
 
 fs_rm(test_file)
 print("FS STAT TESTS PASSED")

@@ -464,9 +464,10 @@ Value core::fs_append(LocationRef where, Stack *stack, VMHeap *heap) {
   return Value::None();
 }
 
-Value core::fs_stat(LocationRef, Stack *stack, VMHeap *heap) {
+Value core::fs_stat(LocationRef where, Stack *stack, VMHeap *heap) {
   Value path_val = stack->pop();
   if (path_val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected a string for path");
   }
   std::string path_str = heap->get_string(path_val.as.STRING);
   std::filesystem::path path(path_str);
@@ -477,6 +478,7 @@ Value core::fs_stat(LocationRef, Stack *stack, VMHeap *heap) {
     if (!std::filesystem::exists(path)) {
       return core_utils::create_error(heap, "no such file or directory");
     }
+
     Value type_sym = Value::Symbol(Constants::SYM_FS_OTHER);
     if (std::filesystem::is_regular_file(path)) {
       type_sym = Value::Symbol(Constants::SYM_FS_FILE);
@@ -496,16 +498,16 @@ Value core::fs_stat(LocationRef, Stack *stack, VMHeap *heap) {
                                 Value::Symbol(create_symbol("#size")),
                                 Value::Int(size));
 
+    // calculate the difference between now in system time and now in file time
     auto ftime = std::filesystem::last_write_time(path);
-    // calculate diff between system and file time
-    auto wall_now = chrono::system_clock::now();
+    auto wall_now = std::chrono::system_clock::now();
     auto file_now = std::filesystem::file_time_type::clock::now();
-    auto diff = (wall_now.time_since_epoch() - file_now.time_since_epoch());
+    auto diff = wall_now.time_since_epoch() - file_now.time_since_epoch();
 
     // apply that difference to the specific file time
     auto stime = ftime.time_since_epoch() + diff;
-    uint64_t seconds = chrono::duration_cast<chrono::seconds>(stime).count();
-
+    auto seconds =
+        std::chrono::duration_cast<std::chrono::seconds>(stime).count();
     core_utils::table_add_entry(heap, table_idx,
                                 Value::Symbol(create_symbol("#last_write")),
                                 Value::Int(seconds));
@@ -1462,4 +1464,68 @@ Value core::regex_replace(LocationRef where, Stack *stack, VMHeap *heap) {
   std::regex regex = std::regex(heap->get_string(regexp_val.as.STRING));
   std::string result = std::regex_replace(str, regex, replacement);
   return Value::String(heap->ref_add_string(result));
+}
+
+namespace {
+static const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                        "abcdefghijklmnopqrstuvwxyz"
+                                        "0123456789+/";
+
+std::string base64_encode_str(const std::string &in) {
+  std::string out;
+  uint32_t val = 0;
+  int valb = -6;
+  for (unsigned char c : in) {
+    val = (val << 8) + c;
+    valb += 8;
+    while (valb >= 0) {
+      out.push_back(base64_chars[(val >> valb) & 0x3F]);
+      valb -= 6;
+    }
+  }
+  if (valb > -6)
+    out.push_back(base64_chars[((val << 8) >> (valb + 8)) & 0x3F]);
+  while (out.size() % 4)
+    out.push_back('=');
+  return out;
+}
+
+std::string base64_decode_str(const std::string &in) {
+  std::vector<int> T(256, -1);
+  for (int i = 0; i < 64; i++)
+    T[(unsigned char)base64_chars[i]] = i;
+
+  std::string out;
+  uint32_t val = 0;
+  int valb = -8;
+  for (unsigned char c : in) {
+    if (T[c] == -1)
+      continue;
+    val = (val << 6) + T[c];
+    valb += 6;
+    if (valb >= 0) {
+      out.push_back(char((val >> valb) & 0xFF));
+      valb -= 8;
+    }
+  }
+  return out;
+}
+} // namespace
+
+Value core::base64_encode(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "base64_encode: expected a string");
+  }
+  std::string str = heap->get_string(val.as.STRING);
+  return heap->add_string(base64_encode_str(str));
+}
+
+Value core::base64_decode(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "base64_decode: expected a string");
+  }
+  std::string str = heap->get_string(val.as.STRING);
+  return heap->add_string(base64_decode_str(str));
 }

@@ -71,7 +71,7 @@
 ### encoding
 * [] `table_to_json(t)`, `table_from_json(json_string)`
 * [] `str_url_encode(s)`, `str_url_decode(s)`
-* [] `base64_encode(s)`, `base64_decode(s)`
+* [DONE] `base64_encode(s)`, `base64_decode(s)`
 
 ### binary
 * [DONE] `bit_shift_left(i, n)`, `bit_shift_right(i,n)`

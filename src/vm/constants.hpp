@@ -125,6 +125,9 @@ static const InternedString CORE_FN_REGEX_MATCH = create_interned_string("regex_
 static const InternedString CORE_FN_REGEX_HAS_MATCH = create_interned_string("regex_has_match");
 static const InternedString CORE_FN_REGEX_REPLACE = create_interned_string("regex_replace");
 
+static const InternedString CORE_FN_BASE64_ENCODE = create_interned_string("base64_encode");
+static const InternedString CORE_FN_BASE64_DECODE = create_interned_string("base64_decode");
+
 // ansi symbols
 static const Symbol SYM_ANSI_FG = create_symbol("#fg");
 static const Symbol SYM_ANSI_BG = create_symbol("#bg");
