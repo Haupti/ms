@@ -128,3 +128,32 @@
 * [] make flags defineable as interpreter arguments via e.g. "--flag FLAG1" and such. (repeatable)
 * [] make macro values defineable as interpreter arguments via e.g. "$define SOMENAME <somevalue>" (repeatable)
 
+
+# Tables conceptual
+
+a table is a pointer to a 'bucket' list. The bucket list is of size n (the initial hash modifier).
+when a new value is inserted
+* the hash is calculated via `std::hash(...) & n`
+* a new heap slot is allocated for the value to insert
+* the bucket slot at `hash & n` gets the idx to the value
+    * on collision the current value gets a `next_child` set to the next value
+
+when reading a value from the table its somewhat inverse
+* the hash is calculated via `std::hash(...) & n`
+* the value pointed to by the bucket slot `hash & n` is fetched and the key is compared with the current key
+    * if match -> return
+    * if not, get `next_child` and retry
+
+
+so it 'looks' like that
+
+```
+Table(ref) -> [hidx1,0,hidx2]  (bucket)
+                |        |
+                v        v
+              [val]    [val1, val2]
+                |         |     |
+                v         v     v
+               key       key   key
+
+```
