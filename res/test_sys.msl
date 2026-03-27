@@ -1,6 +1,6 @@
 print(sys_now())
-print("sleeping for 1s...")
-sys_sleep(1000)
+print("sleeping for 0.5s...")
+sys_sleep(500)
 print(str_fmt("Term width {}", sys_term_width()))
 print(str_fmt("Term height {}", sys_term_height()))
 print("woke up!")

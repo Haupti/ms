@@ -153,6 +153,22 @@ Value core::container_put(LocationRef where, Stack *stack, VMHeap *heap) {
   }
   return Value::None();
 }
+Value core::len(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag == ValueTag::STRING) {
+    return Value::Int(heap->get_string(val.as.STRING).length());
+  } else if (val.tag == ValueTag::LIST || val.tag == ValueTag::TABLE) {
+    uint64_t count = 0;
+    VMHIDX curr = heap->node_at(val.as.LIST)->first_child;
+    while (curr != INVALID) {
+      count++;
+      curr = heap->node_at(curr)->next_child;
+    }
+    return Value::Int(count);
+  } else {
+    throw msl_runtime_error(where, "expected string, list or table for len()");
+  }
+}
 
 // =================
 // ===== TABLE =====
@@ -350,22 +366,6 @@ Value core::string_concat(LocationRef where, Stack *stack, VMHeap *heap) {
   std::string s1 = heap->get_string(left.as.STRING);
   std::string s2 = heap->get_string(right.as.STRING);
   return heap->add_string(s1 + s2);
-}
-Value core::len(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
-  if (val.tag == ValueTag::STRING) {
-    return Value::Int(heap->get_string(val.as.STRING).length());
-  } else if (val.tag == ValueTag::LIST) {
-    uint64_t count = 0;
-    VMHIDX curr = heap->node_at(val.as.LIST)->first_child;
-    while (curr != INVALID) {
-      count++;
-      curr = heap->node_at(curr)->next_child;
-    }
-    return Value::Int(count);
-  } else {
-    throw msl_runtime_error(where, "expected string or list for len()");
-  }
 }
 
 Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {

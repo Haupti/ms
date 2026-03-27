@@ -47,7 +47,17 @@ void mark_value(VMHeap *heap, std::vector<GCFlag> *string_marks,
   case ValueTag::ERROR:
     mark_heap_node(heap, string_marks, val.as.ERROR);
     break;
-  default:
+  case ValueTag::TABLE:
+    mark_heap_node(heap, string_marks, val.as.TABLE);
+    mark_iterable_elements(heap, string_marks,
+                           heap->node_at(val.as.TABLE)->first_child);
+  case ValueTag::INT:
+    break;
+  case ValueTag::FLOAT:
+    break;
+  case ValueTag::SYMBOL:
+    break;
+  case ValueTag::NONE:
     break;
   }
 }

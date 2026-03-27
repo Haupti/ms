@@ -12,3 +12,5 @@ assert_eq(tab.at(#key1), "hallo", none)
 assert_eq(tab.at(#key2), 3, none)
 
 assert_eq(str(tab), "table(#key1,hallo,#key2,3)", none)
+
+assert_eq(len(tab), 2, none)

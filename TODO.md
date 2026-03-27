@@ -22,9 +22,9 @@
 * [] `str_join(list, sep)`
 
 ### Regexp 
-* [] `regex_match(re, str)`
-* [] `regex_replace(re, new, str)`
-* [] `regex_has_match(re, str)`
+* [DONE] `regex_match(re, str)`
+* [DONE] `regex_replace(re, new, str)`
+* [DONE] `regex_has_match(re, str)`
 * [] `=~` operator which expects a string left and regexp right (also a string)
 
 ### list operations
@@ -37,14 +37,15 @@
 * [] `list_sort(l)`
 
 ### tables
-* [] implement type `ValueTag::TABLE` (hash map)
-* [] `table()` - create empty dictionary
-* [] `table_get(t, key)`
-* [] `table_set(t, key, val)`
+* [DONE] implement type `ValueTag::TABLE` (hash map)
+* [DONE] `table()` - create empty dictionary
+* [DONE] `table_get(t, key)` -> rewrite `list_at` to work with any containers + rename to `container_at`
+* [DONE] `table_set(t, key, val)` -> rewrite `list_put` to work with any containers + rename to `container_put`
 * [] `table_keys(t)` - return list of keys
 * [] `table_values(t)` - return list of values
-* [] `table_remove(t, key)`
+* [] `table_remove(t, key)` -> rewrite `list_remove` to work with any container
 * [] `table_merge(t1, t2)`
+* [] `table_len(t)` - lists number of entries
 
 ### file system 
 * [DONE] `fs_exists(path)`
