@@ -45,7 +45,7 @@
 * [] `table_values(t)` - return list of values
 * [] `table_remove(t, key)` -> rewrite `list_remove` to work with any container
 * [] `table_merge(t1, t2)`
-* [] `table_len(t)` - lists number of entries
+* [DONE] `table_len(t)` - lists number of entries
 
 ### file system 
 * [DONE] `fs_exists(path)`
@@ -55,7 +55,7 @@
 * [DONE] `fs_read(path)` - read entire file to string
 * [DONE] `fs_write(path, content)` - write string to file
 * [DONE] `fs_append(path, content)` - append string to file
-* [] `fs_stat(path)` - return table with size, mtime, is_dir, etc.
+* [DONE] `fs_stat(path)` - return table with size, mtime, is_dir, etc.
 * [DONE] `fs_copy(src, dst)`
 * [DONE] `fs_move(src, dst)`
 

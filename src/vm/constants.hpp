@@ -100,6 +100,7 @@ static const InternedString CORE_FN_FS_WRITE = create_interned_string("fs_write"
 static const InternedString CORE_FN_FS_APPEND = create_interned_string("fs_append");
 static const InternedString CORE_FN_FS_COPY = create_interned_string("fs_copy");
 static const InternedString CORE_FN_FS_MOVE = create_interned_string("fs_move");
+static const InternedString CORE_FN_FS_STAT = create_interned_string("fs_stat");
 
 static const InternedString CORE_FN_BIT_SHIFT_LEFT = create_interned_string("bit_shift_left");
 static const InternedString CORE_FN_BIT_SHIFT_RIGHT = create_interned_string("bit_shift_right");
@@ -149,4 +150,10 @@ static const Symbol SYM_ANSI_BRIGHT_BLUE = create_symbol("#bright_blue");
 static const Symbol SYM_ANSI_BRIGHT_MAGENTA = create_symbol("#bright_magenta");
 static const Symbol SYM_ANSI_BRIGHT_CYAN = create_symbol("#bright_cyan");
 static const Symbol SYM_ANSI_BRIGHT_WHITE = create_symbol("#bright_white");
+
+// fs symbols
+static const Symbol SYM_FS_FILE = create_symbol("#file");
+static const Symbol SYM_FS_DIRECTORY = create_symbol("#directory");
+static const Symbol SYM_FS_SYMLINK = create_symbol("#symlink");
+static const Symbol SYM_FS_OTHER = create_symbol("#other");
 } // namespace Constants

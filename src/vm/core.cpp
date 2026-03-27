@@ -4,7 +4,6 @@
 #include "core_utils.hpp"
 #include "stack.hpp"
 #include <algorithm>
-#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
@@ -29,6 +28,7 @@
 
 namespace {
 
+namespace chrono = std::chrono;
 std::vector<std::string> msl_args;
 
 }; // namespace
@@ -140,10 +140,8 @@ Value core::container_put(LocationRef where, Stack *stack, VMHeap *heap) {
       }
       idx = heap->next_child(idx);
     }
-    VMHIDX new_pair = heap->new_list();
-    heap->add_child(new_pair, key_value);
-    heap->add_child(new_pair, new_value);
-    heap->link_existing_child(container_value.as.TABLE, new_pair);
+    core_utils::table_add_entry(heap, container_value.as.TABLE, key_value,
+                                new_value);
     return Value::None();
   } break;
   default:
@@ -179,21 +177,19 @@ Value core::table(LocationRef where, Stack *stack, VMHeap *heap) {
   if (args_count % 2 != 0) {
     throw msl_runtime_error(where, "table: expected key-value pairs");
   }
-  VMHIDX list_head = heap->new_table();
+  VMHIDX table_head = heap->new_table();
   // table(k1, v1, k2, v2)
   // stack: [k1, v1, k2, v2, 4]
   // after popping count: [k1, v1, k2, v2]
   // we need to pop k and v in pairs.
-  // since it is a stack, it pops from right to left: v2, then k2, then v1, then k1.
+  // since it is a stack, it pops from right to left: v2, then k2, then v1, then
+  // k1.
   for (int64_t i = 0; i < args_count / 2; ++i) {
-    VMHIDX kv_pair = heap->new_list();
     Value value = stack->pop();
     Value key = stack->pop();
-    heap->add_child(kv_pair, key);
-    heap->add_child(kv_pair, value);
-    heap->link_existing_child_front(list_head, kv_pair);
+    core_utils::table_add_entry_front(heap, table_head, key, value);
   }
-  return heap->at(list_head);
+  return heap->at(table_head);
 }
 
 // ================
@@ -468,6 +464,60 @@ Value core::fs_append(LocationRef where, Stack *stack, VMHeap *heap) {
   return Value::None();
 }
 
+Value core::fs_stat(LocationRef, Stack *stack, VMHeap *heap) {
+  Value path_val = stack->pop();
+  if (path_val.tag != ValueTag::STRING) {
+  }
+  std::string path_str = heap->get_string(path_val.as.STRING);
+  std::filesystem::path path(path_str);
+
+  VMHIDX table_idx = heap->new_table();
+
+  try {
+    if (!std::filesystem::exists(path)) {
+      return core_utils::create_error(heap, "no such file or directory");
+    }
+    Value type_sym = Value::Symbol(Constants::SYM_FS_OTHER);
+    if (std::filesystem::is_regular_file(path)) {
+      type_sym = Value::Symbol(Constants::SYM_FS_FILE);
+    } else if (std::filesystem::is_directory(path)) {
+      type_sym = Value::Symbol(Constants::SYM_FS_DIRECTORY);
+    } else if (std::filesystem::is_symlink(path)) {
+      type_sym = Value::Symbol(Constants::SYM_FS_SYMLINK);
+    }
+    core_utils::table_add_entry(
+        heap, table_idx, Value::Symbol(create_symbol("#type")), type_sym);
+
+    uint64_t size = 0;
+    if (std::filesystem::is_regular_file(path)) {
+      size = std::filesystem::file_size(path);
+    }
+    core_utils::table_add_entry(heap, table_idx,
+                                Value::Symbol(create_symbol("#size")),
+                                Value::Int(size));
+
+    auto ftime = std::filesystem::last_write_time(path);
+    // calculate diff between system and file time
+    auto wall_now = chrono::system_clock::now();
+    auto file_now = std::filesystem::file_time_type::clock::now();
+    auto diff = (wall_now.time_since_epoch() - file_now.time_since_epoch());
+
+    // apply that difference to the specific file time
+    auto stime = ftime.time_since_epoch() + diff;
+    uint64_t seconds = chrono::duration_cast<chrono::seconds>(stime).count();
+
+    core_utils::table_add_entry(heap, table_idx,
+                                Value::Symbol(create_symbol("#last_write")),
+                                Value::Int(seconds));
+
+  } catch (const std::filesystem::filesystem_error &e) {
+    return core_utils::create_error(heap,
+                                    "fs_stat failed: " + std::string(e.what()));
+  }
+
+  return heap->at(table_idx);
+}
+
 Value core::sys_env_get(LocationRef where, Stack *stack, VMHeap *heap) {
   Value name_val = stack->pop();
   if (name_val.tag != ValueTag::STRING) {
@@ -486,7 +536,7 @@ Value core::sys_env_get(LocationRef where, Stack *stack, VMHeap *heap) {
 Value core::sys_sleep(LocationRef where, Stack *stack, VMHeap *) {
   Value ms_val = stack->pop();
   std::this_thread::sleep_for(
-      std::chrono::milliseconds(core_utils::as_int(where, ms_val)));
+      chrono::milliseconds(core_utils::as_int(where, ms_val)));
   return Value::None();
 }
 
@@ -539,24 +589,22 @@ Value core::random_int(LocationRef where, Stack *stack, VMHeap *) {
 }
 
 Value core::time_epoch_ms(LocationRef, Stack *, VMHeap *) {
-  auto now = std::chrono::system_clock::now();
-  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                now.time_since_epoch())
+  auto now = chrono::system_clock::now();
+  auto ms = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch())
                 .count();
   return Value::Int(ms);
 }
 
 Value core::time_epoch_sec(LocationRef, Stack *, VMHeap *) {
-  auto now = std::chrono::system_clock::now();
+  auto now = chrono::system_clock::now();
   auto sec =
-      std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
-          .count();
+      chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count();
   return Value::Int(sec);
 }
 
 Value core::time_iso8601(LocationRef, Stack *, VMHeap *heap) {
-  auto now = std::chrono::system_clock::now();
-  std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+  auto now = chrono::system_clock::now();
+  std::time_t now_c = chrono::system_clock::to_time_t(now);
   std::tm now_tm;
 #ifdef _WIN32
   gmtime_s(&now_tm, &now_c);
@@ -1119,10 +1167,10 @@ Value core::fs_move(LocationRef where, Stack *stack, VMHeap *heap) {
 }
 
 Value core::sys_now(LocationRef, Stack *, VMHeap *) {
-  auto now = std::chrono::high_resolution_clock::now();
-  auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(
-                   now.time_since_epoch())
-                   .count();
+  auto now = chrono::high_resolution_clock::now();
+  auto nanos =
+      chrono::duration_cast<chrono::nanoseconds>(now.time_since_epoch())
+          .count();
   return Value::Int(nanos);
 }
 

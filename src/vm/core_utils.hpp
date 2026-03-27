@@ -240,4 +240,19 @@ inline std::string value_to_string(Stack *stack, VMHeap *heap, Value value) {
   } break;
   }
 }
+
+inline void table_add_entry(VMHeap *heap, VMHIDX table, Value key,
+                            Value value) {
+  VMHIDX new_pair = heap->new_list();
+  heap->add_child(new_pair, key);
+  heap->add_child(new_pair, value);
+  heap->link_existing_child(table, new_pair);
+}
+inline void table_add_entry_front(VMHeap *heap, VMHIDX table, Value key,
+                            Value value) {
+  VMHIDX new_pair = heap->new_list();
+  heap->add_child(new_pair, key);
+  heap->add_child(new_pair, value);
+  heap->link_existing_child_front(table, new_pair);
+}
 }; // namespace core_utils
