@@ -11,4 +11,7 @@ let empty = ""
 assert_eq(base64_encode(empty), "", "empty base64 encode failed")
 assert_eq(base64_decode(""), "", "empty base64 decode failed")
 
+assert_eq(base64_encode("@a1()#%$"), "QGExKCkjJSQ=", none) 
+assert_eq(base64_decode(base64_encode("@a1()#%$")), "@a1()#%$", none)
+
 print("BASE64 TESTS PASSED")
