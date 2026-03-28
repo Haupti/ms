@@ -25,4 +25,20 @@ let tab_values = table_values(tab)
 assert_eq(len(tab_values), 2, none)
 assert_eq(str(tab_values), "list(hallo,3)", none)
 
+let copy1 = copy(tab)
+copy1.table_remove(#key1)
+assert_eq(len(copy1), 1, none)
+assert_eq(str(copy1), "table(#key2,3)", none)
+
+let copy2 = copy(tab)
+copy2.table_remove(#key2)
+assert_eq(len(copy2), 1, none)
+assert_eq(str(copy2), "table(#key1,hallo)", none)
+
+let copy3 = copy(tab)
+copy3.table_remove(#key1)
+copy3.table_remove(#key2)
+assert_eq(len(copy3), 0, none)
+assert_eq(str(copy3), "table()", none)
+
 tests_success("TABLE")

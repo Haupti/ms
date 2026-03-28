@@ -34,10 +34,9 @@ static const InternedString CORE_FN_STR_CONCAT = create_interned_string("<>");
 static const InternedString CORE_FN_TABLE = create_interned_string("table");
 static const InternedString CORE_FN_TABLE_KEYS = create_interned_string("table_keys");
 static const InternedString CORE_FN_TABLE_VALUES = create_interned_string("table_values");
+static const InternedString CORE_FN_TABLE_REMOVE = create_interned_string("table_remove");
 static const InternedString CORE_FN_TABLE_TO_JSON = create_interned_string("table_to_json");
 static const InternedString CORE_FN_TABLE_FROM_JSON = create_interned_string("table_from_json");
-static const InternedString CORE_FN_STR_URL_ENCODE = create_interned_string("str_url_encode");
-static const InternedString CORE_FN_STR_URL_DECODE = create_interned_string("str_url_decode");
 
 static const InternedString CORE_FN_LIST = create_interned_string("list");
 static const InternedString CORE_FN_PUT = create_interned_string("put");
@@ -84,6 +83,8 @@ static const InternedString CORE_FN_STR_SLICE = create_interned_string("str_slic
 static const InternedString CORE_FN_STR_FIND = create_interned_string("str_find");
 static const InternedString CORE_FN_STR_INDEX = create_interned_string("str_index");
 static const InternedString CORE_FN_STR_FMT = create_interned_string("str_fmt");
+static const InternedString CORE_FN_STR_URL_ENCODE = create_interned_string("str_url_encode");
+static const InternedString CORE_FN_STR_URL_DECODE = create_interned_string("str_url_decode");
 
 static const InternedString CORE_FN_MATH_ABS = create_interned_string("math_abs");
 static const InternedString CORE_FN_MATH_FLOOR = create_interned_string("math_floor");

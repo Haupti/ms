@@ -325,6 +325,40 @@ Value core::table_from_json(LocationRef where, Stack *stack, VMHeap *heap) {
   return picojson_to_msl(heap, jval);
 }
 
+Value core::table_remove(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value key = stack->pop();
+  Value table_val = stack->pop();
+  core_utils::assert_table(where, table_val);
+
+  VMHNode *table_node = heap->node_at(table_val.as.TABLE);
+  VMHIDX prev = INVALID;
+  VMHIDX curr = table_node->first_child;
+
+  while (curr != INVALID) {
+    Value current_key = heap->nth_child(curr, 0);
+    if (core::values_equal(heap, current_key, key)) {
+      VMHIDX next = heap->node_at(curr)->next_child;
+
+      if (prev == INVALID) {
+        table_node->first_child = next;
+      } else {
+        heap->node_at(prev)->next_child = next;
+      }
+
+      if (next == INVALID) {
+        table_node->last_child = (prev == INVALID) ? 0 : prev;
+      }
+
+      return Value::None();
+    }
+
+    prev = curr;
+    curr = heap->node_at(curr)->next_child;
+  }
+
+  return Value::None();
+}
+
 // ================
 // ===== LIST =====
 // ================
