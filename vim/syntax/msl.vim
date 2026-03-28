@@ -17,10 +17,9 @@ syn keyword mslBuiltin bit_shift_left bit_shift_right bit_or bit_and bit_xor
 syn keyword mslBuiltin list_slice list_remove list_contains range
 syn keyword mslBuiltin regex_match regex_has_match regex_replace
 syn keyword mslBuiltin base64_encode base64_decode
-syn keyword mslBuiltin table_to_json table_from_json
 syn keyword mslBuiltin str_url_encode str_url_decode
 syn keyword mslBuiltin hex_encode hex_decode binary_encode binary_decode
-syn keyword mslBuiltin table table_keys table_values
+syn keyword mslBuiltin table table_keys table_values table_remove table_to_json table_from_json
 
 
 " Literals and Constants

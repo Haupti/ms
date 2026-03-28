@@ -346,7 +346,7 @@ Value core::table_remove(LocationRef where, Stack *stack, VMHeap *heap) {
       }
 
       if (next == INVALID) {
-        table_node->last_child = (prev == INVALID) ? 0 : prev;
+        table_node->last_child = prev;
       }
 
       return Value::None();
