@@ -7,7 +7,7 @@ fs_write(test_file, "hello stat")
 let s = fs_stat(test_file)
 assert_eq(s.at(#type), #file, "type should be #file")
 assert_eq(s.at(#size), 10, "size should be 10")
-assert_true(s.at(#last_write) > 0, "mtime should be > 0")
+assert_true(s.at(#last_write) > 0, "last_write should be > 0")
 
 let s_dir = fs_stat("src")
 assert_eq(s_dir.at(#type), #directory, "type should be #directory")

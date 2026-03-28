@@ -313,7 +313,7 @@ Core functions are built-in functions available in all MSL scripts. They are typ
 -   **`fs_append(path, content)`**: Appends content to a file.
 -   **`fs_copy(source_path, destination_path)`**: Copies a file or directory.
 -   **`fs_move(source_path, destination_path)`**: Moves/renames a file or directory.
--   **`fs_stat(path)`**: Returns a table with file metadata (`#exists`, `#type`, `#size`, `#mtime`).
+-   **`fs_stat(path)`**: Returns a table with file metadata (`#type`, `#size`, `#last_write`).
 
 ### 3.11. Bitwise Operations
 -   **`bit_shift_left(number, bits)`**: Left shifts a number.

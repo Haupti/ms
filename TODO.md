@@ -55,7 +55,7 @@
 * [DONE] `fs_read(path)` - read entire file to string
 * [DONE] `fs_write(path, content)` - write string to file
 * [DONE] `fs_append(path, content)` - append string to file
-* [DONE] `fs_stat(path)` - return table with size, mtime, is_dir, etc.
+* [DONE] `fs_stat(path)` - return table with size, last_write, type, etc.
 * [DONE] `fs_copy(src, dst)`
 * [DONE] `fs_move(src, dst)`
 

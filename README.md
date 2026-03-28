@@ -1,29 +1,59 @@
-# MSL Language
+# MSL: A Mini Script Language
 
-This is a small scripting language i made for myself as an alternative for e.g. bash or python scripts for writing of glue code and other small quick scripts.\
-It is a dynamically typed language with a large set of buildin (core) functions so installation is as simple as possible.\
-Also it is basically a project for me to try out various techniques such as buildin a VM, a garbage collector (mark and sweep) and a 'LAoTs' heap which is also used to represent lists and tables in.
-If it is unfamiliar for you look at this video, which i got the idea from and explains it very well i think: https://www.youtube.com/watch?v=ShSGHb65f3M&t=1137s \
-So in summary: this is a working but not 'complete' project in a sense that it is a programming language that you should use.
+MSL is a lightweight, dynamically-typed scripting language designed as an alternative to tools like Bash or Python for glue code, automation scripts, and other quick tasks. It aims for simplicity and ease of use with a powerful set of built-in core functions, making installation straightforward.
 
-### The Reference Manual
-[here](./REFERENCE_MANUAL.md) you can find the reference manual to the language itself
+## Project Overview
 
-### The Interpreter
-[here](./INTERPRETER_COMMANDS.md) you can find a manual on how to use the interpreter once you have it build.
+This project is a personal endeavor to explore language implementation techniques. It features a stack-based Virtual Machine (VM), a custom heap memory model (LAoTs Heap), and a garbage collector (mark and sweep). The language pipeline includes a preprocessor, parser, compiler, and VM.
 
+## Key Features
 
-## Under the hood.
-Under the hood the language has a preprocessor (just because i liked it) which is used for concatenating all the script files to a single large input and various small other things like constants and flags.\
-Then there is a 'compiler' which compiles the language to a sort of high-level virtual machine code which then is interpeted by the internal stack-based VM with a LAoTs Heap and mark and sweep GC.\
+-   **Dynamically Typed**: Variables do not require explicit type declarations.
+-   **Core Functions**: A rich set of built-in functions for various tasks.
+-   **VM & GC**: Implementation of a stack-based Virtual Machine with a custom heap and a mark-and-sweep garbage collector.
+-   **Preprocessor**: Handles directives like includes and constants.
 
-### Credits
-To get the credits, run the interpreter with the `--credits` flag. This will print all the license notes from other libraries/projects i used.
+## Technologies
+-   **Language**: C++17
+-   **Build Tool**: `asap` (custom C++ build tool)
+-   **JSON Parsing**: PicoJSON (included in `src/vendor`)
 
-### Compilation
+## Building and Running
 
-I am using my own build tool 'asap' for this which you can find [here](https://github.com/Haupti/asapcpp). With that building the project is just a simple `asap build`.\
-If you build it with something else (which should not be very difficult), you can do so. I used only the standard library and PicoJSON (included in src/vendor) so you can just build it.\
-The project uses C++17 and the `#pragma once` directive. Otherwise its all standard i think.
+The project uses the `asap` build tool which you can find [here](https://github.com/Haupti/asapcpp) (I made it).
 
+### Key Commands:
+-   **Build**: `asap build` (produces an optimized binary)
+-   **Run MSL Script**: `asap run <path_to_script.msl> [args...]`
+-   **Run MSL Test Suite**: `asap run res/main.msl`
+-   **Run with VM Dump**: `asap run <path_to_script.msl> --dump-vm`
+-   **Linting**: `asap check` (runs `clang-tidy`)
+-   **Clean**: `asap clean` (removes build artifacts)
+-   **Performance Profiling**: `./record_perf.sh <binary_path> [args...]` (requires `perf` and FlameGraph tools)
 
+## Core Components
+
+The MSL interpreter follows a typical compilation pipeline:
+1.  **Preprocessor (`src/preprocessor/`)**: Tokenizes source code and handles macros/includes.
+2.  **Parser (`src/parser/`)**: Converts tokens into an Abstract Syntax Tree (AST).
+3.  **IR Compiler (`src/ir/`)**: Lowers AST nodes into Intermediate Representation (IR).
+4.  **VM Compiler (`src/instr/`)**: Translates IR into VM bytecode.
+5.  **VM (`src/vm/`)**: Executes the bytecode using a stack-based architecture and a custom heap.
+
+## Development Conventions
+
+-   **Source Code**: All core implementation files reside in `src/`.
+-   **Utilities**: Project-specific utilities are in `lib/asap/`.
+-   **MSL Resources**: Example scripts and MSL-level tests are in `res/`.
+-   **C++ Tests**: Unit tests for components are in `tests/`.
+-   **Coding Style**: Prioritizes performance and cache-friendliness. Uses index-based referencing (`VMHIDX`, `StringIdx`) for heap objects.
+
+## Further Documentation
+
+-   [Language Reference Manual](./REFERENCE_MANUAL.md): Details language syntax, features, and functions.
+-   [Interpreter Commands](./INTERPRETER_COMMANDS.md): Explains available command-line options and usage for the interpreter.
+
+## Credits
+
+To view project credits and licenses for used libraries, run the interpreter with the `--credits` flag:
+  ./msl --credits
