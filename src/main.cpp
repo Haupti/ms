@@ -3,6 +3,7 @@
 #include "ir/compile_ir.hpp"
 #include "parser/parser.hpp"
 #include "preprocessor/preprocess.hpp"
+#include "vendor/credits.hpp"
 #include "vm/vm.hpp"
 #include <iostream>
 #include <string>
@@ -18,6 +19,11 @@ int main(int argc, char **argv) {
   bool dump_vm = false;
   string entrypoint = "";
   std::vector<std::string> msl_args;
+
+  if (argc == 2 && std::string(argv[1]) == "--credits") {
+    Credits::show_credits();
+    exit(0);
+  }
 
   for (int i = 1; i < argc; ++i) {
     string arg = argv[i];

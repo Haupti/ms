@@ -88,7 +88,7 @@
 * [] `tcp_listen(port)` -> returns server socket handle
 * [] `socket_read(s, n)`, `socket_write(s, data)`, `socket_close(s)`
 * [] `dns_resolve(host)`
-* [] database connection? (e.g. sqlite_open(path))
+* [] database connection? (e.g. `sqlite_open(path)`)
 
 ### terminal support stuff
 * [DONE] ansi colors
