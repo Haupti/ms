@@ -20,16 +20,9 @@ This project is a personal endeavor to explore language implementation technique
 
 ## Building and Running
 
-The project uses the `asap` build tool which you can find [here](https://github.com/Haupti/asapcpp) (I made it).
-
-### Key Commands:
--   **Build**: `asap build` (produces an optimized binary)
--   **Run MSL Script**: `asap run <path_to_script.msl> [args...]`
--   **Run MSL Test Suite**: `asap run res/main.msl`
--   **Run with VM Dump**: `asap run <path_to_script.msl> --dump-vm`
--   **Linting**: `asap check` (runs `clang-tidy`)
--   **Clean**: `asap clean` (removes build artifacts)
--   **Performance Profiling**: `./record_perf.sh <binary_path> [args...]` (requires `perf` and FlameGraph tools)
+The project uses the `asap` build tool which you can find [here](https://github.com/Haupti/asapcpp) (I made it).\
+Since this project includes all dependencies and otherwise only depends on the STL (C++17) it should be straight forward to build it without asap as well.
+However, at the moment, i have nothing prepared for you.
 
 ## Core Components
 
@@ -43,7 +36,7 @@ The MSL interpreter follows a typical compilation pipeline:
 ## Development Conventions
 
 -   **Source Code**: All core implementation files reside in `src/`.
--   **Utilities**: Project-specific utilities are in `lib/asap/`.
+-   **Utilities**: Asap-specific utilities are in `lib/asap/` (includes when creating a project).
 -   **MSL Resources**: Example scripts and MSL-level tests are in `res/`.
 -   **C++ Tests**: Unit tests for components are in `tests/`.
 -   **Coding Style**: Prioritizes performance and cache-friendliness. Uses index-based referencing (`VMHIDX`, `StringIdx`) for heap objects.
