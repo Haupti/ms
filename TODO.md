@@ -69,8 +69,8 @@
 * [] `sys_spawn(cmd, args)` - run command in background, return pid/handle
 
 ### encoding
-* [] `table_to_json(t)`, `table_from_json(json_string)`
-* [] `str_url_encode(s)`, `str_url_decode(s)`
+* [DONE] `table_to_json(t)`, `table_from_json(json_string)`
+* [DONE] `str_url_encode(s)`, `str_url_decode(s)`
 * [DONE] `base64_encode(s)`, `base64_decode(s)`
 
 ### binary

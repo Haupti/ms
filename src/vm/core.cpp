@@ -1205,6 +1205,50 @@ Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
   return heap->add_string(result);
 }
 
+Value core::str_url_encode(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "str_url_encode: expected a string");
+  }
+  std::string str = heap->get_string(val.as.STRING);
+  std::string res = "";
+  for (unsigned char c : str) {
+    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+      res += c;
+    } else {
+      char buf[4];
+      SNPRINTF(buf, sizeof(buf), "%%%02X", c);
+      res += buf;
+    }
+  }
+  return heap->add_string(res);
+}
+
+Value core::str_url_decode(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "str_url_decode: expected a string");
+  }
+  std::string str = heap->get_string(val.as.STRING);
+  std::string res = "";
+  for (size_t i = 0; i < str.length(); ++i) {
+    if (str[i] == '%' && i + 2 < str.length()) {
+      std::string hex = str.substr(i + 1, 2);
+      try {
+        res += (char)std::stoi(hex, nullptr, 16);
+        i += 2;
+      } catch (...) {
+        res += str[i];
+      }
+    } else if (str[i] == '+') {
+      res += ' ';
+    } else {
+      res += str[i];
+    }
+  }
+  return heap->add_string(res);
+}
+
 Value core::fs_exists(LocationRef where, Stack *stack, VMHeap *heap) {
   Value path_val = stack->pop();
   if (path_val.tag != ValueTag::STRING) {

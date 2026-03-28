@@ -36,6 +36,8 @@ static const InternedString CORE_FN_TABLE_KEYS = create_interned_string("table_k
 static const InternedString CORE_FN_TABLE_VALUES = create_interned_string("table_values");
 static const InternedString CORE_FN_TABLE_TO_JSON = create_interned_string("table_to_json");
 static const InternedString CORE_FN_TABLE_FROM_JSON = create_interned_string("table_from_json");
+static const InternedString CORE_FN_STR_URL_ENCODE = create_interned_string("str_url_encode");
+static const InternedString CORE_FN_STR_URL_DECODE = create_interned_string("str_url_decode");
 
 static const InternedString CORE_FN_LIST = create_interned_string("list");
 static const InternedString CORE_FN_PUT = create_interned_string("put");

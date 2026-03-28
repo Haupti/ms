@@ -83,6 +83,8 @@ Value str_slice(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_find(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_index(LocationRef where, Stack *stack, VMHeap *heap);
 Value str_fmt(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_url_encode(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_url_decode(LocationRef where, Stack *stack, VMHeap *heap);
 
 // ===== FILE SYSTEM
 Value fs_exists(LocationRef where, Stack *stack, VMHeap *heap);
@@ -216,6 +218,8 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_STR_FIND.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_STR_INDEX.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_STR_FMT.index, ArgsCount(1, ArgsT::VARARGS)},
+    {Constants::CORE_FN_STR_URL_ENCODE.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_STR_URL_DECODE.index, ArgsCount(1, ArgsT::ARGS)},
     // ===== MATH
     {Constants::CORE_FN_MATH_ABS.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_MATH_FLOOR.index, ArgsCount(1, ArgsT::ARGS)},
@@ -332,6 +336,8 @@ static std::unordered_map<
         {Constants::CORE_FN_STR_FIND.index, str_find},
         {Constants::CORE_FN_STR_INDEX.index, str_index},
         {Constants::CORE_FN_STR_FMT.index, str_fmt},
+        {Constants::CORE_FN_STR_URL_ENCODE.index, str_url_encode},
+        {Constants::CORE_FN_STR_URL_DECODE.index, str_url_decode},
         // ===== MATH
         {Constants::CORE_FN_MATH_ABS.index, math_abs},
         {Constants::CORE_FN_MATH_FLOOR.index, math_floor},

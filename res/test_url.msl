@@ -1,0 +1,17 @@
+$include "util_assertions.msl"
+tests_start("URL ENCODING/DECODING")
+
+print("Testing URL encoding functions...")
+
+let original = "Hello World! @#$%^&*"
+let encoded = str_url_encode(original)
+print("Encoded: " <> encoded)
+assert_eq(encoded, "Hello%20World%21%20%40%23%24%25%5E%26%2A", "URL encode failed")
+
+let decoded = str_url_decode(encoded)
+assert_eq(decoded, original, "URL decode failed")
+
+let with_plus = "a+b"
+assert_eq(str_url_decode(with_plus), "a b", "URL decode '+' to space failed")
+
+tests_success("URL ENCODING/DECODING")

@@ -1,6 +1,5 @@
 $include "util_assertions.msl"
-
-print("Testing JSON functions...")
+tests_start("JSON")
 
 let tab = table(#name, "John", #age, 30, #is_student, #false, #scores, list(10, 20, 30))
 let json_str = table_to_json(tab)
@@ -25,4 +24,4 @@ assert_eq(l2.at(1), "a", "list 1 mismatch")
 assert_eq(l2.at(2), #true, "list 2 mismatch")
 assert_eq(l2.at(3), none, "list 3 mismatch")
 
-print("All JSON tests passed!")
+tests_success("JSON")
