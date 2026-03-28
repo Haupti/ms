@@ -76,7 +76,10 @@
 ### binary
 * [DONE] `bit_shift_left(i, n)`, `bit_shift_right(i,n)`
 * [DONE] `bit_or(i, j)`, `bit_and(i, j)`, `bit_xor(i, j)`
-* [] `hex_encode(s)`, `hex_decode(s)`
+
+### number formats
+* [DONE] `hex_encode(s)`, `hex_decode(s)`
+* [DONE] `binary_encode(s)`, `binary_decode(s)`
 
 ### network
 * [] `http_request(method, url, body, headers)` -> returns table {status, body, headers}

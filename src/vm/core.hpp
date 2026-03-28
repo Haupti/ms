@@ -92,7 +92,7 @@ Value fs_write(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_append(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_copy(LocationRef where, Stack *stack, VMHeap *heap);
 Value fs_move(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_stat(LocationRef where, Stack * stack, VMHeap *heap);
+Value fs_stat(LocationRef where, Stack *stack, VMHeap *heap);
 
 // ===== BIT
 Value bit_shift_left(LocationRef where, Stack *stack, VMHeap *heap);
@@ -128,8 +128,15 @@ Value regex_has_match(LocationRef where, Stack *stack, VMHeap *heap);
 Value regex_match(LocationRef where, Stack *stack, VMHeap *heap);
 Value regex_replace(LocationRef where, Stack *stack, VMHeap *heap);
 
+// ===== BASE64
 Value base64_encode(LocationRef where, Stack *stack, VMHeap *heap);
 Value base64_decode(LocationRef where, Stack *stack, VMHeap *heap);
+
+// ===== NUMBER FORMATS
+Value hex_encode(LocationRef where, Stack *stack, VMHeap *heap);
+Value hex_decode(LocationRef where, Stack *stack, VMHeap *heap);
+Value binary_encode(LocationRef where, Stack *stack, VMHeap *heap);
+Value binary_decode(LocationRef where, Stack *stack, VMHeap *heap);
 
 void set_args(const std::vector<std::string> &args);
 
@@ -247,7 +254,13 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_REGEX_MATCH.index, ArgsCount(2, ArgsT::ARGS)},
     {Constants::CORE_FN_REGEX_REPLACE.index, ArgsCount(3, ArgsT::ARGS)},
     {Constants::CORE_FN_BASE64_ENCODE.index, ArgsCount(1, ArgsT::ARGS)},
-    {Constants::CORE_FN_BASE64_DECODE.index, ArgsCount(1, ArgsT::ARGS)}};
+    {Constants::CORE_FN_BASE64_DECODE.index, ArgsCount(1, ArgsT::ARGS)},
+    // ===== NUMBER FORMATS
+    {Constants::CORE_FN_HEX_ENCODE.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_HEX_DECODE.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_BINARY_ENCODE.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_BINARY_DECODE.index, ArgsCount(1, ArgsT::ARGS)},
+};
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
     fns = {
@@ -356,6 +369,11 @@ static std::unordered_map<
         {Constants::CORE_FN_REGEX_REPLACE.index, regex_replace},
         {Constants::CORE_FN_BASE64_ENCODE.index, base64_encode},
         {Constants::CORE_FN_BASE64_DECODE.index, base64_decode},
+        // ===== NUMBER FORMATS
+        {Constants::CORE_FN_HEX_ENCODE.index, hex_encode},
+        {Constants::CORE_FN_HEX_DECODE.index, hex_decode},
+        {Constants::CORE_FN_BINARY_ENCODE.index, binary_encode},
+        {Constants::CORE_FN_BINARY_DECODE.index, binary_decode},
 };
 
 } // namespace core

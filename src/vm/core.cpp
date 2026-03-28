@@ -1492,11 +1492,11 @@ Value core::regex_replace(LocationRef where, Stack *stack, VMHeap *heap) {
   return Value::String(heap->ref_add_string(result));
 }
 
-namespace {
+namespace _base64 {
+
 static const std::string base64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                         "abcdefghijklmnopqrstuvwxyz"
                                         "0123456789+/";
-
 std::string base64_encode_str(const std::string &in) {
   std::string out;
   uint32_t val = 0;
@@ -1536,7 +1536,7 @@ std::string base64_decode_str(const std::string &in) {
   }
   return out;
 }
-} // namespace
+} // namespace _base64
 
 Value core::base64_encode(LocationRef where, Stack *stack, VMHeap *heap) {
   Value val = stack->pop();
@@ -1544,7 +1544,7 @@ Value core::base64_encode(LocationRef where, Stack *stack, VMHeap *heap) {
     throw msl_runtime_error(where, "base64_encode: expected a string");
   }
   std::string str = heap->get_string(val.as.STRING);
-  return heap->add_string(base64_encode_str(str));
+  return heap->add_string(_base64::base64_encode_str(str));
 }
 
 Value core::base64_decode(LocationRef where, Stack *stack, VMHeap *heap) {
@@ -1553,5 +1553,66 @@ Value core::base64_decode(LocationRef where, Stack *stack, VMHeap *heap) {
     throw msl_runtime_error(where, "base64_decode: expected a string");
   }
   std::string str = heap->get_string(val.as.STRING);
-  return heap->add_string(base64_decode_str(str));
+  return heap->add_string(_base64::base64_decode_str(str));
+}
+
+Value core::hex_encode(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::INT) {
+    throw msl_runtime_error(where, "hex_encode: expected an integer");
+  }
+  if (val.as.INT < 0) {
+    throw msl_runtime_error(where, "hex_encode: expected a positive integer");
+  }
+  std::stringstream ss;
+  ss << std::hex << val.as.INT;
+  return heap->add_string(ss.str());
+}
+
+Value core::hex_decode(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "hex_decode: expected a string");
+  }
+  std::string str = heap->get_string(val.as.STRING);
+  try {
+    return Value::Int(std::stoll(str, nullptr, 16));
+  } catch (...) {
+    throw msl_runtime_error(where, "hex_decode: invalid hex string: " + str);
+  }
+}
+
+Value core::binary_encode(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::INT) {
+    throw msl_runtime_error(where, "binary_encode: expected an integer");
+  }
+  if (val.as.INT < 0) {
+    throw msl_runtime_error(where,
+                            "binary_encode: expected a positive integer");
+  }
+  if (val.as.INT == 0) {
+    return heap->add_string("0");
+  }
+  std::string res = "";
+  uint64_t n = static_cast<uint64_t>(val.as.INT);
+  while (n > 0) {
+    res = ((n % 2 == 0) ? "0" : "1") + res;
+    n /= 2;
+  }
+  return heap->add_string(res);
+}
+
+Value core::binary_decode(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "binary_decode: expected a string");
+  }
+  std::string str = heap->get_string(val.as.STRING);
+  try {
+    return Value::Int(std::stoll(str, nullptr, 2));
+  } catch (...) {
+    throw msl_runtime_error(where,
+                            "binary_decode: invalid binary string: " + str);
+  }
 }

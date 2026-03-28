@@ -130,6 +130,11 @@ static const InternedString CORE_FN_REGEX_REPLACE = create_interned_string("rege
 static const InternedString CORE_FN_BASE64_ENCODE = create_interned_string("base64_encode");
 static const InternedString CORE_FN_BASE64_DECODE = create_interned_string("base64_decode");
 
+static const InternedString CORE_FN_HEX_ENCODE = create_interned_string("hex_encode");
+static const InternedString CORE_FN_HEX_DECODE = create_interned_string("hex_decode");
+static const InternedString CORE_FN_BINARY_ENCODE = create_interned_string("binary_encode");
+static const InternedString CORE_FN_BINARY_DECODE = create_interned_string("binary_decode");
+
 // ansi symbols
 static const Symbol SYM_ANSI_FG = create_symbol("#fg");
 static const Symbol SYM_ANSI_BG = create_symbol("#bg");
