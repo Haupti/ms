@@ -1,6 +1,5 @@
-
-
-print("Testing math functions...")
+$include "util_assertions.msl"
+tests_start("MATH")
 
 assert_eq(math_abs(-5), 5, "math_abs int negative")
 assert_eq(math_abs(5), 5, "math_abs int positive")
@@ -25,4 +24,4 @@ assert_float_eq(math_tan(0), 0.0, "math_tan")
 
 assert_float_eq(math_log(math_exp(1.0)), 1.0, "math_log/exp")
 
-print("All math tests passed!")
+tests_success("MATH")

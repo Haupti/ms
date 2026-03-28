@@ -192,6 +192,32 @@ Value core::table(LocationRef where, Stack *stack, VMHeap *heap) {
   return heap->at(table_head);
 }
 
+Value core::table_keys(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value tab_val = stack->pop();
+  core_utils::assert_table(where, tab_val);
+  VMHNode *table_head = heap->node_at(tab_val.as.TABLE);
+  VMHIDX keys_list = heap->new_list();
+  VMHIDX tab_curr = table_head->first_child;
+  while (tab_curr != INVALID) {
+    heap->add_child(keys_list, heap->nth_child(tab_curr, 0));
+    tab_curr = heap->node_at(tab_curr)->next_child;
+  }
+  return heap->at(keys_list);
+}
+
+Value core::table_values(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value tab_val = stack->pop();
+  core_utils::assert_table(where, tab_val);
+  VMHNode *table_head = heap->node_at(tab_val.as.TABLE);
+  VMHIDX values_list = heap->new_list();
+  VMHIDX tab_curr = table_head->first_child;
+  while (tab_curr != INVALID) {
+    heap->add_child(values_list, heap->nth_child(tab_curr, 1));
+    tab_curr = heap->node_at(tab_curr)->next_child;
+  }
+  return heap->at(values_list);
+}
+
 // ================
 // ===== LIST =====
 // ================

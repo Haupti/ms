@@ -1,4 +1,5 @@
-print("Testing list operations...")
+$include "util_assertions.msl"
+tests_start("LIST")
 
 ; range
 let l1 = range(0, 5)
@@ -21,4 +22,4 @@ assert_eq(str(l3), "list(30,40)", "list_remove(l3, 0)")
 list_remove(l3, 1)
 assert_eq(str(l3), "list(30)", "list_remove(l3, 1)")
 
-print("All list operation tests passed!")
+tests_success("LIST")

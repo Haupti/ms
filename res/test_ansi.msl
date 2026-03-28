@@ -1,10 +1,13 @@
+$include "util_assertions.msl"
+tests_start("ANSI")
 print("Is TTY: " <> str(sys_is_tty()))
 print("Has Color: " <> str(sys_has_color()))
 
 if (sys_has_color()) {
-    ansi_color(#fg, #red)
-    print("This is red!")
+    ansi_color(#fg, #blue)
+    print("This is blue!")
     ansi_reset()
 } else {
     print("No color support detected.")
 }
+tests_success("ANSI")

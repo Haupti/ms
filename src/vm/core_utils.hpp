@@ -149,6 +149,12 @@ inline void assert_list(LocationRef where, Value value) {
                                        type_to_string(value.tag));
   }
 }
+inline void assert_table(LocationRef where, Value value) {
+  if (value.tag != ValueTag::TABLE) {
+    throw msl_runtime_error(where, "expected a table but got a(n) " +
+                                       type_to_string(value.tag));
+  }
+}
 inline void assert_int(LocationRef where, Value value) {
   if (value.tag != ValueTag::INT) {
     throw msl_runtime_error(where, "expected an int but got a(n) " +
@@ -249,7 +255,7 @@ inline void table_add_entry(VMHeap *heap, VMHIDX table, Value key,
   heap->link_existing_child(table, new_pair);
 }
 inline void table_add_entry_front(VMHeap *heap, VMHIDX table, Value key,
-                            Value value) {
+                                  Value value) {
   VMHIDX new_pair = heap->new_list();
   heap->add_child(new_pair, key);
   heap->add_child(new_pair, value);

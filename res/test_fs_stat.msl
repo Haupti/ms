@@ -1,4 +1,5 @@
 $include "util_assertions.msl"
+tests_start("FILESYSTEM STATS")
 
 let test_file = "test_stat_file.txt"
 fs_write(test_file, "hello stat")
@@ -15,4 +16,4 @@ let s_none = fs_stat("non_existent_file_xyz")
 assert_eq(str(s_none), "error(no such file or directory)", "should be an error")
 
 fs_rm(test_file)
-print("FS STAT TESTS PASSED")
+tests_success("FILESYSTEM STATS")

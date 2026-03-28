@@ -1,6 +1,7 @@
 function assert_eq(actual, expected, msg) {
     if(msg == none){
       if (actual != expected) {
+          ansi_color(#fg, #red)
           print("FAIL: expected '" <> str(expected) <> "' but got '" <> str(actual) <> "'")
           sys_exit(1)
       }
@@ -8,6 +9,7 @@ function assert_eq(actual, expected, msg) {
     }
     assert_type(msg, #string)
     if (actual != expected) {
+        ansi_color(#fg, #red)
         print("FAIL: " <> msg <> " - expected '" <> str(expected) <> "' but got '" <> str(actual) <> "'")
         sys_exit(1)
     }
@@ -18,6 +20,7 @@ function assert_float_eq(actual, expected, msg) {
     ; very simple float comparison
     let diff = math_abs(actual - expected)
     if (diff > 0.00001) {
+        ansi_color(#fg, #red)
         print("FAIL: " <> msg <> " - expected " <> str(expected) <> " but got " <> str(actual))
         sys_exit(1)
     }
@@ -26,6 +29,7 @@ function assert_float_eq(actual, expected, msg) {
 function assert_true(actual, msg) {
     assert_type(msg, #string)
     if (actual != #true) {
+        ansi_color(#fg, #red)
         print("FAIL: " <> msg <> " - expected #true but got " <> str(actual))
         sys_exit(1)
     }
@@ -34,7 +38,19 @@ function assert_true(actual, msg) {
 function assert_false(actual, msg) {
     assert_type(msg, #string)
     if (actual != #false) {
+        ansi_color(#fg, #red)
         print("FAIL: " <> msg <> " - expected #false but got " <> str(actual))
         sys_exit(1)
     }
+}
+
+function tests_start(suit_name) {
+  ansi_color(#fg, #blue)
+  print(str_fmt("RUNNING TESTS FOR {}",suit_name))
+  ansi_reset()
+}
+function tests_success(suit_name) {
+  ansi_color(#fg, #green)
+  print(str_fmt("TESTS FOR {} SUCCEEDED!",suit_name))
+  ansi_reset()
 }

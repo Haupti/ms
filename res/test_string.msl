@@ -1,4 +1,5 @@
-print("Testing string functions...")
+$include "util_assertions.msl"
+tests_start("STRING")
 
 ; Test str_slice
 assert_eq(str_slice("hello", 1, 4), "ell", "str_slice positive")
@@ -31,4 +32,4 @@ assert_eq(str_trim_right(" No args here "), " No args here", "str_trim_right no 
 print("\"\\\tsucc\ness")
 
 
-print("All string tests passed!")
+tests_success("STRING")

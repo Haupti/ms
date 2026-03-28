@@ -1,4 +1,5 @@
 $include "util_assertions.msl"
+tests_start("FILESYSTEM (again)")
 
 let test_file = "test_fs_new_file.txt"
 let copy_file = "test_fs_new_file_copy.txt"
@@ -28,4 +29,4 @@ assert(fs_read(move_file) == "hello filesystem")
 fs_rm(test_file)
 fs_rm(move_file)
 
-print("FS NEW TESTS PASSED")
+tests_success("FILESYSTEM (again)")

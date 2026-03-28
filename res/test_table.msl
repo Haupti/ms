@@ -1,3 +1,5 @@
+$include "util_assertions.msl"
+tests_start("TABLE")
 let tab = table(
   #key1, 1,
   #key2, 3
@@ -14,3 +16,13 @@ assert_eq(tab.at(#key2), 3, none)
 assert_eq(str(tab), "table(#key1,hallo,#key2,3)", none)
 
 assert_eq(len(tab), 2, none)
+
+let tab_keys = table_keys(tab)
+assert_eq(len(tab_keys), 2, none)
+assert_eq(str(tab_keys), "list(#key1,#key2)", none)
+
+let tab_values = table_values(tab)
+assert_eq(len(tab_values), 2, none)
+assert_eq(str(tab_values), "list(hallo,3)", none)
+
+tests_success("TABLE")

@@ -1,3 +1,5 @@
+$include "util_assertions.msl"
+tests_start("CURSOR")
 print("Line 1")
 print("Line 2")
 print("Line 3")
@@ -9,3 +11,4 @@ print("Line 2 IS OVERWRITTEN via ansi_clear(#line)")
 
 ansi_set_cursor(5, 0)
 print("This is row 5, col 0")
+tests_success("CURSOR")

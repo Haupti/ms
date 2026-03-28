@@ -41,8 +41,8 @@
 * [DONE] `table()` - create empty dictionary
 * [DONE] `table_get(t, key)` -> rewrite `list_at` to work with any containers + rename to `container_at`
 * [DONE] `table_set(t, key, val)` -> rewrite `list_put` to work with any containers + rename to `container_put`
-* [] `table_keys(t)` - return list of keys
-* [] `table_values(t)` - return list of values
+* [DONE] `table_keys(t)` - return list of keys
+* [DONE] `table_values(t)` - return list of values
 * [] `table_remove(t, key)` -> rewrite `list_remove` to work with any container
 * [] `table_merge(t1, t2)`
 * [DONE] `table_len(t)` - lists number of entries
