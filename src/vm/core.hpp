@@ -20,6 +20,8 @@ Value make_error(LocationRef where, Stack *stack, VMHeap *heap);
 Value table(LocationRef where, Stack *stack, VMHeap *heap);
 Value table_keys(LocationRef where, Stack *stack, VMHeap *heap);
 Value table_values(LocationRef where, Stack *stack, VMHeap *heap);
+Value table_to_json(LocationRef where, Stack *stack, VMHeap *heap);
+Value table_from_json(LocationRef where, Stack *stack, VMHeap *heap);
 
 // ===== LIST
 Value list(LocationRef where, Stack *stack, VMHeap *heap);
@@ -159,6 +161,8 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_TABLE.index, ArgsCount(1, ArgsT::VARARGS)},
     {Constants::CORE_FN_TABLE_KEYS.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_TABLE_VALUES.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_TABLE_TO_JSON.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_TABLE_FROM_JSON.index, ArgsCount(1, ArgsT::ARGS)},
     // ===== LIST
     {Constants::CORE_FN_LIST.index, ArgsCount(1, ArgsT::VARARGS)},
     {Constants::CORE_FN_APPEND.index, ArgsCount(2, ArgsT::ARGS)},
@@ -273,6 +277,8 @@ static std::unordered_map<
         {Constants::CORE_FN_TABLE.index, table},
         {Constants::CORE_FN_TABLE_KEYS.index, table_keys},
         {Constants::CORE_FN_TABLE_VALUES.index, table_values},
+        {Constants::CORE_FN_TABLE_TO_JSON.index, table_to_json},
+        {Constants::CORE_FN_TABLE_FROM_JSON.index, table_from_json},
         // ===== LIST
         {Constants::CORE_FN_LIST.index, list},
         {Constants::CORE_FN_APPEND.index, list_append},

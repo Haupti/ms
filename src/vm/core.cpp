@@ -1,6 +1,7 @@
 #include "core.hpp"
 #include "../../lib/asap/util.hpp"
 #include "../msl_runtime_error.hpp"
+#include "../vendor/picojson/picojson.h"
 #include "core_utils.hpp"
 #include "stack.hpp"
 #include <algorithm>
@@ -216,6 +217,112 @@ Value core::table_values(LocationRef where, Stack *stack, VMHeap *heap) {
     tab_curr = heap->node_at(tab_curr)->next_child;
   }
   return heap->at(values_list);
+}
+
+namespace {
+picojson::value msl_to_picojson(Stack *stack, VMHeap *heap, Value val) {
+  switch (val.tag) {
+  case ValueTag::INT:
+    return picojson::value((double)val.as.INT);
+  case ValueTag::FLOAT:
+    return picojson::value(val.as.FLOAT);
+  case ValueTag::STRING:
+    return picojson::value(heap->get_string(val.as.STRING));
+  case ValueTag::SYMBOL: {
+    std::string s = resolve_symbol(val.as.SYMBOL);
+    if (s == "#true")
+      return picojson::value(true);
+    if (s == "#false")
+      return picojson::value(false);
+    return picojson::value(s);
+  }
+  case ValueTag::NONE:
+    return picojson::value();
+  case ValueTag::LIST: {
+    picojson::array arr;
+    VMHIDX curr = heap->node_at(val.as.LIST)->first_child;
+    while (curr != INVALID) {
+      arr.push_back(msl_to_picojson(stack, heap, heap->at(curr)));
+      curr = heap->node_at(curr)->next_child;
+    }
+    return picojson::value(arr);
+  }
+  case ValueTag::TABLE: {
+    picojson::object obj;
+    VMHIDX curr = heap->node_at(val.as.TABLE)->first_child;
+    while (curr != INVALID) {
+      Value key_val = heap->nth_child(curr, 0);
+      Value value_val = heap->nth_child(curr, 1);
+      std::string key;
+      if (key_val.tag == ValueTag::SYMBOL) {
+        key = resolve_symbol(key_val.as.SYMBOL);
+        if (key.size() > 0 && key[0] == '#')
+          key = key.substr(1);
+      } else {
+        key = core_utils::value_to_string(stack, heap, key_val);
+      }
+      obj[key] = msl_to_picojson(stack, heap, value_val);
+      curr = heap->node_at(curr)->next_child;
+    }
+    return picojson::value(obj);
+  }
+  default:
+    return picojson::value();
+  }
+}
+
+Value picojson_to_msl(VMHeap *heap, const picojson::value &val) {
+  if (val.is<picojson::null>())
+    return Value::None();
+  if (val.is<bool>())
+    return core_utils::to_bool(val.get<bool>());
+  if (val.is<double>()) {
+    double d = val.get<double>();
+    if (d == std::floor(d))
+      return Value::Int((int64_t)d);
+    return Value::Float(d);
+  }
+  if (val.is<std::string>())
+    return heap->add_string(val.get<std::string>());
+  if (val.is<picojson::array>()) {
+    const picojson::array &arr = val.get<picojson::array>();
+    VMHIDX list_head = heap->new_list();
+    for (const auto &item : arr) {
+      heap->add_child(list_head, picojson_to_msl(heap, item));
+    }
+    return heap->at(list_head);
+  }
+  if (val.is<picojson::object>()) {
+    const picojson::object &obj = val.get<picojson::object>();
+    VMHIDX table_head = heap->new_table();
+    for (const auto &kv : obj) {
+      core_utils::table_add_entry(heap, table_head, heap->add_string(kv.first),
+                                  picojson_to_msl(heap, kv.second));
+    }
+    return heap->at(table_head);
+  }
+  return Value::None();
+}
+} // namespace
+
+Value core::table_to_json(LocationRef, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  picojson::value jval = msl_to_picojson(stack, heap, val);
+  return heap->add_string(jval.serialize());
+}
+
+Value core::table_from_json(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  if (val.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "table_from_json: expected a string");
+  }
+  std::string json_str = heap->get_string(val.as.STRING);
+  picojson::value jval;
+  std::string err = picojson::parse(jval, json_str);
+  if (!err.empty()) {
+    return core_utils::create_error(heap, "json parse error: " + err);
+  }
+  return picojson_to_msl(heap, jval);
 }
 
 // ================

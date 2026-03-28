@@ -14,6 +14,7 @@ $include "test_sys.msl"
 $include "test_table.msl"
 $include "test_fs_stat.msl"
 $include "test_base64.msl"
+$include "test_json.msl"
 ;$include "test_cursor.msl"
 
 $endif

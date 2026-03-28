@@ -1,0 +1,28 @@
+$include "util_assertions.msl"
+
+print("Testing JSON functions...")
+
+let tab = table(#name, "John", #age, 30, #is_student, #false, #scores, list(10, 20, 30))
+let json_str = table_to_json(tab)
+print("JSON: " <> json_str)
+
+; Note: order of keys in JSON might not be guaranteed by picojson (uses std::map)
+; but we can parse it back and check equality.
+let tab2 = table_from_json(json_str)
+
+assert_eq(tab2.at("name"), "John", "name mismatch")
+assert_eq(tab2.at("age"), 30, "age mismatch")
+assert_eq(tab2.at("is_student"), #false, "is_student mismatch")
+assert_eq(len(tab2.at("scores")), 3, "scores length mismatch")
+assert_eq(tab2.at("scores").at(0), 10, "score 0 mismatch")
+
+; Test roundtrip for list
+let l = list(1, "a", #true, none)
+let l_json = table_to_json(l)
+let l2 = table_from_json(l_json)
+assert_eq(l2.at(0), 1, "list 0 mismatch")
+assert_eq(l2.at(1), "a", "list 1 mismatch")
+assert_eq(l2.at(2), #true, "list 2 mismatch")
+assert_eq(l2.at(3), none, "list 3 mismatch")
+
+print("All JSON tests passed!")
