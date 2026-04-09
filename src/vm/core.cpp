@@ -1,6 +1,7 @@
 #include "core.hpp"
 #include "../../lib/asap/util.hpp"
 #include "../msl_runtime_error.hpp"
+#include "../vendor/cpp-httplib/cpp_httplib.h"
 #include "../vendor/picojson/picojson.h"
 #include "core_utils.hpp"
 #include "stack.hpp"
@@ -509,6 +510,27 @@ Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
 // =================
 // ===== OTHER =====
 // =================
+//
+Value core::http_get(LocationRef where, Stack *stack, VMHeap *heap) {
+  // TODO this is the core concept of how that should work
+  std::string path = core_utils::as_string(where, stack->pop(), heap);
+  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+  httplib::Client cli(host_address);
+  httplib::Result res = cli.Get(path);
+  if (!res) {
+    return core_utils::create_error(heap, "request to " + host_address + path +
+                                              " failed");
+  }
+  VMHIDX response_table = heap->new_table();
+  core_utils::table_add_entry(heap, response_table,
+                              Value::Symbol(create_symbol("status")),
+                              Value::Int(static_cast<int64_t>(res->status)));
+  core_utils::table_add_entry(heap, response_table,
+                              Value::Symbol(create_symbol("body")),
+                              heap->add_string(res->body));
+  return heap->at(response_table);
+}
+
 Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
   Value value = stack->pop();
   return core_utils::copy_value(stack, heap, value);

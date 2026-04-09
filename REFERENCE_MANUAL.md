@@ -53,11 +53,10 @@ set x = #some_symbol
 That is also valid.
 
 ### 1.4. Operators
-* **Arithmetic**: `+`, `-`, `*`, `/`
+* **Arithmetic**: `+`, `-`, `*`, `/`, `%`
 * **Comparison**: `==`, `!=`, `<`, `>`, `<=`, `>=`
 * **Logical**: `&&` (AND), `||` (OR), `!` (NOT)
 * **String Concatenation**: `<>`
-* **Bitwise**: `<<` (left shift), `>>` (right shift), `|` (OR), `&` (AND), `^` (XOR)
 
  ### 1.5. Control Flow
 **Conditional Statements**:

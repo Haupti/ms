@@ -45,6 +45,11 @@ static const char *PICO_JSON =
     "   ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF "
     "THE\n"
     "   POSSIBILITY OF SUCH DAMAGE.\n";
+static const char *CPP_HTTPLIB =
+    ">> httplib.h:\n"
+    "\n"
+    "Copyright (c) 2026 Yuji Hirose. All rights reserved.\n"
+    "MIT License\n";
 
 void show_credits();
 } // namespace Credits

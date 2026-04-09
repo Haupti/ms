@@ -143,6 +143,9 @@ Value hex_decode(LocationRef where, Stack *stack, VMHeap *heap);
 Value binary_encode(LocationRef where, Stack *stack, VMHeap *heap);
 Value binary_decode(LocationRef where, Stack *stack, VMHeap *heap);
 
+// ===== HTTP
+Value http_get(LocationRef where, Stack *stack, VMHeap *heap);
+
 void set_args(const std::vector<std::string> &args);
 
 enum class ArgsT : uint8_t {
@@ -270,6 +273,8 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_HEX_DECODE.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_BINARY_ENCODE.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_BINARY_DECODE.index, ArgsCount(1, ArgsT::ARGS)},
+    // ===== HTTP
+    {Constants::CORE_FN_HTTP_GET.index, ArgsCount(2, ArgsT::ARGS)},
 };
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
@@ -389,6 +394,8 @@ static std::unordered_map<
         {Constants::CORE_FN_HEX_DECODE.index, hex_decode},
         {Constants::CORE_FN_BINARY_ENCODE.index, binary_encode},
         {Constants::CORE_FN_BINARY_DECODE.index, binary_decode},
+        // ===== HTTP
+        {Constants::CORE_FN_HTTP_GET.index, http_get},
 };
 
 } // namespace core

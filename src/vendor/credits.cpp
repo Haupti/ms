@@ -9,5 +9,6 @@ void Credits::show_credits() {
   std::cout << Credits::STL;
   std::cout << Credits::CLANG;
   std::cout << Credits::PICO_JSON;
+  std::cout << Credits::CPP_HTTPLIB;
   std::cout << "===== CREDITS =====\n";
 }

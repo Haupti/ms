@@ -76,6 +76,24 @@ inline bool as_bool(LocationRef ref, Value value) {
     break;
   }
 }
+inline std::string as_string(LocationRef ref, Value value, VMHeap *heap) {
+  switch (value.tag) {
+  case ValueTag::STRING:
+    return heap->get_string(value.as.STRING);
+  default:
+    throw msl_runtime_error(ref, "expected a string");
+    break;
+  }
+}
+inline VMHIDX as_table(LocationRef ref, Value value, VMHeap *heap) {
+  switch (value.tag) {
+  case ValueTag::TABLE:
+    return value.as.TABLE;
+  default:
+    throw msl_runtime_error(ref, "expected a table");
+    break;
+  }
+}
 inline Value to_bool(bool b) {
   if (b) {
     return Value::Symbol(Constants::SYM_TRUE);
