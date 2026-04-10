@@ -141,6 +141,10 @@ static const InternedString CORE_FN_BINARY_ENCODE = create_interned_string("bina
 static const InternedString CORE_FN_BINARY_DECODE = create_interned_string("binary_decode");
 
 static const InternedString CORE_FN_HTTP_GET = create_interned_string("http_get");
+static const InternedString CORE_FN_HTTP_POST = create_interned_string("http_post");
+static const InternedString CORE_FN_HTTP_PUT = create_interned_string("http_put");
+static const InternedString CORE_FN_HTTP_PATCH = create_interned_string("http_patch");
+static const InternedString CORE_FN_HTTP_DELETE = create_interned_string("http_delete");
 
 // ansi symbols
 static const Symbol SYM_ANSI_FG = create_symbol("#fg");

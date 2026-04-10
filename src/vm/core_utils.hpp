@@ -85,7 +85,7 @@ inline std::string as_string(LocationRef ref, Value value, VMHeap *heap) {
     break;
   }
 }
-inline VMHIDX as_table(LocationRef ref, Value value, VMHeap *heap) {
+inline VMHIDX as_table(LocationRef ref, Value value, VMHeap *) {
   switch (value.tag) {
   case ValueTag::TABLE:
     return value.as.TABLE;

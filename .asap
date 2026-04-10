@@ -1,7 +1,7 @@
 target.name=msl
 compiler.name=clang++
-compiler.flags.default=-Wall -Wextra -Werror -std=c++17 -fsanitize=address -fsanitize=undefined -g -Wno-pragma-once-outside-header
-compiler.flags.production=-Wall -Wextra -Werror -std=c++17 -O2 -Wno-pragma-once-outside-header
-linker.flags.default=-fsanitize=address -fsanitize=undefined
-linker.flags.production=-O2
+compiler.flags.default=-Wall -Wextra -Werror -std=c++17 -fsanitize=address -fsanitize=undefined -g -Wno-pragma-once-outside-header -DCPPHTTPLIB_OPENSSL_SUPPORT
+compiler.flags.production=-Wall -Wextra -Werror -std=c++17 -O2 -Wno-pragma-once-outside-header -DCPPHTTPLIB_OPENSSL_SUPPORT
+linker.flags.default=-fsanitize=address -fsanitize=undefined -lssl -lcrypto
+linker.flags.production=-O2 -lssl -lcrypto
 tidy.checks=performance-*,bugprone-use-after-move,bugprone-argument-comment,bugprone-dangling-handle,modernize-use-auto,modernize-use-override,modernize-use-using,modernize-make-unique,modernize-make-shared,misc-redundant-expression,readability-redundant-declaration

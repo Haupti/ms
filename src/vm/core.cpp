@@ -33,6 +33,36 @@ namespace {
 namespace chrono = std::chrono;
 std::vector<std::string> msl_args;
 
+Value response_to_table(VMHeap *heap, const httplib::Result &res) {
+  VMHIDX response_table = heap->new_table();
+  core_utils::table_add_entry(heap, response_table,
+                              Value::Symbol(create_symbol("#status")),
+                              Value::Int(static_cast<int64_t>(res->status)));
+  core_utils::table_add_entry(heap, response_table,
+                              Value::Symbol(create_symbol("#body")),
+                              heap->add_string(res->body));
+
+  // Headers
+  VMHIDX headers_table = heap->new_table();
+  for (const auto &header : res->headers) {
+    core_utils::table_add_entry(heap, headers_table,
+                                heap->add_string(header.first),
+                                heap->add_string(header.second));
+  }
+  core_utils::table_add_entry(heap, response_table,
+                              Value::Symbol(create_symbol("#headers")),
+                              heap->at(headers_table));
+
+  // Optional redirect field
+  if (res->status >= 300 && res->status < 400 && res->has_header("Location")) {
+    core_utils::table_add_entry(
+        heap, response_table, Value::Symbol(create_symbol("#redirect")),
+        heap->add_string(res->get_header_value("Location")));
+  }
+
+  return heap->at(response_table);
+}
+
 }; // namespace
 bool core::values_equal(VMHeap *heap, Value left, Value right) {
   switch (left.tag) {
@@ -512,7 +542,6 @@ Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
 // =================
 //
 Value core::http_get(LocationRef where, Stack *stack, VMHeap *heap) {
-  // TODO this is the core concept of how that should work
   std::string path = core_utils::as_string(where, stack->pop(), heap);
   std::string host_address = core_utils::as_string(where, stack->pop(), heap);
   httplib::Client cli(host_address);
@@ -521,14 +550,58 @@ Value core::http_get(LocationRef where, Stack *stack, VMHeap *heap) {
     return core_utils::create_error(heap, "request to " + host_address + path +
                                               " failed");
   }
-  VMHIDX response_table = heap->new_table();
-  core_utils::table_add_entry(heap, response_table,
-                              Value::Symbol(create_symbol("status")),
-                              Value::Int(static_cast<int64_t>(res->status)));
-  core_utils::table_add_entry(heap, response_table,
-                              Value::Symbol(create_symbol("body")),
-                              heap->add_string(res->body));
-  return heap->at(response_table);
+  return response_to_table(heap, res);
+}
+
+Value core::http_post(LocationRef where, Stack *stack, VMHeap *heap) {
+  std::string body = core_utils::as_string(where, stack->pop(), heap);
+  std::string path = core_utils::as_string(where, stack->pop(), heap);
+  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+  httplib::Client cli(host_address);
+  httplib::Result res = cli.Post(path, body, "text/plain");
+  if (!res) {
+    return core_utils::create_error(heap, "request to " + host_address + path +
+                                              " failed");
+  }
+  return response_to_table(heap, res);
+}
+
+Value core::http_put(LocationRef where, Stack *stack, VMHeap *heap) {
+  std::string body = core_utils::as_string(where, stack->pop(), heap);
+  std::string path = core_utils::as_string(where, stack->pop(), heap);
+  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+  httplib::Client cli(host_address);
+  httplib::Result res = cli.Put(path, body, "text/plain");
+  if (!res) {
+    return core_utils::create_error(heap, "request to " + host_address + path +
+                                              " failed");
+  }
+  return response_to_table(heap, res);
+}
+
+Value core::http_patch(LocationRef where, Stack *stack, VMHeap *heap) {
+  std::string body = core_utils::as_string(where, stack->pop(), heap);
+  std::string path = core_utils::as_string(where, stack->pop(), heap);
+  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+  httplib::Client cli(host_address);
+  httplib::Result res = cli.Patch(path, body, "text/plain");
+  if (!res) {
+    return core_utils::create_error(heap, "request to " + host_address + path +
+                                              " failed");
+  }
+  return response_to_table(heap, res);
+}
+
+Value core::http_delete(LocationRef where, Stack *stack, VMHeap *heap) {
+  std::string path = core_utils::as_string(where, stack->pop(), heap);
+  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+  httplib::Client cli(host_address);
+  httplib::Result res = cli.Delete(path);
+  if (!res) {
+    return core_utils::create_error(heap, "request to " + host_address + path +
+                                              " failed");
+  }
+  return response_to_table(heap, res);
 }
 
 Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {

@@ -1,0 +1,25 @@
+$include "util_assertions.msl"
+tests_start("HTTP METHODS")
+
+let host = "http://httpbin.org"
+
+print("Testing POST...")
+let res_post = http_post(host, "/post", "hello post")
+assert_eq(res_post.at(#status), 200, "POST failed")
+assert_eq(str_contains(res_post.at(#body), "hello post"), #true, "POST body mismatch")
+
+print("Testing PUT...")
+let res_put = http_put(host, "/put", "hello put")
+assert_eq(res_put.at(#status), 200, "PUT failed")
+assert_eq(str_contains(res_put.at(#body), "hello put"), #true, "PUT body mismatch")
+
+print("Testing PATCH...")
+let res_patch = http_patch(host, "/patch", "hello patch")
+assert_eq(res_patch.at(#status), 200, "PATCH failed")
+assert_eq(str_contains(res_patch.at(#body), "hello patch"), #true, "PATCH body mismatch")
+
+print("Testing DELETE...")
+let res_delete = http_delete(host, "/delete")
+assert_eq(res_delete.at(#status), 200, "DELETE failed")
+
+tests_success("HTTP METHODS")

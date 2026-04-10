@@ -145,6 +145,10 @@ Value binary_decode(LocationRef where, Stack *stack, VMHeap *heap);
 
 // ===== HTTP
 Value http_get(LocationRef where, Stack *stack, VMHeap *heap);
+Value http_post(LocationRef where, Stack *stack, VMHeap *heap);
+Value http_put(LocationRef where, Stack *stack, VMHeap *heap);
+Value http_patch(LocationRef where, Stack *stack, VMHeap *heap);
+Value http_delete(LocationRef where, Stack *stack, VMHeap *heap);
 
 void set_args(const std::vector<std::string> &args);
 
@@ -275,6 +279,10 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_BINARY_DECODE.index, ArgsCount(1, ArgsT::ARGS)},
     // ===== HTTP
     {Constants::CORE_FN_HTTP_GET.index, ArgsCount(2, ArgsT::ARGS)},
+    {Constants::CORE_FN_HTTP_POST.index, ArgsCount(3, ArgsT::ARGS)},
+    {Constants::CORE_FN_HTTP_PUT.index, ArgsCount(3, ArgsT::ARGS)},
+    {Constants::CORE_FN_HTTP_PATCH.index, ArgsCount(3, ArgsT::ARGS)},
+    {Constants::CORE_FN_HTTP_DELETE.index, ArgsCount(2, ArgsT::ARGS)},
 };
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
@@ -396,6 +404,10 @@ static std::unordered_map<
         {Constants::CORE_FN_BINARY_DECODE.index, binary_decode},
         // ===== HTTP
         {Constants::CORE_FN_HTTP_GET.index, http_get},
+        {Constants::CORE_FN_HTTP_POST.index, http_post},
+        {Constants::CORE_FN_HTTP_PUT.index, http_put},
+        {Constants::CORE_FN_HTTP_PATCH.index, http_patch},
+        {Constants::CORE_FN_HTTP_DELETE.index, http_delete},
 };
 
 } // namespace core

@@ -1,0 +1,16 @@
+$include "util_assertions.msl"
+tests_start("HTTPS GET")
+
+print("Testing HTTPS GET to google.com...")
+let res = http_get("https://google.com", "/")
+let status = res.at(#status)
+print("Status: " <> str(status))
+assert_eq(status >= 200 and status < 400, #true, "HTTPS GET failed")
+
+print("Headers: " <> str(res.at(#headers)))
+let redirect = res.at(#redirect)
+if (redirect != none) {
+    print("Redirect to: " <> redirect)
+}
+
+tests_success("HTTPS GET")
