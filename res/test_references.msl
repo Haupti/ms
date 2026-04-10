@@ -1,0 +1,12 @@
+$include "util_assertions.msl"
+
+let myvar = 1
+let myref = ref(myvar)
+set myref = 5
+print(myref) ; 5
+print(myvar) ; 1
+
+set myref = ref(myvar)
+set myref << 5
+print(myref) ; 5
+print(myvar) ; 5

@@ -123,6 +123,10 @@
 * [] improved stack traces on error
 * [] debugger support (step by step execution)
 
+## constructs and concepts
+* [] a box object that basically is just a heap wrapper for a value. this object must have special functions like pack(box, value) and unpack(box) to get and set the values to the box. this is essentially a value pointer object then.
+* [] function references. these need compile time support as they need to resolve the function address for later calling and also the args count when the call happens to check if the args count matches. also this will need an extra instruction in the VM to call references
+
 ## flags/marcros set by the compiler
 * [DONE] filename macro replaced at compile time with the LocationRef's filename
 * [DONE] main macro: #true if that file was passed to the interpreter as entrypoint, otherwise #false

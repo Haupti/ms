@@ -1,0 +1,6 @@
+print("Starting HTTP Server Prototype...")
+
+http_on("GET", "/hello", #my_get_handler)
+http_on("POST", "/data", #my_post_handler)
+
+http_listen(8080)
