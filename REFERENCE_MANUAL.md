@@ -341,4 +341,11 @@ Core functions are built-in functions available in all MSL scripts. They are typ
 
 ### 3.15. Hexadecimal & Binary
 -   **`hex_encode(integer)`**: Converts a positive integer to its hex string representation.
+
+### 3.16. Http
+-   **`http_get(host, path)`**: expects two strings. makes a http get request and returns a table representing the response
+-   **`http_put(host, path, body)`**: expects three strings. makes a http put request and returns a table representing the response
+-   **`http_post(host, path, body)`**: expects three strings. makes a http put request and returns a table representing the response
+-   **`http_patch(host, path, body)`**: expects three strings. makes a http put request and returns a table representing the response
+-   **`http_delete(host, path)`**: expects two strings. makes a http delete request and returns a table representing the response
                                                                                                      
