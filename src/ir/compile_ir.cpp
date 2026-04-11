@@ -72,6 +72,14 @@ IRInstr ir_new_push_none(LocationRef where) {
   ir.extra.args = 0;
   return ir;
 }
+IRInstr ir_new_push_ref(LocationRef where, InternedString name, uint16_t args) {
+  IRInstr ir;
+  ir.as.VAR = name;
+  ir.where = where;
+  ir.tag = IRTag::PUSH_FN_REF;
+  ir.extra.args = args;
+  return ir;
+}
 IRInstr ir_new_push_int(LocationRef where, int64_t val) {
   IRInstr ir;
   ir.as.INT = val;
@@ -356,6 +364,17 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   ctx->add(instr);
   IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_error);
   ctx->add(label_skip_return_instr);
+}
+void compile_ir_ref(IRContext *ctx, nodes *ns, Node curr) {
+  if (!ctx->has_function(curr.as.IDENTIFIER)) {
+    throw compile_error(curr.start,
+                        "No referenceable frunction '" +
+                            resolve_interned_string(curr.as.IDENTIFIER) +
+                            "' found. Only user-defined functions can be referenced.");
+  }
+  uint16_t args_count = ctx->get_function_args(curr.as.IDENTIFIER);
+  IRInstr instr = ir_new_push_ref(curr.start, curr.as.IDENTIFIER, args_count);
+  ctx->add(instr);
 }
 
 void compile_ir_fn_call(IRContext *ctx, nodes *ns, Node curr) {
@@ -744,6 +763,12 @@ void compile_one(IRContext *ctx, nodes *ns, node_idx curr_idx,
       break;
     case NodeTag::EXPECT:
       compile_ir_expect(ctx, ns, curr);
+      if (is_standalone) {
+        ctx->add(ir_new(curr.start, IRTag::POP));
+      }
+      break;
+    case NodeTag::REF:
+      compile_ir_ref(ctx, ns, curr);
       if (is_standalone) {
         ctx->add(ir_new(curr.start, IRTag::POP));
       }

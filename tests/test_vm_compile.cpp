@@ -316,6 +316,12 @@ void test_nested_fn(T *t) {
                         "15 RETURN\n"
                         "16 HALT\n");
 }
+void test_fn_ref(T *t) {
+  string code = "function add(a,b) { return a + b }\n"
+                "let r = ref add\n";
+  string out = compile_and_show(code);
+  t->assert_str_eq(out, "");
+}
 
 } // namespace
 int main() {
@@ -338,5 +344,6 @@ int main() {
   t.test("for loop", test_for_loop);
   t.test("macros", test_macros);
   t.test("function 2", test_nested_fn);
+  t.test("function references", test_fn_ref);
   return 0;
 }

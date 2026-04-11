@@ -143,6 +143,7 @@ void set_labels(std::unordered_map<uint64_t, InstrAddr> *labels,
     case IRTag::PUSH_ALLOC_STRING:
     case IRTag::PUSH_SYMBOL:
     case IRTag::PUSH_NONE:
+    case IRTag::PUSH_FN_REF:
     case IRTag::STORE:
     case IRTag::STORE_NEW:
     case IRTag::LOAD:
@@ -374,6 +375,19 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
     } break;
     case IRTag::POP: {
       instructions.push_back(build(where, VMTag::POP));
+    } break;
+    case IRTag::PUSH_FN_REF: {
+      if (labels.count(instr.as.VAR.index) == 0) {
+        throw compile_error(instr.where,
+                            "undefined function reference '" +
+                                resolve_interned_string(instr.as.VAR) + "'");
+      }
+      VMInstr o;
+      o.where = instr.where;
+      o.as.INSTRADDR = labels.at(instr.as.VAR.index);
+      o.tag = VMTag::PUSH_FN_REF;
+      o.extra.args = instr.extra.args;
+      instructions.push_back(o);
     } break;
     case IRTag::CALL: {
       if (labels.count(instr.as.VAR.index) == 0) {

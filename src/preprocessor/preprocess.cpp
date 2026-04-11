@@ -212,6 +212,9 @@ Token pptoken_to_token(const PreprocessorToken &pptoken) {
   case PpTokenTag::IN:
     token.tag = TokenTag::IN;
     return token;
+  case PpTokenTag::REF:
+    token.tag = TokenTag::REF;
+    return token;
   case PpTokenTag::INCLUDE_MACRO:
   case PpTokenTag::DEFINE_MACRO:
   case PpTokenTag::FSET_MACRO:

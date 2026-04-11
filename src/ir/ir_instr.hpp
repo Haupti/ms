@@ -12,6 +12,7 @@ enum class IRTag : uint8_t {
   PUSH_ALLOC_STRING,
   PUSH_SYMBOL,
   PUSH_NONE,
+  PUSH_FN_REF,
   STORE,
   STORE_NEW,
   LOAD,

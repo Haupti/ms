@@ -44,6 +44,7 @@ enum class NodeTag : uint8_t {
   FOR_LOOP,
   TRY,
   EXPECT,
+  REF,
   CONTINUE,
   BREAK,
   // INTERNAL_ prefixed tags are for internal structuring of nodes

@@ -392,6 +392,10 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       stack.push(Value::None());
       ++iptr;
       break;
+    case VMTag::PUSH_FN_REF: {
+      stack.push(heap.new_fn_ref(instr.as.INSTRADDR, instr.extra.args));
+      ++iptr;
+    } break;
     case VMTag::STORE: {
       Value val = stack.pop();
       stack.write_local(fptr, instr.as.STKADDR, val);

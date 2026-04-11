@@ -144,6 +144,21 @@ node_idx parse_expect_lazy(Parser *p) {
 
   return myself_idx;
 }
+node_idx parse_ref_lazy(Parser *p) {
+  LocationRef start = p->peek().location;
+  p->adv();
+
+  Node myself = Node();
+  myself.start = start;
+  myself.tag = NodeTag::REF;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  Token name = p->peek();
+  assert_identifier(name);
+  myself.as.IDENTIFIER = name.as.IDENTIFIER;
+
+  return myself_idx;
+}
 
 void parse_add_function_args(Parser *p, node_idx myself_idx) {
   while (true) {
@@ -425,6 +440,7 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::FUNCTION:
   case TokenTag::TRY:
   case TokenTag::EXPECT:
+  case TokenTag::REF:
   case TokenTag::ASSIGN:
   case TokenTag::INT:
   case TokenTag::FLOAT:
@@ -508,6 +524,8 @@ node_idx parse_expression_lazy(Parser *p) {
     return parse_try_lazy(p);
   case TokenTag::EXPECT:
     return parse_expect_lazy(p);
+  case TokenTag::REF:
+    return parse_ref_lazy(p);
   case TokenTag::ASSIGN:
     throw compile_error(t.location, "unexpected token '='");
   case TokenTag::BROPEN:
@@ -810,6 +828,8 @@ node_idx parse_one(Parser *p) {
   case TokenTag::TRY:
     return parse_expression_eager(p);
   case TokenTag::EXPECT:
+    return parse_expression_eager(p);
+  case TokenTag::REF:
     return parse_expression_eager(p);
   case TokenTag::RETURN:
     return parse_return(p);

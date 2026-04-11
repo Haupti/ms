@@ -230,6 +230,8 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::TRY);
   } else if (value == "expect") {
     return build_pptoken(get_location(t, start), PpTokenTag::EXPECT);
+  } else if (value == "ref") {
+    return build_pptoken(get_location(t, start), PpTokenTag::REF);
   } else if (value == "not") {
     return build_pptoken(get_location(t, start), PpTokenTag::OP_NOT);
   } else if (value == "and") {

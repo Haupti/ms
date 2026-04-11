@@ -3,6 +3,7 @@
 #include "../../lib/asap/util.hpp"
 #include "../interned_string.hpp"
 #include "../symbol.hpp"
+#include "vm_instr.hpp"
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -22,6 +23,7 @@ enum class ValueTag : uint8_t {
   TABLE,
   ERROR,
   NONE,
+  FN_REF,
 };
 
 struct Value {
@@ -34,6 +36,7 @@ struct Value {
     VMHIDX TABLE;
     VMHIDX ITERATOR;
     VMHIDX ERROR;
+    VMHIDX FN_REF;
     int64_t NONE;
   } as;
   ValueTag tag;
@@ -43,6 +46,13 @@ struct Value {
     Value val;
     val.as.NONE = 0;
     val.tag = ValueTag::NONE;
+    val.undefined = false;
+    return val;
+  }
+  static Value FunctionReference(VMHIDX heap_reference) {
+    Value val;
+    val.as.FN_REF = heap_reference;
+    val.tag = ValueTag::FN_REF;
     val.undefined = false;
     return val;
   }
@@ -114,13 +124,20 @@ struct VMHNode {
   VMHIDX first_child;
   VMHIDX next_child;
   VMHIDX last_child;
+  struct {
+    InstrAddr addr;
+    uint16_t args;
+  } extra;
   VMHNode()
-      : first_child(0), next_child(0), last_child(0), gc_flag(GCFlag::FREE) {
-    value = Value();
-  }
+      : value(Value()), first_child(0), next_child(0), last_child(0),
+        extra({.addr = InstrAddr({0}), .args = 0}), gc_flag(GCFlag::FREE) {}
   VMHNode(Value value)
       : value(value), first_child(0), next_child(0), last_child(0),
-        gc_flag(GCFlag::FREE) {}
+        extra({.addr = InstrAddr({0}), .args = 0}), gc_flag(GCFlag::FREE) {}
+  VMHNode(Value value, InstrAddr addr, uint16_t args)
+      : value(value), first_child(0), next_child(0), last_child(0),
+        extra({.addr = addr, .args = args}), gc_flag(GCFlag::FREE) {}
+
   GCFlag gc_flag;
 };
 
@@ -274,6 +291,19 @@ struct VMHeap {
     elements[idx] = VMHNode(Value::Table(idx));
     free_list.pop_back();
     return idx;
+  }
+
+  Value new_fn_ref(InstrAddr addr, uint16_t args) {
+    ++current_length;
+    if (free_list.size() == 0) {
+      VMHIDX idx = elements.size();
+      elements.emplace_back(Value::FunctionReference(idx), addr, args);
+      return elements[idx].value;
+    }
+    uint64_t idx = free_list.back();
+    elements[idx] = VMHNode(Value::FunctionReference(idx), addr, args);
+    free_list.pop_back();
+    return elements[idx].value;
   }
 
   void link_lists(VMHIDX left_list, VMHIDX right_list) {
