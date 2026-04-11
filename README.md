@@ -17,6 +17,7 @@ This project is a personal endeavor to explore language implementation technique
 -   **Language**: C++17
 -   **Build Tool**: `asap` (custom C++ build tool)
 -   **JSON Parsing**: PicoJSON (included in `src/vendor`)
+-   **HTTP Client/Server**: cpp-httplib (included in `src/vendor`)
 
 ## Building and Running
 
@@ -31,7 +32,7 @@ The MSL interpreter follows a typical compilation pipeline:
 2.  **Parser (`src/parser/`)**: Converts tokens into an Abstract Syntax Tree (AST).
 3.  **IR Compiler (`src/ir/`)**: Lowers AST nodes into Intermediate Representation (IR).
 4.  **VM Compiler (`src/instr/`)**: Translates IR into VM bytecode.
-5.  **VM (`src/vm/`)**: Executes the bytecode using a stack-based architecture and a custom heap.
+5.  **VM (`src/vm/`)**: Executes the VM-instrucitons using a stack-based architecture and a custom heap.
 
 ## Development Conventions
 
