@@ -305,6 +305,11 @@ struct VMHeap {
     free_list.pop_back();
     return elements[idx].value;
   }
+  void get_fn_ref(VMHIDX idx, InstrAddr * addr_out, uint16_t *args_out){
+    VMHNode *node = node_at(idx);
+    *addr_out = node->extra.addr;
+    *args_out = node->extra.args;
+  }
 
   void link_lists(VMHIDX left_list, VMHIDX right_list) {
     VMHNode *left = node_at(left_list);

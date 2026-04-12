@@ -32,6 +32,9 @@ std::string vminstr_to_string(uint64_t pos, const VMInstr &instr) {
   case VMTag::LOAD_GLOBAL:
     str += "LOAD_GLOBAL mem(" + std::to_string(instr.as.STKADDR.addr) + ")";
     break;
+  case VMTag::PUSH_FN_REF:
+    str += "PUSH_FN_REF " + std::to_string(instr.as.INSTRADDR.addr) + " " + std::to_string(instr.extra.args);
+    break;
   case VMTag::NOT:
     str += "NOT";
     break;
@@ -82,6 +85,10 @@ std::string vminstr_to_string(uint64_t pos, const VMInstr &instr) {
     break;
   case VMTag::VMCALL:
     str += "VMCALL " + resolve_interned_string(instr.as.VMFN) + " " +
+           std::to_string(instr.extra.args);
+    break;
+  case VMTag::REFINVOKE:
+    str += "INVOKE " + resolve_interned_string(instr.as.VMFN) + " " +
            std::to_string(instr.extra.args);
     break;
   case VMTag::INIT_FRAME:

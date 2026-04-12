@@ -34,6 +34,7 @@ enum class VMTag : uint8_t {
   TYPEOF,
   CALL,
   VMCALL,
+  REFINVOKE,
   INIT_FRAME,
   ITER_FOREACH,
   RETURN, // same as destroy frame but also jump to return address

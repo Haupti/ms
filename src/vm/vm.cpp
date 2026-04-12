@@ -502,6 +502,27 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       stack.push(val);
       ++iptr;
     } break;
+    case VMTag::REFINVOKE: {
+      run_gc_on_metric(&heap, &stack);
+      ret.push(iptr + 1);
+      Value args_count = stack.pop();
+      Value val = stack.pop();
+      if (val.tag != ValueTag::FN_REF) {
+        throw msl_runtime_error(instr.where,
+                                "expected a function reference but got '" +
+                                    core_utils::type_to_string(val.tag) + "'");
+      }
+      InstrAddr addr;
+      uint16_t args;
+      heap.get_fn_ref(val.as.FN_REF, &addr, &args);
+      if (args_count.as.INT != args) {
+        throw msl_runtime_error(instr.where,
+                                "expected '" + std::to_string(args) +
+                                    "' arguments but got '" +
+                                    std::to_string(args_count.as.INT) + "'");
+      }
+      iptr = addr.addr;
+    } break;
     case VMTag::INIT_FRAME: {
       fps.push(fptr);
       fptr = stack.stkptr - instr.as.INT;
@@ -549,6 +570,7 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       case ValueTag::STRING:
       case ValueTag::ERROR:
       case ValueTag::NONE:
+      case ValueTag::FN_REF:
       case ValueTag::TABLE:
         throw msl_runtime_error(instr.where, "value not iterable");
         break;

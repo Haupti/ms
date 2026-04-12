@@ -198,6 +198,26 @@ node_idx parse_function_call(Parser *p, node_idx left,
   return myself_idx;
 }
 
+node_idx parse_function_ref_invoke(Parser *p, node_idx left,
+                             LocationRef left_location) {
+  p->adv(); // past '('
+  Node myself = Node();
+  myself.start = left_location;
+  myself.tag = NodeTag::REF_INVOKE;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+
+  p->nodes.add_child(myself_idx, left);
+
+  if (p->peek().tag == TokenTag::BRCLOSE) {
+    p->adv();
+    return myself_idx;
+  }
+
+  parse_add_function_args(p, myself_idx);
+
+  return myself_idx;
+}
+
 node_idx parse_left_apply_function(Parser *p, node_idx left) {
   Token identifier = p->peek();
   assert_identifier(identifier);
@@ -441,6 +461,7 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   case TokenTag::TRY:
   case TokenTag::EXPECT:
   case TokenTag::REF:
+  case TokenTag::INVOKE:
   case TokenTag::ASSIGN:
   case TokenTag::INT:
   case TokenTag::FLOAT:
@@ -502,6 +523,17 @@ node_idx parse_expression_lazy(Parser *p) {
     node_idx var_ref = p->nodes.add_dangling(node);
     if (!p->eof() && p->peek().tag == TokenTag::BROPEN) {
       return parse_function_call(p, var_ref, node.start);
+    } else {
+      return var_ref;
+    }
+  }
+  case TokenTag::INVOKE: {
+    Node node =
+        make_node_identifier(t.location, NodeTag::VAR_REF, t.as.IDENTIFIER);
+    p->adv();
+    node_idx var_ref = p->nodes.add_dangling(node);
+    if (!p->eof() && p->peek().tag == TokenTag::BROPEN) {
+      return parse_function_ref_invoke(p, var_ref, node.start);
     } else {
       return var_ref;
     }
@@ -830,6 +862,8 @@ node_idx parse_one(Parser *p) {
   case TokenTag::EXPECT:
     return parse_expression_eager(p);
   case TokenTag::REF:
+    return parse_expression_eager(p);
+  case TokenTag::INVOKE:
     return parse_expression_eager(p);
   case TokenTag::RETURN:
     return parse_return(p);

@@ -14,6 +14,7 @@ struct node_idx {
 enum class NodeTag : uint8_t {
   NIL,
   FN_CALL,
+  REF_INVOKE,
   FN_DEF,
   VAR_DEF,
   VAR_SET,

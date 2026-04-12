@@ -90,11 +90,11 @@ VMInstr build_vmcall(LocationRef where, InternedString vmfn, uint16_t args) {
   o.extra.args = args;
   return o;
 }
-VMInstr build_refcall(LocationRef where, InternedString var, uint16_t args) {
+VMInstr build_refcall(LocationRef where, StkAddr var, uint16_t args) {
   VMInstr o;
   o.where = where;
-  o.as.VMFN = var; // TODO maybe change field name, to just FN or sth
-  o.tag = VMTag::REFINVOKE;
+  o.as.STKADDR = var;
+  o.tag = VMTag::REFCALL;
   o.extra.args = args;
   return o;
 }
@@ -181,7 +181,7 @@ void set_labels(std::unordered_map<uint64_t, InstrAddr> *labels,
     case IRTag::JMPIF:
     case IRTag::HALT:
     case IRTag::ITER_FOREACH:
-    case IRTag::REFINVOKE:
+    case IRTag::REFCALL:
       ++addr;
       break;
     case IRTag::FUNCTION_END:
@@ -415,7 +415,7 @@ std::vector<VMInstr> compile_to_vm(std::vector<IRInstr> ir) {
       instructions.push_back(
           build_vmcall(instr.where, instr.as.VAR, instr.extra.args));
     } break;
-    case IRTag::REFINVOKE: {
+    case IRTag::REFCALL: {
       instructions.push_back(
           build_refcall(instr.where, instr.as.VAR, instr.extra.args));
     } break;

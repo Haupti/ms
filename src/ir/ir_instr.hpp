@@ -35,6 +35,7 @@ enum class IRTag : uint8_t {
   ITER_FOREACH,
   CALL,
   VMCALL,
+  REFINVOKE,
   FUNCTION_START,
   REGISTER_ARG,
   FUNCTION_END,

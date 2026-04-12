@@ -20,6 +20,7 @@ enum class PpTokenTag : uint8_t {
   TRY,
   EXPECT,
   REF,
+  INVOKE,
   RETURN,
   CONTINUE,
   BREAK,
