@@ -217,9 +217,9 @@ inline void vm_lt(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected a number as left argument");
   }
   if (is_true) {
-    stack->push(Value::Symbol(Constants::SYM_TRUE));
+    stack->push(Value::FromSymbol(Constants::SYM_TRUE));
   } else {
-    stack->push(Value::Symbol(Constants::SYM_FALSE));
+    stack->push(Value::FromSymbol(Constants::SYM_FALSE));
   }
 }
 inline void vm_lte(LocationRef where, Stack *stack) {
@@ -255,9 +255,9 @@ inline void vm_lte(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected a number as left argument");
   }
   if (is_true) {
-    stack->push(Value::Symbol(Constants::SYM_TRUE));
+    stack->push(Value::FromSymbol(Constants::SYM_TRUE));
   } else {
-    stack->push(Value::Symbol(Constants::SYM_FALSE));
+    stack->push(Value::FromSymbol(Constants::SYM_FALSE));
   }
 }
 inline void vm_gt(LocationRef where, Stack *stack) {
@@ -293,9 +293,9 @@ inline void vm_gt(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected a number as left argument");
   }
   if (is_true) {
-    stack->push(Value::Symbol(Constants::SYM_TRUE));
+    stack->push(Value::FromSymbol(Constants::SYM_TRUE));
   } else {
-    stack->push(Value::Symbol(Constants::SYM_FALSE));
+    stack->push(Value::FromSymbol(Constants::SYM_FALSE));
   }
 }
 inline void vm_gte(LocationRef where, Stack *stack) {
@@ -331,9 +331,9 @@ inline void vm_gte(LocationRef where, Stack *stack) {
     throw msl_runtime_error(where, "expected a number as left argument");
   }
   if (is_true) {
-    stack->push(Value::Symbol(Constants::SYM_TRUE));
+    stack->push(Value::FromSymbol(Constants::SYM_TRUE));
   } else {
-    stack->push(Value::Symbol(Constants::SYM_FALSE));
+    stack->push(Value::FromSymbol(Constants::SYM_FALSE));
   }
 }
 inline void vm_eq(Stack *stack, VMHeap *heap) {
@@ -341,9 +341,9 @@ inline void vm_eq(Stack *stack, VMHeap *heap) {
   Value left = stack->pop();
   bool is_true = core::values_equal(heap, left, right);
   if (is_true) {
-    stack->push(Value::Symbol(Constants::SYM_TRUE));
+    stack->push(Value::FromSymbol(Constants::SYM_TRUE));
   } else {
-    stack->push(Value::Symbol(Constants::SYM_FALSE));
+    stack->push(Value::FromSymbol(Constants::SYM_FALSE));
   }
 }
 inline void vm_neq(Stack *stack, VMHeap *heap) {
@@ -351,9 +351,9 @@ inline void vm_neq(Stack *stack, VMHeap *heap) {
   Value left = stack->pop();
   bool is_true = core::values_equal(heap, left, right);
   if (!is_true) {
-    stack->push(Value::Symbol(Constants::SYM_TRUE));
+    stack->push(Value::FromSymbol(Constants::SYM_TRUE));
   } else {
-    stack->push(Value::Symbol(Constants::SYM_FALSE));
+    stack->push(Value::FromSymbol(Constants::SYM_FALSE));
   }
 }
 }; // namespace
@@ -385,7 +385,7 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       ++iptr;
       break;
     case VMTag::PUSH_SYMBOL:
-      stack.push(Value::Symbol(instr.as.SYMBOL));
+      stack.push(Value::FromSymbol(instr.as.SYMBOL));
       ++iptr;
       break;
     case VMTag::PUSH_NONE:
@@ -419,9 +419,9 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
     case VMTag::NOT: {
       Value val = stack.pop();
       if (core_utils::as_bool(instr.where, val)) {
-        stack.push(Value::Symbol(Constants::SYM_FALSE));
+        stack.push(Value::FromSymbol(Constants::SYM_FALSE));
       } else {
-        stack.push(Value::Symbol(Constants::SYM_TRUE));
+        stack.push(Value::FromSymbol(Constants::SYM_TRUE));
       }
       ++iptr;
     } break;

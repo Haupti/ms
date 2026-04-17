@@ -36,10 +36,10 @@ std::vector<std::string> msl_args;
 Value response_to_table(VMHeap *heap, const httplib::Result &res) {
   VMHIDX response_table = heap->new_table();
   core_utils::table_add_entry(heap, response_table,
-                              Value::Symbol(create_symbol("#status")),
+                              Value::FromSymbol(create_symbol("#status")),
                               Value::Int(static_cast<int64_t>(res->status)));
   core_utils::table_add_entry(heap, response_table,
-                              Value::Symbol(create_symbol("#body")),
+                              Value::FromSymbol(create_symbol("#body")),
                               heap->add_string(res->body));
 
   // Headers
@@ -50,13 +50,13 @@ Value response_to_table(VMHeap *heap, const httplib::Result &res) {
                                 heap->add_string(header.second));
   }
   core_utils::table_add_entry(heap, response_table,
-                              Value::Symbol(create_symbol("#headers")),
+                              Value::FromSymbol(create_symbol("#headers")),
                               heap->at(headers_table));
 
   // Optional redirect field
   if (res->status >= 300 && res->status < 400 && res->has_header("Location")) {
     core_utils::table_add_entry(
-        heap, response_table, Value::Symbol(create_symbol("#redirect")),
+        heap, response_table, Value::FromSymbol(create_symbol("#redirect")),
         heap->add_string(res->get_header_value("Location")));
   }
 
@@ -114,6 +114,7 @@ bool core::values_equal(VMHeap *heap, Value left, Value right) {
            values_equal(heap, heap->at(left.as.FN_REF),
                         heap->at(right.as.FN_REF));
   }
+  return false;
 }
 
 Value core::print(LocationRef, Stack *stack, VMHeap *heap) {
@@ -519,11 +520,11 @@ Value core::list_contains(LocationRef where, Stack *stack, VMHeap *heap) {
   VMHIDX curr = heap->node_at(list_val.as.LIST)->first_child;
   while (curr != INVALID) {
     if (values_equal(heap, heap->at(curr), val)) {
-      return Value::Symbol(Constants::SYM_TRUE);
+      return Value::FromSymbol(Constants::SYM_TRUE);
     }
     curr = heap->node_at(curr)->next_child;
   }
-  return Value::Symbol(Constants::SYM_FALSE);
+  return Value::FromSymbol(Constants::SYM_FALSE);
 }
 
 Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
@@ -747,23 +748,23 @@ Value core::fs_stat(LocationRef where, Stack *stack, VMHeap *heap) {
       return core_utils::create_error(heap, "no such file or directory");
     }
 
-    Value type_sym = Value::Symbol(Constants::SYM_FS_OTHER);
+    Value type_sym = Value::FromSymbol(Constants::SYM_FS_OTHER);
     if (std::filesystem::is_regular_file(path)) {
-      type_sym = Value::Symbol(Constants::SYM_FS_FILE);
+      type_sym = Value::FromSymbol(Constants::SYM_FS_FILE);
     } else if (std::filesystem::is_directory(path)) {
-      type_sym = Value::Symbol(Constants::SYM_FS_DIRECTORY);
+      type_sym = Value::FromSymbol(Constants::SYM_FS_DIRECTORY);
     } else if (std::filesystem::is_symlink(path)) {
-      type_sym = Value::Symbol(Constants::SYM_FS_SYMLINK);
+      type_sym = Value::FromSymbol(Constants::SYM_FS_SYMLINK);
     }
     core_utils::table_add_entry(
-        heap, table_idx, Value::Symbol(create_symbol("#type")), type_sym);
+        heap, table_idx, Value::FromSymbol(create_symbol("#type")), type_sym);
 
     uint64_t size = 0;
     if (std::filesystem::is_regular_file(path)) {
       size = std::filesystem::file_size(path);
     }
     core_utils::table_add_entry(heap, table_idx,
-                                Value::Symbol(create_symbol("#size")),
+                                Value::FromSymbol(create_symbol("#size")),
                                 Value::Int(size));
 
     // calculate the difference between now in system time and now in file time
@@ -777,7 +778,7 @@ Value core::fs_stat(LocationRef where, Stack *stack, VMHeap *heap) {
     auto seconds =
         std::chrono::duration_cast<std::chrono::seconds>(stime).count();
     core_utils::table_add_entry(heap, table_idx,
-                                Value::Symbol(create_symbol("#last_write")),
+                                Value::FromSymbol(create_symbol("#last_write")),
                                 Value::Int(seconds));
 
   } catch (const std::filesystem::filesystem_error &e) {
@@ -1603,24 +1604,24 @@ Value core::sys_is_tty(LocationRef, Stack *, VMHeap *) {
 
 Value core::sys_has_color(LocationRef, Stack *, VMHeap *) {
   if (!ISATTY(STDOUT_FILENO)) {
-    return Value::Symbol(Constants::SYM_FALSE);
+    return Value::FromSymbol(Constants::SYM_FALSE);
   }
 
   const char *colorterm = std::getenv("COLORTERM");
   if (colorterm != nullptr) {
-    return Value::Symbol(Constants::SYM_TRUE);
+    return Value::FromSymbol(Constants::SYM_TRUE);
   }
 
   const char *term = std::getenv("TERM");
   if (term != nullptr) {
     std::string term_str(term);
     if (term_str == "dumb") {
-      return Value::Symbol(Constants::SYM_FALSE);
+      return Value::FromSymbol(Constants::SYM_FALSE);
     }
-    return Value::Symbol(Constants::SYM_TRUE);
+    return Value::FromSymbol(Constants::SYM_TRUE);
   }
 
-  return Value::Symbol(Constants::SYM_FALSE);
+  return Value::FromSymbol(Constants::SYM_FALSE);
 }
 
 Value core::sys_term_width(LocationRef, Stack *, VMHeap *heap) {

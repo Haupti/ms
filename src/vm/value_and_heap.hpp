@@ -79,7 +79,7 @@ struct Value {
     val.undefined = false;
     return val;
   }
-  static Value Symbol(Symbol value) {
+  static Value FromSymbol(::Symbol value) {
     Value val;
     val.as.SYMBOL = value;
     val.tag = ValueTag::SYMBOL;
@@ -156,6 +156,7 @@ struct VMHeap {
   std::vector<VMHIDX> free_list;
 
   std::unordered_map<uint64_t, StringIdx> static_strings;
+  std::unordered_map<StringIdx, uint64_t> reverse_static_strings;
   std::vector<std::string> strings;
   std::vector<StringIdx> free_strings;
 
@@ -198,6 +199,7 @@ struct VMHeap {
     StringIdx idx = _get_next_string_idx();
     strings[idx] = resolve_interned_string(str);
     static_strings[str.index] = idx;
+    reverse_static_strings[idx] = str.index;
     auto new_str = Value::String(idx);
     add(new_str);
     return new_str;

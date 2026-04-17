@@ -6,12 +6,15 @@ let host = "http://httpbin.org"
 print("Testing POST...")
 let res_post = http_post(host, "/post", "hello post")
 assert_eq(res_post.at(#status), 200, "POST failed")
-assert_eq(str_contains(res_post.at(#body), "hello post"), #true, "POST body mismatch")
+let body_post = res_post.at(#body)
+print(body_post)
+assert_eq(str_contains(body_post, "hello post"), #true, "POST body mismatch")
 
 print("Testing PUT...")
 let res_put = http_put(host, "/put", "hello put")
 assert_eq(res_put.at(#status), 200, "PUT failed")
-assert_eq(str_contains(res_put.at(#body), "hello put"), #true, "PUT body mismatch")
+let adfadf = res_put.at(#body)
+assert_eq(str_contains(adfadf, "hello put"), #true, "PUT body mismatch")
 
 print("Testing PATCH...")
 let res_patch = http_patch(host, "/patch", "hello patch")

@@ -47,28 +47,29 @@ inline TerminalSize get_terminal_size() {
 inline Value type_to_symbol(const Value &value) {
   switch (value.tag) {
   case ValueTag::INT:
-    return (Value::Symbol(Constants::SYM_T_INT));
+    return (Value::FromSymbol(Constants::SYM_T_INT));
   case ValueTag::FLOAT:
-    return (Value::Symbol(Constants::SYM_T_FLOAT));
+    return (Value::FromSymbol(Constants::SYM_T_FLOAT));
   case ValueTag::SYMBOL:
-    return (Value::Symbol(Constants::SYM_T_SYMBOL));
+    return (Value::FromSymbol(Constants::SYM_T_SYMBOL));
   case ValueTag::STRING:
-    return (Value::Symbol(Constants::SYM_T_STRING));
+    return (Value::FromSymbol(Constants::SYM_T_STRING));
   case ValueTag::LIST:
-    return (Value::Symbol(Constants::SYM_T_LIST));
+    return (Value::FromSymbol(Constants::SYM_T_LIST));
   case ValueTag::ERROR:
-    return (Value::Symbol(Constants::SYM_T_ERROR));
+    return (Value::FromSymbol(Constants::SYM_T_ERROR));
   case ValueTag::BOX:
-    return (Value::Symbol(Constants::SYM_T_BOX));
+    return (Value::FromSymbol(Constants::SYM_T_BOX));
   case ValueTag::NONE:
-    return (Value::Symbol(Constants::SYM_T_NONE));
+    return (Value::FromSymbol(Constants::SYM_T_NONE));
   case ValueTag::ITERATOR:
-    return (Value::Symbol(Constants::SYM_T_ITERATOR));
+    return (Value::FromSymbol(Constants::SYM_T_ITERATOR));
   case ValueTag::TABLE:
-    return (Value::Symbol(Constants::SYM_T_TABLE));
+    return (Value::FromSymbol(Constants::SYM_T_TABLE));
   case ValueTag::FN_REF:
-    return (Value::Symbol(Constants::SYM_T_FN_REF));
+    return (Value::FromSymbol(Constants::SYM_T_FN_REF));
   }
+  return Value::None();
 }
 inline bool as_bool(LocationRef ref, Value value) {
   switch (value.tag) {
@@ -76,7 +77,6 @@ inline bool as_bool(LocationRef ref, Value value) {
     return value.as.SYMBOL.index == Constants::SYM_TRUE.index;
   default:
     throw msl_runtime_error(ref, "expected a symbol");
-    break;
   }
 }
 inline std::string as_string(LocationRef ref, Value value, VMHeap *heap) {
@@ -99,9 +99,9 @@ inline VMHIDX as_table(LocationRef ref, Value value, VMHeap *) {
 }
 inline Value to_bool(bool b) {
   if (b) {
-    return Value::Symbol(Constants::SYM_TRUE);
+    return Value::FromSymbol(Constants::SYM_TRUE);
   }
-  return Value::Symbol(Constants::SYM_FALSE);
+  return Value::FromSymbol(Constants::SYM_FALSE);
 }
 
 inline int64_t as_int(LocationRef ref, Value value) {

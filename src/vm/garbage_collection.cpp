@@ -54,6 +54,7 @@ void mark_value(VMHeap *heap, std::vector<GCFlag> *string_marks,
     mark_heap_node(heap, string_marks, val.as.TABLE);
     mark_iterable_elements(heap, string_marks,
                            heap->node_at(val.as.TABLE)->first_child);
+    break;
   case ValueTag::INT:
     break;
   case ValueTag::FLOAT:
@@ -86,6 +87,11 @@ void free_strings(VMHeap *heap, std::vector<GCFlag> *string_marks) {
       heap->free_strings.push_back(i);
       heap->strings[i].clear();
       heap->strings[i].shrink_to_fit();
+      if (heap->reverse_static_strings.count(i) > 0) {
+        uint64_t interned_idx = heap->reverse_static_strings[i];
+        heap->static_strings.erase(interned_idx);
+        heap->reverse_static_strings.erase(i);
+      }
     }
   }
 }
