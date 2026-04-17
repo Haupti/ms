@@ -27,7 +27,7 @@ assert_eq(str(tab_values), "list(hallo,3)", none)
 
 let copy1 = copy(tab)
 
-assert_eq(str(copy1), "table(#key2,3)", "copying of a table")
+assert_eq(str(copy1), "table(#key1,hallo,#key2,3)", "copying of a table")
 copy1.table_remove(#key1)
 ;assert_eq(len(copy1), 1, "remove table entries (1)")
 assert_eq(str(copy1), "table(#key2,3)", "copy1 after removal of one key")

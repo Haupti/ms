@@ -204,7 +204,7 @@ inline Value copy_value(Stack *stack, VMHeap *heap, Value value) {
     VMHIDX new_list = heap->new_list();
     VMHIDX curr = heap->node_at(value.as.LIST)->first_child;
     while (curr != INVALID) {
-      heap->add_child(new_list, heap->at(curr));
+      heap->add_child(new_list, copy_value(stack, heap, heap->at(curr)));
       curr = heap->node_at(curr)->next_child;
     }
     return heap->at(new_list);
@@ -230,7 +230,8 @@ inline Value copy_value(Stack *stack, VMHeap *heap, Value value) {
     VMHIDX new_table = heap->new_table();
     VMHIDX curr = heap->node_at(value.as.TABLE)->first_child;
     while (curr != INVALID) {
-      heap->add_child(new_table, copy_value(stack, heap, heap->at(curr)));
+      Value copied_pair = copy_value(stack, heap, heap->at(curr));
+      heap->link_existing_child(new_table, copied_pair.as.LIST);
       curr = heap->node_at(curr)->next_child;
     }
     return heap->at(new_table);
