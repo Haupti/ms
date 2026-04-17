@@ -13,6 +13,10 @@ assert_false(list_contains(l1, 5), "list_contains(l1, 5)")
 let l2 = list_slice(l1, 1, 4)
 assert_eq(str(l2), "list(1,2,3)", "list_slice(l1, 1, 4)")
 
+; copy
+let l2 = copy(l1)
+assert_eq(str(l2), "list(0,1,2,3,4)", "list copy")
+
 ; list_remove
 let l3 = list(10, 20, 30, 40)
 list_remove(l3, 1)

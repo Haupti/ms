@@ -196,7 +196,7 @@ Value core::len(LocationRef where, Stack *stack, VMHeap *heap) {
     return Value::Int(heap->get_string(val.as.STRING).length());
   } else if (val.tag == ValueTag::LIST || val.tag == ValueTag::TABLE) {
     uint64_t count = 0;
-    VMHIDX curr = heap->node_at(val.as.LIST)->first_child;
+    VMHIDX curr = heap->node_at(val.tag == ValueTag::LIST ? val.as.LIST : val.as.TABLE)->first_child;
     while (curr != INVALID) {
       count++;
       curr = heap->node_at(curr)->next_child;
@@ -368,9 +368,8 @@ Value core::table_remove(LocationRef where, Stack *stack, VMHeap *heap) {
   Value table_val = stack->pop();
   core_utils::assert_table(where, table_val);
 
-  VMHNode *table_node = heap->node_at(table_val.as.TABLE);
   VMHIDX prev = INVALID;
-  VMHIDX curr = table_node->first_child;
+  VMHIDX curr = heap->node_at(table_val.as.TABLE)->first_child;
 
   while (curr != INVALID) {
     Value current_key = heap->nth_child(curr, 0);
@@ -378,16 +377,16 @@ Value core::table_remove(LocationRef where, Stack *stack, VMHeap *heap) {
       VMHIDX next = heap->node_at(curr)->next_child;
 
       if (prev == INVALID) {
-        table_node->first_child = next;
+        heap->node_at(table_val.as.TABLE)->first_child = next;
       } else {
         heap->node_at(prev)->next_child = next;
       }
 
       if (next == INVALID) {
-        table_node->last_child = prev;
+        heap->node_at(table_val.as.TABLE)->last_child = prev;
       }
 
-      return Value::None();
+      return table_val;
     }
 
     prev = curr;

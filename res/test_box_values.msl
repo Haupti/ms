@@ -1,8 +1,12 @@
 $include "util_assertions.msl"
-
 tests_start("BOX VALUES")
 let mybox = box(123)
 assert_eq(mybox.box_unpack(), 123, none)
 mybox.box_pack(321)
 assert_eq(mybox.box_unpack(), 321, none)
+
+# Test functional style
+box_pack(mybox, 456)
+assert_eq(box_unpack(mybox), 456, none)
+
 tests_success("BOX VALUES")

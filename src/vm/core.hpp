@@ -418,9 +418,9 @@ static std::unordered_map<
         {Constants::CORE_FN_HTTP_PATCH.index, http_patch},
         {Constants::CORE_FN_HTTP_DELETE.index, http_delete},
         // ===== BOX
-        {Constants::CORE_FN_BOX.index, http_get},
-        {Constants::CORE_FN_BOX_UNPACK.index, http_post},
-        {Constants::CORE_FN_BOX_PACK.index, http_put},
+        {Constants::CORE_FN_BOX.index, box_create},
+        {Constants::CORE_FN_BOX_UNPACK.index, box_unpack},
+        {Constants::CORE_FN_BOX_PACK.index, box_pack},
 };
 
 } // namespace core
