@@ -1,10 +1,8 @@
-
 $include "util_assertions.msl"
 
 tests_start("BOX VALUES")
-; TODO implement box values
-;let mybox = box(123)
-;assert_eq(mybox.get(), 123, none)
-;mybox.set(321)
-;assert_eq(mybox.get(), 321, none)
+let mybox = box(123)
+assert_eq(mybox.box_unpack(), 123, none)
+mybox.box_pack(321)
+assert_eq(mybox.box_unpack(), 321, none)
 tests_success("BOX VALUES")

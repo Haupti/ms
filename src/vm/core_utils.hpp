@@ -58,6 +58,8 @@ inline Value type_to_symbol(const Value &value) {
     return (Value::Symbol(Constants::SYM_T_LIST));
   case ValueTag::ERROR:
     return (Value::Symbol(Constants::SYM_T_ERROR));
+  case ValueTag::BOX:
+    return (Value::Symbol(Constants::SYM_T_BOX));
   case ValueTag::NONE:
     return (Value::Symbol(Constants::SYM_T_NONE));
   case ValueTag::ITERATOR:
@@ -163,6 +165,8 @@ inline std::string type_to_string(ValueTag tag) {
     return "table";
   case ValueTag::FN_REF:
     return "function-reference";
+  case ValueTag::BOX:
+    return "box";
   }
 }
 inline void assert_list(LocationRef where, Value value) {
@@ -211,6 +215,12 @@ inline Value copy_value(Stack *stack, VMHeap *heap, Value value) {
         heap->add(copy_value(stack, heap, underlying_value));
     return Value::Error(underlying_value_idx);
   } break;
+  case ValueTag::BOX: {
+    Value underlying_value = heap->at(value.as.BOX);
+    VMHIDX underlying_value_idx =
+        heap->add(copy_value(stack, heap, underlying_value));
+    return Value::Box(underlying_value_idx);
+  } break;
   case ValueTag::NONE:
     return value;
   case ValueTag::ITERATOR:
@@ -258,6 +268,8 @@ inline std::string value_to_string(Stack *stack, VMHeap *heap, Value value) {
   case ValueTag::ERROR:
     return "error(" + value_to_string(stack, heap, heap->at(value.as.ERROR)) +
            ")";
+  case ValueTag::BOX:
+    return "box(" + value_to_string(stack, heap, heap->at(value.as.BOX)) + ")";
   case ValueTag::NONE:
     return "none";
   case ValueTag::ITERATOR:

@@ -569,6 +569,7 @@ int run(std::vector<VMInstr> instrs, const std::vector<std::string> &msl_args) {
       case ValueTag::SYMBOL:
       case ValueTag::STRING:
       case ValueTag::ERROR:
+      case ValueTag::BOX:
       case ValueTag::NONE:
       case ValueTag::FN_REF:
       case ValueTag::TABLE:

@@ -21,6 +21,7 @@ enum class ValueTag : uint8_t {
   LIST,
   ITERATOR,
   TABLE,
+  BOX,
   ERROR,
   NONE,
   FN_REF,
@@ -36,6 +37,7 @@ struct Value {
     VMHIDX TABLE;
     VMHIDX ITERATOR;
     VMHIDX ERROR;
+    VMHIDX BOX;
     VMHIDX FN_REF;
     int64_t NONE;
   } as;
@@ -95,6 +97,13 @@ struct Value {
     Value val;
     val.as.TABLE = ref;
     val.tag = ValueTag::TABLE;
+    val.undefined = false;
+    return val;
+  }
+  static Value Box(VMHIDX ref) {
+    Value val;
+    val.as.BOX = ref;
+    val.tag = ValueTag::BOX;
     val.undefined = false;
     return val;
   }
@@ -267,19 +276,7 @@ struct VMHeap {
 
   std::string get_string(StringIdx idx) { return strings.at(idx); }
 
-  VMHIDX new_list() {
-    ++current_length;
-    if (free_list.size() == 0) {
-      VMHIDX idx = elements.size();
-      elements.emplace_back(Value::List(idx));
-      return idx;
-    }
-    uint64_t idx = free_list.back();
-    elements[idx] = VMHNode(Value::List(idx));
-    free_list.pop_back();
-    return idx;
-  }
-
+  // ========= TABLE
   VMHIDX new_table() {
     ++current_length;
     if (free_list.size() == 0) {
@@ -293,6 +290,21 @@ struct VMHeap {
     return idx;
   }
 
+  // ========= BOX
+  Value new_box(Value value) {
+    VMHIDX value_idx = add(value);
+    return Value::Box(value_idx);
+  }
+
+  Value box_pack(VMHIDX boxed_value, Value new_value) {
+    Value old_value = at(boxed_value);
+    replace(boxed_value, new_value);
+    return old_value;
+  }
+
+  Value box_unpack(VMHIDX boxed_value) { return at(boxed_value); }
+
+  // ========= FUNCTION REFERENCES
   Value new_fn_ref(InstrAddr addr, uint16_t args) {
     ++current_length;
     if (free_list.size() == 0) {
@@ -305,10 +317,24 @@ struct VMHeap {
     free_list.pop_back();
     return elements[idx].value;
   }
-  void get_fn_ref(VMHIDX idx, InstrAddr * addr_out, uint16_t *args_out){
+  void get_fn_ref(VMHIDX idx, InstrAddr *addr_out, uint16_t *args_out) {
     VMHNode *node = node_at(idx);
     *addr_out = node->extra.addr;
     *args_out = node->extra.args;
+  }
+
+  // ========= LISTS
+  VMHIDX new_list() {
+    ++current_length;
+    if (free_list.size() == 0) {
+      VMHIDX idx = elements.size();
+      elements.emplace_back(Value::List(idx));
+      return idx;
+    }
+    uint64_t idx = free_list.back();
+    elements[idx] = VMHNode(Value::List(idx));
+    free_list.pop_back();
+    return idx;
   }
 
   void link_lists(VMHIDX left_list, VMHIDX right_list) {

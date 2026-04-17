@@ -14,6 +14,7 @@ static const InternedString EXPECT_ERROR_MSG =
 
 // types
 static const Symbol SYM_T_ERROR = create_symbol("#error");
+static const Symbol SYM_T_BOX = create_symbol("#box");
 static const Symbol SYM_T_INT = create_symbol("#int");
 static const Symbol SYM_T_FLOAT = create_symbol("#float");
 static const Symbol SYM_T_STRING = create_symbol("#string");
@@ -146,6 +147,10 @@ static const InternedString CORE_FN_HTTP_POST = create_interned_string("http_pos
 static const InternedString CORE_FN_HTTP_PUT = create_interned_string("http_put");
 static const InternedString CORE_FN_HTTP_PATCH = create_interned_string("http_patch");
 static const InternedString CORE_FN_HTTP_DELETE = create_interned_string("http_delete");
+
+static const InternedString CORE_FN_BOX = create_interned_string("box");
+static const InternedString CORE_FN_BOX_UNPACK = create_interned_string("box_unpack");
+static const InternedString CORE_FN_BOX_PACK = create_interned_string("box_pack");
 
 // ansi symbols
 static const Symbol SYM_ANSI_FG = create_symbol("#fg");

@@ -150,6 +150,11 @@ Value http_put(LocationRef where, Stack *stack, VMHeap *heap);
 Value http_patch(LocationRef where, Stack *stack, VMHeap *heap);
 Value http_delete(LocationRef where, Stack *stack, VMHeap *heap);
 
+// ===== BOX
+Value box_create(LocationRef where, Stack *stack, VMHeap *heap);
+Value box_unpack(LocationRef where, Stack *stack, VMHeap *heap);
+Value box_pack(LocationRef where, Stack *stack, VMHeap *heap);
+
 void set_args(const std::vector<std::string> &args);
 
 enum class ArgsT : uint8_t {
@@ -283,6 +288,10 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_HTTP_PUT.index, ArgsCount(3, ArgsT::ARGS)},
     {Constants::CORE_FN_HTTP_PATCH.index, ArgsCount(3, ArgsT::ARGS)},
     {Constants::CORE_FN_HTTP_DELETE.index, ArgsCount(2, ArgsT::ARGS)},
+    // ===== BOX
+    {Constants::CORE_FN_BOX.index, ArgsCount(1, ArgsT::ARGS)},
+    {Constants::CORE_FN_BOX_PACK.index, ArgsCount(2, ArgsT::ARGS)},
+    {Constants::CORE_FN_BOX_UNPACK.index, ArgsCount(1, ArgsT::ARGS)},
 };
 static std::unordered_map<
     uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
@@ -408,6 +417,10 @@ static std::unordered_map<
         {Constants::CORE_FN_HTTP_PUT.index, http_put},
         {Constants::CORE_FN_HTTP_PATCH.index, http_patch},
         {Constants::CORE_FN_HTTP_DELETE.index, http_delete},
+        // ===== BOX
+        {Constants::CORE_FN_BOX.index, http_get},
+        {Constants::CORE_FN_BOX_UNPACK.index, http_post},
+        {Constants::CORE_FN_BOX_PACK.index, http_put},
 };
 
 } // namespace core

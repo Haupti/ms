@@ -98,6 +98,9 @@ bool core::values_equal(VMHeap *heap, Value left, Value right) {
     return right.tag == ValueTag::ERROR &&
            values_equal(heap, heap->at(left.as.ERROR),
                         heap->at(right.as.ERROR));
+  case ValueTag::BOX:
+    return right.tag == ValueTag::BOX &&
+           values_equal(heap, heap->at(left.as.BOX), heap->at(right.as.BOX));
   case ValueTag::NONE:
     return right.tag == ValueTag::NONE;
   case ValueTag::ITERATOR:
@@ -1899,4 +1902,26 @@ Value core::binary_decode(LocationRef where, Stack *stack, VMHeap *heap) {
     throw msl_runtime_error(where,
                             "binary_decode: invalid binary string: " + str);
   }
+}
+
+Value core::box_create(LocationRef, Stack *stack, VMHeap *heap) {
+  Value val = stack->pop();
+  return heap->new_box(val);
+}
+Value core::box_pack(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value value = stack->pop();
+  Value box = stack->pop();
+  if (box.tag != ValueTag::BOX) {
+    throw msl_runtime_error(where,
+                            "box_pack: expected a box as first argument");
+  }
+  return heap->box_pack(box.as.BOX, value);
+}
+Value core::box_unpack(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value box = stack->pop();
+  if (box.tag != ValueTag::BOX) {
+    throw msl_runtime_error(where,
+                            "box_pack: expected a box as first argument");
+  }
+  return heap->box_unpack(box.as.BOX);
 }

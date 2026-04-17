@@ -46,11 +46,11 @@ function assert_false(actual, msg) {
 
 function tests_start(suit_name) {
   ansi_color(#fg, #blue)
-  print(str_fmt("RUNNING TESTS FOR {}",suit_name))
+  print(str_fmt("RUNNING TESTS FOR {}", suit_name))
   ansi_reset()
 }
 function tests_success(suit_name) {
   ansi_color(#fg, #green)
-  print(str_fmt("TESTS FOR {} SUCCEEDED!",suit_name))
+  print(str_fmt("TESTS FOR {} SUCCEEDED!", suit_name))
   ansi_reset()
 }
