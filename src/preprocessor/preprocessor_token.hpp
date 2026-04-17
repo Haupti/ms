@@ -118,6 +118,15 @@ inline PreprocessorToken build_pptoken_identifier(const LocationRef &location,
   };
 }
 
+inline PreprocessorToken build_pptoken_invoke(const LocationRef &location,
+                                              const InternedString &identifier) {
+  return PreprocessorToken{
+      .location = location,
+      .as = {.IDENTIFIER = identifier}, // either 'invoke' or the function name
+      .tag = PpTokenTag::INVOKE,
+  };
+}
+
 inline PreprocessorToken build_pptoken(const LocationRef &location,
                                        PpTokenTag tag) {
   return PreprocessorToken{

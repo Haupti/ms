@@ -86,5 +86,10 @@ inline std::string ir_to_string(const IRInstr &instr) {
   case IRTag::ITER_FOREACH:
     return "ITER_FOREACH " + resolve_label(instr.as.LABEL);
     break;
+  case IRTag::PUSH_FN_REF:
+    return "PUSH_FN_REF " + resolve_interned_string(instr.as.VAR);
+  case IRTag::REFINVOKE:
+    return "REFINVOKE " + resolve_interned_string(instr.as.VAR);
+    break;
   }
 }

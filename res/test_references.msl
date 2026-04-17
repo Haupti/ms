@@ -1,12 +1,10 @@
 $include "util_assertions.msl"
 
-let myvar = 1
-let myref = ref(myvar)
-set myref = 5
-print(myref) ; 5
-print(myvar) ; 1
-
-set myref = ref(myvar)
-set myref << 5
-print(myref) ; 5
-print(myvar) ; 5
+tests_start("REFERENCES")
+function add(a,b){
+  return a + b
+}
+let myref = ref add 
+assert_eq(myref.invoke(10,20), 30, none)
+assert_eq(invoke(myref,30,40), 70, none)
+tests_success("REFERENCES")

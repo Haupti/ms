@@ -5,7 +5,7 @@ if exists("b:current_syntax")
 endif
 
 " Keywords
-syn keyword mslKeyword function let set if elif else return for in try expect 
+syn keyword mslKeyword function let set if elif else return for in try expect ref invoke
 syn keyword mslBuiltin print str int float len typeof list put at append prepend link copy panic error assert assert_type random 
 syn keyword mslBuiltin ansi_color ansi_reset ansi_set_cursor ansi_move_cursor ansi_clear_line ansi_clear_screen ansi_clear
 syn keyword mslBuiltin sys_env_get process_args sys_exit sys_exec sys_now sys_is_tty sys_has_color sys_sleep sys_term_width sys_term_height

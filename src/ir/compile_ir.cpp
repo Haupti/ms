@@ -160,7 +160,8 @@ IRInstr ir_new_vm_call(LocationRef where, InternedString name, uint16_t args) {
   ir.extra.args = args;
   return ir;
 }
-IRInstr ir_new_ref_invoke(LocationRef where, InternedString name, uint16_t args) {
+IRInstr ir_new_ref_invoke(LocationRef where, InternedString name,
+                          uint16_t args) {
   IRInstr ir;
   ir.as.VAR = name;
   ir.where = where;
@@ -373,11 +374,11 @@ void compile_ir_expect(IRContext *ctx, nodes *ns, Node curr) {
   IRInstr label_skip_return_instr = ir_new_label(curr.start, label_skip_error);
   ctx->add(label_skip_return_instr);
 }
-void compile_ir_ref(IRContext *ctx, nodes *ns, Node curr) {
+void compile_ir_ref(IRContext *ctx, nodes *, Node curr) {
   if (!ctx->has_function(curr.as.IDENTIFIER)) {
     throw compile_error(
         curr.start,
-        "No referenceable frunction '" +
+        "No referenceable function '" +
             resolve_interned_string(curr.as.IDENTIFIER) +
             "' found. Only user-defined functions can be referenced.");
   }
@@ -448,17 +449,11 @@ void compile_ir_ref_invoke(IRContext *ctx, nodes *ns, Node curr) {
   }
   uint16_t args_count = i - 1;
 
-  InternedString fn_name = ns->at(ns->nth_child(curr, 0)).as.IDENTIFIER;
-  if (args_count < 1) {
-    throw compile_error(curr.start,
-                        "expected at least one argument but got 0 arguments");
-  }
-  Node first_arg = ns->at(ns->nth_child(curr, 1));
-  if (first_arg.tag != NodeTag::VAR_REF) {
-    throw compile_error(curr.start, "expected an identifier as first argument");
-  }
-  ctx->add(ir_new_push_int(curr.start, args_count - 1));
-  ctx->add(ir_new_ref_invoke(curr.start, first_arg.as.IDENTIFIER, args_count));
+  node_idx ref_idx = ns->nth_child(curr, 0);
+  compile_one(ctx, ns, ref_idx, false);
+
+  ctx->add(ir_new_push_int(curr.start, args_count));
+  ctx->add(ir_new_ref_invoke(curr.start, create_interned_string("invoke"), args_count));
 }
 
 void compile_ir_fn_def(IRContext *ctx, nodes *ns, Node curr) {

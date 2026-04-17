@@ -15,7 +15,7 @@ assert_eq(tab.at(#key2), 3, none)
 
 assert_eq(str(tab), "table(#key1,hallo,#key2,3)", none)
 
-assert_eq(len(tab), 2, none)
+assert_eq(len(tab), 2, "add table entries")
 
 let tab_keys = table_keys(tab)
 assert_eq(len(tab_keys), 2, none)
@@ -27,12 +27,12 @@ assert_eq(str(tab_values), "list(hallo,3)", none)
 
 let copy1 = copy(tab)
 copy1.table_remove(#key1)
-assert_eq(len(copy1), 1, none)
+assert_eq(len(copy1), 1, "remove table entries (1)")
 assert_eq(str(copy1), "table(#key2,3)", none)
 
 let copy2 = copy(tab)
 copy2.table_remove(#key2)
-assert_eq(len(copy2), 1, none)
+assert_eq(len(copy2), 1, "remove table entry")
 assert_eq(str(copy2), "table(#key1,hallo)", none)
 
 let copy3 = copy(tab)

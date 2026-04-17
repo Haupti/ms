@@ -117,6 +117,12 @@ inline std::string show_node(const Node &node) {
   case NodeTag::BREAK:
     s += " BREAK ";
     break;
+  case NodeTag::REF_INVOKE:
+    s += " INVOKE " + resolve_interned_string(node.as.IDENTIFIER);
+    break;
+  case NodeTag::REF:
+    s += " REF " + resolve_interned_string(node.as.IDENTIFIER);
+    break;
   }
   s += ":\n";
   if (node.tag != NodeTag::NIL) {

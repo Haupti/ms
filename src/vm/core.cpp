@@ -106,6 +106,10 @@ bool core::values_equal(VMHeap *heap, Value left, Value right) {
   case ValueTag::TABLE:
     return right.tag == ValueTag::TABLE && left.as.TABLE == right.as.TABLE;
     break;
+  case ValueTag::FN_REF:
+    return right.tag == ValueTag::FN_REF &&
+           values_equal(heap, heap->at(left.as.FN_REF),
+                        heap->at(right.as.FN_REF));
   }
 }
 

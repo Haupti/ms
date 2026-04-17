@@ -106,5 +106,9 @@ inline string pptoken_to_string(const PreprocessorToken &token) {
     return "continue";
   case PpTokenTag::BREAK:
     return "break";
+  case PpTokenTag::REF:
+    return "ref";
+  case PpTokenTag::INVOKE:
+    return "invoke";
   }
 }

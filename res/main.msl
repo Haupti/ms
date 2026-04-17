@@ -1,6 +1,8 @@
 $iffset __MAIN__
 
 $include "util_assertions.msl"
+$include "test_references.msl"
+$include "test_box_values.msl"
 $include "test_fs.msl"
 $include "test_fs_new.msl"
 $include "test_math.msl"

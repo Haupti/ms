@@ -59,6 +59,9 @@ void mark_value(VMHeap *heap, std::vector<GCFlag> *string_marks,
     break;
   case ValueTag::NONE:
     break;
+  case ValueTag::FN_REF:
+    mark_heap_node(heap, string_marks, val.as.FN_REF);
+    break;
   }
 }
 

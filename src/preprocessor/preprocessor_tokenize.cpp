@@ -232,8 +232,6 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::EXPECT);
   } else if (value == "ref") {
     return build_pptoken(get_location(t, start), PpTokenTag::REF);
-  } else if (value == "invoke") {
-    return build_pptoken(get_location(t, start), PpTokenTag::INVOKE);
   } else if (value == "not") {
     return build_pptoken(get_location(t, start), PpTokenTag::OP_NOT);
   } else if (value == "and") {
@@ -264,6 +262,9 @@ PreprocessorToken tokenize_identifier_and_others(Tokenizer *t) {
     return build_pptoken(get_location(t, start), PpTokenTag::CONTINUE);
   } else if (value == "break") {
     return build_pptoken(get_location(t, start), PpTokenTag::BREAK);
+  } else if (value == "invoke") {
+    return build_pptoken_invoke(get_location(t, start),
+                                create_interned_string(value));
   } else {
     return build_pptoken_identifier(get_location(t, start),
                                     create_interned_string(value));

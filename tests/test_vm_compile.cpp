@@ -318,9 +318,27 @@ void test_nested_fn(T *t) {
 }
 void test_fn_ref(T *t) {
   string code = "function add(a,b) { return a + b }\n"
-                "let r = ref add\n";
+                "let r = ref add\n"
+                "r.invoke(1, 2)\n";
   string out = compile_and_show(code);
-  t->assert_str_eq(out, "");
+  t->assert_str_eq(out, "0 PROGRAM_INIT 1\n"
+                        "1 PUSH_FN_REF 10 2\n"
+                        "2 STORE_GLOBAL mem(0)\n"
+                        "3 PUSH_INT 1\n"
+                        "4 PUSH_INT 2\n"
+                        "5 LOAD_GLOBAL mem(0)\n"
+                        "6 PUSH_INT 2\n"
+                        "7 INVOKE invoke 2\n"
+                        "8 POP\n"
+                        "9 HALT\n"
+                        "10 INIT_FRAME 0 2\n"
+                        "11 LOAD mem(0)\n"
+                        "12 LOAD mem(1)\n"
+                        "13 ADD\n"
+                        "14 RETURN\n"
+                        "15 PUSH_NONE \n"
+                        "16 RETURN\n"
+                        "17 HALT\n");
 }
 
 } // namespace

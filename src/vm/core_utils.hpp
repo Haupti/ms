@@ -64,7 +64,8 @@ inline Value type_to_symbol(const Value &value) {
     return (Value::Symbol(Constants::SYM_T_ITERATOR));
   case ValueTag::TABLE:
     return (Value::Symbol(Constants::SYM_T_TABLE));
-    break;
+  case ValueTag::FN_REF:
+    return (Value::Symbol(Constants::SYM_T_FN_REF));
   }
 }
 inline bool as_bool(LocationRef ref, Value value) {
@@ -133,6 +134,8 @@ inline ValueTag symbol_to_type(LocationRef where, const Symbol &symbol) {
     return ValueTag::ITERATOR;
   } else if (symbol.index == Constants::SYM_T_TABLE.index) {
     return ValueTag::TABLE;
+  } else if (symbol.index == Constants::SYM_T_FN_REF.index) {
+    return ValueTag::FN_REF;
   } else {
     throw msl_runtime_error(where, "'" + resolve_symbol(symbol) +
                                        "' does not denote a type");
@@ -158,7 +161,8 @@ inline std::string type_to_string(ValueTag tag) {
     return "iterator";
   case ValueTag::TABLE:
     return "table";
-    break;
+  case ValueTag::FN_REF:
+    return "function-reference";
   }
 }
 inline void assert_list(LocationRef where, Value value) {
@@ -221,6 +225,12 @@ inline Value copy_value(Stack *stack, VMHeap *heap, Value value) {
     }
     return heap->at(new_table);
   } break;
+  case ValueTag::FN_REF: {
+    Value underlying_value = heap->at(value.as.FN_REF);
+    VMHIDX underlying_value_idx =
+        heap->add(copy_value(stack, heap, underlying_value));
+    return Value::FunctionReference(underlying_value_idx);
+  } break;
   }
 }
 
@@ -261,6 +271,10 @@ inline std::string value_to_string(Stack *stack, VMHeap *heap, Value value) {
       curr = heap->node_at(curr)->next_child;
     }
     return "table(" + join(args, ",") + ")";
+  } break;
+  case ValueTag::FN_REF: {
+    return "ref(" + value_to_string(stack, heap, heap->at(value.as.FN_REF)) +
+           ")";
   } break;
   }
 }

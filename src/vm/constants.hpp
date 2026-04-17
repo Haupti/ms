@@ -22,6 +22,7 @@ static const Symbol SYM_T_LIST = create_symbol("#list");
 static const Symbol SYM_T_NONE = create_symbol("#none");
 static const Symbol SYM_T_ITERATOR = create_symbol("#iterator");
 static const Symbol SYM_T_TABLE = create_symbol("#table");
+static const Symbol SYM_T_FN_REF = create_symbol("#function-reference");
 
 // fn names
 static const InternedString CORE_FN_PRINT = create_interned_string("print");

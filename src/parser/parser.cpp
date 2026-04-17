@@ -148,14 +148,15 @@ node_idx parse_ref_lazy(Parser *p) {
   LocationRef start = p->peek().location;
   p->adv();
 
+  Token name = p->peek();
+  assert_identifier(name);
+  p->adv();
+
   Node myself = Node();
   myself.start = start;
   myself.tag = NodeTag::REF;
-  node_idx myself_idx = p->nodes.add_dangling(myself);
-
-  Token name = p->peek();
-  assert_identifier(name);
   myself.as.IDENTIFIER = name.as.IDENTIFIER;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
 
   return myself_idx;
 }
@@ -199,7 +200,7 @@ node_idx parse_function_call(Parser *p, node_idx left,
 }
 
 node_idx parse_function_ref_invoke(Parser *p, node_idx left,
-                             LocationRef left_location) {
+                                   LocationRef left_location) {
   p->adv(); // past '('
   Node myself = Node();
   myself.start = left_location;
@@ -318,6 +319,38 @@ node_idx parse_list(Parser *p) {
   }
 }
 
+node_idx parse_dot_invoke(Parser *p, node_idx left) {
+  LocationRef loc = p->peek().location;
+  p->adv();
+  assert_open_br(p->peek());
+  node_idx myself_idx = parse_function_ref_invoke(p, left, loc);
+  Node myself = p->nodes.at(myself_idx);
+  return parse_consecutive_expression(p, myself_idx, myself.tag, myself.start);
+}
+
+node_idx parse_invoke(Parser *p, LocationRef loc) {
+  p->adv(); // past '('
+  if (p->peek().tag == TokenTag::BRCLOSE) {
+    throw compile_error(p->peek().location,
+                        "expected at least one argument for 'invoke'");
+  }
+  node_idx ref_idx = parse_expression_eager(p);
+  Node myself = Node();
+  myself.start = loc;
+  myself.tag = NodeTag::REF_INVOKE;
+  node_idx myself_idx = p->nodes.add_dangling(myself);
+  p->nodes.add_child(myself_idx, ref_idx);
+
+  if (p->peek().tag == TokenTag::COMMA) {
+    p->adv();
+    parse_add_function_args(p, myself_idx);
+    return myself_idx;
+  }
+  assert_close_br(p->peek());
+  p->adv();
+  return myself_idx;
+}
+
 node_idx parse_consecutive_expression(Parser *p, node_idx left,
                                       NodeTag left_tag,
                                       LocationRef left_location) {
@@ -335,6 +368,9 @@ node_idx parse_consecutive_expression(Parser *p, node_idx left,
   }
   case TokenTag::DOT: {
     p->adv();
+    if (p->peek().tag == TokenTag::INVOKE) {
+      return parse_dot_invoke(p, left);
+    }
     node_idx myself_idx = parse_left_apply_function(p, left);
     Node myself = p->nodes.at(myself_idx);
     return parse_consecutive_expression(p, myself_idx, myself.tag,
@@ -528,14 +564,13 @@ node_idx parse_expression_lazy(Parser *p) {
     }
   }
   case TokenTag::INVOKE: {
-    Node node =
-        make_node_identifier(t.location, NodeTag::VAR_REF, t.as.IDENTIFIER);
+    LocationRef loc = t.location;
     p->adv();
-    node_idx var_ref = p->nodes.add_dangling(node);
     if (!p->eof() && p->peek().tag == TokenTag::BROPEN) {
-      return parse_function_ref_invoke(p, var_ref, node.start);
+      return parse_invoke(p, loc);
     } else {
-      return var_ref;
+      Node node = make_node_identifier(loc, NodeTag::VAR_REF, t.as.IDENTIFIER);
+      return p->nodes.add_dangling(node);
     }
   }
   case TokenTag::LET:
