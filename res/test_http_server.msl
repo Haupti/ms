@@ -1,6 +1,15 @@
 print("Starting HTTP Server Prototype...")
 
-http_on("GET", "/hello", #my_get_handler)
-http_on("POST", "/data", #my_post_handler)
+function my_get_handler(request) {
+  print("GET HANDLER CALLED: " <> str(request))
+}
+
+function my_post_handler(request) {
+  print("POST HANDLER CALLED: " <> str(request))
+}
+
+http_on("GET", "/hello", my_get_handler)
+http_on("POST", "/data", my_post_handler)
 
 http_listen(8080)
+

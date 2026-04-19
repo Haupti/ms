@@ -187,6 +187,25 @@ inline void assert_int(LocationRef where, Value value) {
                                        type_to_string(value.tag));
   }
 }
+inline void assert_sym(LocationRef where, Value value) {
+  if (value.tag != ValueTag::SYMBOL) {
+    throw msl_runtime_error(where, "expected a symbol but got a(n) " +
+                                       type_to_string(value.tag));
+  }
+}
+inline void assert_fn_ref(LocationRef where, Value value) {
+  if (value.tag != ValueTag::FN_REF) {
+    throw msl_runtime_error(where,
+                            "expected a function reference but got a(n) " +
+                                type_to_string(value.tag));
+  }
+}
+inline void assert_str(LocationRef where, Value value) {
+  if (value.tag != ValueTag::STRING) {
+    throw msl_runtime_error(where, "expected a string but got a(n) " +
+                                       type_to_string(value.tag));
+  }
+}
 
 inline Value copy_value(Stack *stack, VMHeap *heap, Value value) {
   switch (value.tag) {
@@ -292,12 +311,27 @@ inline std::string value_to_string(Stack *stack, VMHeap *heap, Value value) {
   }
 }
 
+
 inline void table_add_entry(VMHeap *heap, VMHIDX table, Value key,
                             Value value) {
   VMHIDX new_pair = heap->new_list();
   heap->add_child(new_pair, key);
   heap->add_child(new_pair, value);
   heap->link_existing_child(table, new_pair);
+}
+
+inline void table_set_entry(VMHeap *heap, VMHIDX table, Value key,
+                            Value value) {
+  VMHIDX idx = heap->nth_child_idx(table, 0);
+  while (idx != INVALID) {
+    Value current_key = heap->nth_child(idx, 0);
+    if (core::values_equal(heap, key, current_key)) {
+      heap->replace(heap->nth_child_idx(idx, 1), value);
+      return;
+    }
+    idx = heap->next_child(idx);
+  }
+  table_add_entry(heap, table, key, value);
 }
 inline void table_add_entry_front(VMHeap *heap, VMHIDX table, Value key,
                                   Value value) {

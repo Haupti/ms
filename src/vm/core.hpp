@@ -149,6 +149,8 @@ Value http_post(LocationRef where, Stack *stack, VMHeap *heap);
 Value http_put(LocationRef where, Stack *stack, VMHeap *heap);
 Value http_patch(LocationRef where, Stack *stack, VMHeap *heap);
 Value http_delete(LocationRef where, Stack *stack, VMHeap *heap);
+Value http_on(LocationRef where, Stack *stack, VMHeap *heap);
+Value http_listen(LocationRef where, Stack *stack, VMHeap *heap);
 
 // ===== BOX
 Value box_create(LocationRef where, Stack *stack, VMHeap *heap);
@@ -288,6 +290,8 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_HTTP_PUT.index, ArgsCount(3, ArgsT::ARGS)},
     {Constants::CORE_FN_HTTP_PATCH.index, ArgsCount(3, ArgsT::ARGS)},
     {Constants::CORE_FN_HTTP_DELETE.index, ArgsCount(2, ArgsT::ARGS)},
+    {Constants::CORE_FN_HTTP_ON.index, ArgsCount(3, ArgsT::ARGS)},
+    {Constants::CORE_FN_HTTP_LISTEN.index, ArgsCount(1, ArgsT::ARGS)},
     // ===== BOX
     {Constants::CORE_FN_BOX.index, ArgsCount(1, ArgsT::ARGS)},
     {Constants::CORE_FN_BOX_PACK.index, ArgsCount(2, ArgsT::ARGS)},
@@ -417,6 +421,8 @@ static std::unordered_map<
         {Constants::CORE_FN_HTTP_PUT.index, http_put},
         {Constants::CORE_FN_HTTP_PATCH.index, http_patch},
         {Constants::CORE_FN_HTTP_DELETE.index, http_delete},
+        {Constants::CORE_FN_HTTP_ON.index, http_on},
+        {Constants::CORE_FN_HTTP_LISTEN.index, http_listen},
         // ===== BOX
         {Constants::CORE_FN_BOX.index, box_create},
         {Constants::CORE_FN_BOX_UNPACK.index, box_unpack},

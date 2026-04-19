@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <optional>
 #include <random>
 #include <regex>
 #include <sstream>
@@ -39,7 +40,7 @@ Value response_to_table(VMHeap *heap, const httplib::Result &res) {
                               Value::FromSymbol(create_symbol("#status")),
                               Value::Int(static_cast<int64_t>(res->status)));
   core_utils::table_add_entry(heap, response_table,
-                              Value::FromSymbol(create_symbol("#body")),
+                              Value::FromSymbol(Constants::SYM_BODY),
                               heap->add_string(res->body));
 
   // Headers
@@ -50,7 +51,7 @@ Value response_to_table(VMHeap *heap, const httplib::Result &res) {
                                 heap->add_string(header.second));
   }
   core_utils::table_add_entry(heap, response_table,
-                              Value::FromSymbol(create_symbol("#headers")),
+                              Value::FromSymbol(Constants::SYM_HEADERS),
                               heap->at(headers_table));
 
   // Optional redirect field
@@ -61,6 +62,61 @@ Value response_to_table(VMHeap *heap, const httplib::Result &res) {
   }
 
   return heap->at(response_table);
+}
+
+void map_msl_to_response(Stack *stack, VMHeap *heap, Value msl_res,
+                         httplib::Response &res) {
+  if (msl_res.tag != ValueTag::TABLE) {
+    res.status = 500;
+    res.set_content("Internal Server Error: Handler did not return a table",
+                    "text/plain");
+    return;
+  }
+
+  VMHIDX table_idx = msl_res.as.TABLE;
+
+  // Status
+  stack->push(msl_res);
+  stack->push(Value::FromSymbol(create_symbol("#status")));
+  Value status_val = core::container_at(LocationRef{0}, stack, heap);
+  if (status_val.tag == ValueTag::INT) {
+    res.status = static_cast<int>(status_val.as.INT);
+  } else {
+    res.status = 200;
+  }
+
+  // Body
+  stack->push(msl_res);
+  stack->push(Value::FromSymbol(Constants::SYM_BODY));
+  Value body_val = core::container_at(LocationRef{0}, stack, heap);
+  if (body_val.tag == ValueTag::STRING) {
+    res.set_content(heap->get_string(body_val.as.STRING), "text/plain");
+  }
+
+  // Headers
+  stack->push(msl_res);
+  stack->push(Value::FromSymbol(Constants::SYM_HEADERS));
+  Value headers_val = core::container_at(LocationRef{0}, stack, heap);
+  if (headers_val.tag == ValueTag::TABLE) {
+    VMHIDX headers_idx = headers_val.as.TABLE;
+    VMHIDX curr = heap->node_at(headers_idx)->first_child;
+    while (curr != INVALID) {
+      Value key_val = heap->nth_child(curr, 0);
+      Value val_val = heap->nth_child(curr, 1);
+
+      std::string key = core_utils::value_to_string(stack, heap, key_val);
+      std::string val = core_utils::value_to_string(stack, heap, val_val);
+
+      if (key == "Content-Type") {
+        // httplib handles Content-Type specially in set_content
+        // but we can also set it manually if we want to overwrite
+        res.set_header(key, val);
+      } else {
+        res.set_header(key, val);
+      }
+      curr = heap->node_at(curr)->next_child;
+    }
+  }
 }
 
 }; // namespace
@@ -197,7 +253,9 @@ Value core::len(LocationRef where, Stack *stack, VMHeap *heap) {
     return Value::Int(heap->get_string(val.as.STRING).length());
   } else if (val.tag == ValueTag::LIST || val.tag == ValueTag::TABLE) {
     uint64_t count = 0;
-    VMHIDX curr = heap->node_at(val.tag == ValueTag::LIST ? val.as.LIST : val.as.TABLE)->first_child;
+    VMHIDX curr =
+        heap->node_at(val.tag == ValueTag::LIST ? val.as.LIST : val.as.TABLE)
+            ->first_child;
     while (curr != INVALID) {
       count++;
       curr = heap->node_at(curr)->next_child;
@@ -609,6 +667,91 @@ Value core::http_delete(LocationRef where, Stack *stack, VMHeap *heap) {
                                               " failed");
   }
   return response_to_table(heap, res);
+}
+namespace Global {
+class SingleThreadedTaskQueue : public httplib::TaskQueue {
+  // TODO Review: make sure this actually is single threaded, blocking and
+  // synchronous
+public:
+  SingleThreadedTaskQueue() {};
+  virtual ~SingleThreadedTaskQueue() {};
+  virtual bool enqueue(std::function<void()> fn) override {
+    fn();
+    return true;
+  }
+  virtual void shutdown() override {}
+};
+struct GlobalState {
+  std::optional<httplib::Server> server;
+};
+static GlobalState state;
+
+}; // namespace Global
+
+Value core::http_on(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value handler_ref = stack->pop();
+  Value path_str = stack->pop();
+  Value method_sym = stack->pop();
+  core_utils::assert_sym(where, method_sym);
+  core_utils::assert_str(where, path_str);
+  core_utils::assert_fn_ref(where, handler_ref);
+  if (!Global::state.server.has_value()) {
+    Global::state.server.emplace();
+    Global::state.server->new_task_queue = []() {
+      return new Global::SingleThreadedTaskQueue();
+    };
+  }
+  if (method_sym.as.SYMBOL.index == Constants::SYM_GET.index) {
+    Global::state.server->Get(
+        heap->get_string(path_str.as.STRING),
+        [heap, stack, handler_ref](const httplib::Request &req,
+                                   httplib::Response &res) {
+          VMHIDX req_table_idx = heap->new_table();
+          core_utils::table_add_entry(heap, req_table_idx,
+                                      Value::FromSymbol(Constants::SYM_METHOD),
+                                      heap->add_string(req.method));
+          core_utils::table_add_entry(heap, req_table_idx,
+                                      Value::FromSymbol(Constants::SYM_BODY),
+                                      heap->add_string(req.body));
+          VMHIDX params_table = heap->new_table();
+          for (auto [key, values] : req.params) {
+            core_utils::table_add_entry(heap, params_table,
+                                        Value::FromSymbol(create_symbol(key)),
+                                        heap->add_string(values));
+          }
+          core_utils::table_add_entry(heap, req_table_idx,
+                                      Value::FromSymbol(Constants::SYM_PARAMS),
+                                      heap->at(params_table));
+
+          // TODO: We need a way to call handler_ref with req_table as argument.
+          // Since the VM is currently a single loop in vm.cpp:run, we cannot
+          // easily call back into it.
+          // For now, we return a 501 Not Implemented.
+          res.status = 501;
+          res.set_content("HTTP Server handlers not yet fully implemented",
+                          "text/plain");
+
+          /*
+          Value handler_result = call_msl_function(handler_ref,
+          {heap->at(req_table_idx)}); map_msl_to_response(stack, heap,
+          handler_result, res);
+          */
+        });
+  }
+  return Value::None();
+}
+
+Value core::http_listen(LocationRef where, Stack *stack, VMHeap *heap) {
+  Value port = stack->pop();
+  core_utils::assert_int(where, port);
+  if (!Global::state.server.has_value()) {
+    Global::state.server.emplace();
+    Global::state.server->new_task_queue = []() {
+      return new Global::SingleThreadedTaskQueue();
+    };
+  }
+  Global::state.server->listen("127.0.0.1", port.as.INT);
+  return Value::Int(0);
 }
 
 Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
