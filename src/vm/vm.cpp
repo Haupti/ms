@@ -481,7 +481,7 @@ bool VM::step() {
     break;
   case VMTag::VMCALL: {
     run_gc_on_metric(&heap, &stack);
-    Value val = core::fns.at(instr.as.VMFN.index)(instr.where, this);
+    Value val = core::fns.at(instr.as.FUNC.index)(instr.where, this);
     stack.push(val);
     ++iptr;
   } break;
@@ -624,14 +624,16 @@ Value VM::call_reference(Value fn_ref, std::vector<Value> args) {
   }
 
   iptr = addr.addr;
-  uint64_t sentinel_ret = 0xFFFFFFFFFFFFFFFF;
-  ret_stack.push_back(sentinel_ret);
+  // We push a sentinel to the return stack.
+  // The VM's RETURN will eventually pop this and set iptr to it.
+  ret_stack.push_back(REF_CALL_RETURN_IPTR);
 
-  while (iptr != sentinel_ret) {
+  while (iptr != REF_CALL_RETURN_IPTR) {
     if (!step())
       break;
   }
 
+  // Restore the instruction pointer to where we were before the call.
   iptr = saved_iptr;
   return stack.pop();
 }

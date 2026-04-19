@@ -20,6 +20,7 @@ public:
 
   uint64_t iptr = 0;
   uint64_t fptr = 0;
+  static const uint64_t REF_CALL_RETURN_IPTR = 0xFFFFFFFFFFFFFFFF;
 
 private:
   std::vector<uint64_t> ret_stack;

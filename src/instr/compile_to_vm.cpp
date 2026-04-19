@@ -85,7 +85,7 @@ VMInstr build_none(LocationRef where) {
 VMInstr build_vmcall(LocationRef where, InternedString vmfn, uint16_t args) {
   VMInstr o;
   o.where = where;
-  o.as.VMFN = vmfn;
+  o.as.FUNC = vmfn;
   o.tag = VMTag::VMCALL;
   o.extra.args = args;
   return o;
@@ -93,7 +93,7 @@ VMInstr build_vmcall(LocationRef where, InternedString vmfn, uint16_t args) {
 VMInstr build_refcall(LocationRef where, InternedString var, uint16_t args) {
   VMInstr o;
   o.where = where;
-  o.as.VMFN = var; // TODO maybe change field name, to just FN or sth
+  o.as.FUNC = var; 
   o.tag = VMTag::REFINVOKE;
   o.extra.args = args;
   return o;

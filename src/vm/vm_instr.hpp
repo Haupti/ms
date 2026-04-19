@@ -63,7 +63,7 @@ struct VMInstr {
     double FLOAT;
     Symbol SYMBOL;
     InternedString STRING;
-    InternedString VMFN;
+    InternedString FUNC;
     InstrAddr INSTRADDR;
     StkAddr STKADDR;
     // the boolean indicates if wether its explicitly set as a value or

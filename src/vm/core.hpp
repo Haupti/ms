@@ -2,7 +2,6 @@
 
 #include "../location.hpp"
 #include "constants.hpp"
-#include "stack.hpp"
 #include "value_and_heap.hpp"
 #include <cstdint>
 #include <functional>

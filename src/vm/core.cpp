@@ -66,43 +66,46 @@ Value response_to_table(VM *vm, const httplib::Result &res) {
   return vm->heap.at(response_table);
 }
 
-void map_msl_to_response(VM *vm, Value msl_res, httplib::Response &res) {
+Value table_get_internal(VMHeap *heap, VMHIDX table_idx, Value key) {
+  VMHIDX idx = heap->nth_child_idx(table_idx, 0);
+  while (idx != INVALID) {
+    Value current_key = heap->nth_child(idx, 0);
+    if (core::values_equal(heap, key, current_key)) {
+      return heap->nth_child(idx, 1);
+    }
+    idx = heap->next_child(idx);
+  }
+  return Value::None();
+}
+
+void map_msl_table_to_response(LocationRef where, VM *vm, Value msl_res,
+                               httplib::Response &res) {
   if (msl_res.tag != ValueTag::TABLE) {
-    res.status = 500;
-    res.set_content("Internal Server Error: Handler did not return a table",
-                    "text/plain");
-    return;
+    throw msl_runtime_error(
+        where, "http server request handler did not return a table");
   }
 
-//////////////////  VMHIDX table_idx = msl_res.as.TABLE;
+  VMHIDX table_idx = msl_res.as.TABLE;
 
-  // TODO this is wrong. why is there stuff pushed to the stack in this
-  // function? this function should only map the value to the response and not
-  // write to the stack...
-  // The request handler should return the value but the request handler is only called by the http_on logic and thus the response it returns is 'captured' by it and used up.
-  
   // Status
-  vm->stack.push(msl_res);
-  vm->stack.push(Value::FromSymbol(create_symbol("#status")));
-  Value status_val = core::container_at(LocationRef{0}, vm);
+  Value status_val = table_get_internal(
+      &vm->heap, table_idx, Value::FromSymbol(create_symbol("#status")));
   if (status_val.tag == ValueTag::INT) {
     res.status = static_cast<int>(status_val.as.INT);
+  } else if (status_val.tag != ValueTag::NONE) {
+    throw msl_runtime_error(where,
+                            "http server handler status of invalid type:" +
+                                core_utils::type_to_string(status_val.tag));
   } else {
     res.status = 200;
   }
 
-  // Body
-  vm->stack.push(msl_res);
-  vm->stack.push(Value::FromSymbol(Constants::SYM_BODY));
-  Value body_val = core::container_at(LocationRef{0}, vm);
-  if (body_val.tag == ValueTag::STRING) {
-    res.set_content(vm->heap.get_string(body_val.as.STRING), "text/plain");
-  }
+  // Content-Type fallback
+  std::string content_type = "text/plain";
 
   // Headers
-  vm->stack.push(msl_res);
-  vm->stack.push(Value::FromSymbol(Constants::SYM_HEADERS));
-  Value headers_val = core::container_at(LocationRef{0}, vm);
+  Value headers_val = table_get_internal(
+      &vm->heap, table_idx, Value::FromSymbol(Constants::SYM_HEADERS));
   if (headers_val.tag == ValueTag::TABLE) {
     VMHIDX headers_idx = headers_val.as.TABLE;
     VMHIDX curr = vm->heap.node_at(headers_idx)->first_child;
@@ -116,18 +119,31 @@ void map_msl_to_response(VM *vm, Value msl_res, httplib::Response &res) {
           core_utils::value_to_string(&vm->stack, &vm->heap, val_val);
 
       if (key == "Content-Type") {
-        // httplib handles Content-Type specially in set_content
-        // but we can also set it manually if we want to overwrite
-        res.set_header(key, val);
+        content_type = val;
       } else {
         res.set_header(key, val);
       }
       curr = vm->heap.node_at(curr)->next_child;
     }
+  } else if (headers_val.tag != ValueTag::NONE) {
+    throw msl_runtime_error(where,
+                            "expected a table for response headers but got " +
+                                core_utils::type_to_string(headers_val.tag));
+  }
+
+  // Body
+  Value body_val = table_get_internal(&vm->heap, table_idx,
+                                      Value::FromSymbol(Constants::SYM_BODY));
+  if (body_val.tag == ValueTag::STRING) {
+    res.set_content(vm->heap.get_string(body_val.as.STRING), content_type);
+  } else if (body_val.tag != ValueTag::NONE) {
+    throw msl_runtime_error(where,
+                            "http server handler body of invalid type: " +
+                                core_utils::type_to_string(body_val.tag));
   }
 }
-
 }; // namespace
+
 bool core::values_equal(VMHeap *heap, Value left, Value right) {
   switch (left.tag) {
   case ValueTag::INT:
@@ -685,8 +701,6 @@ Value core::http_delete(LocationRef where, VM *vm) {
 }
 namespace Global {
 class SingleThreadedTaskQueue : public httplib::TaskQueue {
-  // TODO Review: make sure this actually is single threaded, blocking and
-  // synchronous
 public:
   SingleThreadedTaskQueue() {};
   virtual ~SingleThreadedTaskQueue() {};
@@ -719,7 +733,8 @@ Value core::http_on(LocationRef where, VM *vm) {
   if (method_sym.as.SYMBOL.index == Constants::SYM_GET.index) {
     Global::state.server->Get(
         vm->heap.get_string(path_str.as.STRING),
-        [vm, handler_ref](const httplib::Request &req, httplib::Response &res) {
+        [vm, handler_ref, where](const httplib::Request &req,
+                                 httplib::Response &res) {
           VMHIDX req_table_idx = vm->heap.new_table();
           core_utils::table_add_entry(&vm->heap, req_table_idx,
                                       Value::FromSymbol(Constants::SYM_METHOD),
@@ -739,7 +754,7 @@ Value core::http_on(LocationRef where, VM *vm) {
 
           Value handler_result =
               vm->call_reference(handler_ref, {vm->heap.at(req_table_idx)});
-          map_msl_to_response(vm, handler_result, res);
+          map_msl_table_to_response(where, vm, handler_result, res);
         });
   }
 
