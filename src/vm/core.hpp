@@ -8,154 +8,155 @@
 #include <functional>
 #include <unordered_map>
 
+class VM;
 namespace core {
-std::string value_to_string(Stack *stack, VMHeap *heap, Value value);
+std::string value_to_string(VM *vm, Value value);
 bool values_equal(VMHeap *heap, Value left, Value right);
 
-Value print(LocationRef where, Stack *stack, VMHeap *heap);
-Value make_error(LocationRef where, Stack *stack, VMHeap *heap);
-[[noreturn]] Value vmpanic(LocationRef where, Stack *stack, VMHeap *heap);
+Value print(LocationRef where, VM *vm);
+Value make_error(LocationRef where, VM *vm);
+[[noreturn]] Value vmpanic(LocationRef where, VM *vm);
 
 // ===== TABLE
-Value table(LocationRef where, Stack *stack, VMHeap *heap);
-Value table_keys(LocationRef where, Stack *stack, VMHeap *heap);
-Value table_values(LocationRef where, Stack *stack, VMHeap *heap);
-Value table_remove(LocationRef where, Stack *stack, VMHeap *heap);
-Value table_to_json(LocationRef where, Stack *stack, VMHeap *heap);
-Value table_from_json(LocationRef where, Stack *stack, VMHeap *heap);
+Value table(LocationRef where, VM *vm);
+Value table_keys(LocationRef where, VM *vm);
+Value table_values(LocationRef where, VM *vm);
+Value table_remove(LocationRef where, VM *vm);
+Value table_to_json(LocationRef where, VM *vm);
+Value table_from_json(LocationRef where, VM *vm);
 
 // ===== LIST
-Value list(LocationRef where, Stack *stack, VMHeap *heap);
-Value container_put(LocationRef where, Stack *stack, VMHeap *heap);
-Value container_at(LocationRef where, Stack *stack, VMHeap *heap);
-Value list_append(LocationRef where, Stack *stack, VMHeap *heap);
-Value list_prepend(LocationRef where, Stack *stack, VMHeap *heap);
-Value list_link(LocationRef where, Stack *stack, VMHeap *heap);
-Value list_slice(LocationRef where, Stack *stack, VMHeap *heap);
-Value list_remove(LocationRef where, Stack *stack, VMHeap *heap);
-Value list_contains(LocationRef where, Stack *stack, VMHeap *heap);
-Value range(LocationRef where, Stack *stack, VMHeap *heap);
+Value list(LocationRef where, VM *vm);
+Value container_put(LocationRef where, VM *vm);
+Value container_at(LocationRef where, VM *vm);
+Value list_append(LocationRef where, VM *vm);
+Value list_prepend(LocationRef where, VM *vm);
+Value list_link(LocationRef where, VM *vm);
+Value list_slice(LocationRef where, VM *vm);
+Value list_remove(LocationRef where, VM *vm);
+Value list_contains(LocationRef where, VM *vm);
+Value range(LocationRef where, VM *vm);
 
 // ===== UTILITIES
-Value value_copy(LocationRef where, Stack *stack, VMHeap *heap);
-Value vmtypeof(LocationRef where, Stack *stack, VMHeap *heap);
-Value string_concat(LocationRef where, Stack *stack, VMHeap *heap);
-Value len(LocationRef where, Stack *stack, VMHeap *heap);
-Value value_to_int(LocationRef where, Stack *stack, VMHeap *heap);
-Value value_to_float(LocationRef where, Stack *stack, VMHeap *heap);
-Value value_to_string_fn(LocationRef where, Stack *stack, VMHeap *heap);
-Value vmassert(LocationRef where, Stack *stack, VMHeap *heap);
-Value vmassert_type(LocationRef where, Stack *stack, VMHeap *heap);
+Value value_copy(LocationRef where, VM *vm);
+Value vmtypeof(LocationRef where, VM *vm);
+Value string_concat(LocationRef where, VM *vm);
+Value len(LocationRef where, VM *vm);
+Value value_to_int(LocationRef where, VM *vm);
+Value value_to_float(LocationRef where, VM *vm);
+Value value_to_string_fn(LocationRef where, VM *vm);
+Value vmassert(LocationRef where, VM *vm);
+Value vmassert_type(LocationRef where, VM *vm);
 
 // ===== PROCESS
-Value process_args(LocationRef where, Stack *stack, VMHeap *heap);
+Value process_args(LocationRef where, VM *vm);
 
 // ===== SYS
-Value sys_env_get(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_exit(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_now(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_exec(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_sleep(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_term_height(LocationRef ref, Stack *, VMHeap *heap);
-Value sys_term_width(LocationRef ref, Stack *, VMHeap *heap);
-Value sys_is_tty(LocationRef where, Stack *stack, VMHeap *heap);
-Value sys_has_color(LocationRef where, Stack *stack, VMHeap *heap);
+Value sys_env_get(LocationRef where, VM *vm);
+Value sys_exit(LocationRef where, VM *vm);
+Value sys_now(LocationRef where, VM *vm);
+Value sys_exec(LocationRef where, VM *vm);
+Value sys_sleep(LocationRef where, VM *vm);
+Value sys_term_height(LocationRef ref, VM *vm);
+Value sys_term_width(LocationRef ref, VM *vm);
+Value sys_is_tty(LocationRef where, VM *vm);
+Value sys_has_color(LocationRef where, VM *vm);
 
 // ===== RANDOM
-Value random_int(LocationRef where, Stack *stack, VMHeap *heap);
+Value random_int(LocationRef where, VM *vm);
 
 // ===== TIME
-Value time_epoch_ms(LocationRef where, Stack *stack, VMHeap *heap);
-Value time_epoch_sec(LocationRef where, Stack *stack, VMHeap *heap);
-Value time_iso8601(LocationRef where, Stack *stack, VMHeap *heap);
+Value time_epoch_ms(LocationRef where, VM *vm);
+Value time_epoch_sec(LocationRef where, VM *vm);
+Value time_iso8601(LocationRef where, VM *vm);
 
 // ===== STRING
-Value str_split(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_replace(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_contains(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_has_prefix(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_lower(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_upper(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_trim(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_trim_left(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_trim_right(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_slice(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_find(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_index(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_fmt(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_url_encode(LocationRef where, Stack *stack, VMHeap *heap);
-Value str_url_decode(LocationRef where, Stack *stack, VMHeap *heap);
+Value str_split(LocationRef where, VM *vm);
+Value str_replace(LocationRef where, VM *vm);
+Value str_contains(LocationRef where, VM *vm);
+Value str_has_prefix(LocationRef where, VM *vm);
+Value str_has_suffix(LocationRef where, VM *vm);
+Value str_lower(LocationRef where, VM *vm);
+Value str_upper(LocationRef where, VM *vm);
+Value str_trim(LocationRef where, VM *vm);
+Value str_trim_left(LocationRef where, VM *vm);
+Value str_trim_right(LocationRef where, VM *vm);
+Value str_slice(LocationRef where, VM *vm);
+Value str_find(LocationRef where, VM *vm);
+Value str_index(LocationRef where, VM *vm);
+Value str_fmt(LocationRef where, VM *vm);
+Value str_url_encode(LocationRef where, VM *vm);
+Value str_url_decode(LocationRef where, VM *vm);
 
 // ===== FILE SYSTEM
-Value fs_exists(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_mkdir(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_rm(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_ls(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_read(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_write(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_append(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_copy(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_move(LocationRef where, Stack *stack, VMHeap *heap);
-Value fs_stat(LocationRef where, Stack *stack, VMHeap *heap);
+Value fs_exists(LocationRef where, VM *vm);
+Value fs_mkdir(LocationRef where, VM *vm);
+Value fs_rm(LocationRef where, VM *vm);
+Value fs_ls(LocationRef where, VM *vm);
+Value fs_read(LocationRef where, VM *vm);
+Value fs_write(LocationRef where, VM *vm);
+Value fs_append(LocationRef where, VM *vm);
+Value fs_copy(LocationRef where, VM *vm);
+Value fs_move(LocationRef where, VM *vm);
+Value fs_stat(LocationRef where, VM *vm);
 
 // ===== BIT
-Value bit_shift_left(LocationRef where, Stack *stack, VMHeap *heap);
-Value bit_shift_right(LocationRef where, Stack *stack, VMHeap *heap);
-Value bit_or(LocationRef where, Stack *stack, VMHeap *heap);
-Value bit_and(LocationRef where, Stack *stack, VMHeap *heap);
-Value bit_xor(LocationRef where, Stack *stack, VMHeap *heap);
+Value bit_shift_left(LocationRef where, VM *vm);
+Value bit_shift_right(LocationRef where, VM *vm);
+Value bit_or(LocationRef where, VM *vm);
+Value bit_and(LocationRef where, VM *vm);
+Value bit_xor(LocationRef where, VM *vm);
 
 // ===== MATH
-Value math_abs(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_floor(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_ceil(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_round(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_sqrt(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_pow(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_sin(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_cos(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_tan(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_log(LocationRef where, Stack *stack, VMHeap *heap);
-Value math_exp(LocationRef where, Stack *stack, VMHeap *heap);
+Value math_abs(LocationRef where, VM *vm);
+Value math_floor(LocationRef where, VM *vm);
+Value math_ceil(LocationRef where, VM *vm);
+Value math_round(LocationRef where, VM *vm);
+Value math_sqrt(LocationRef where, VM *vm);
+Value math_pow(LocationRef where, VM *vm);
+Value math_sin(LocationRef where, VM *vm);
+Value math_cos(LocationRef where, VM *vm);
+Value math_tan(LocationRef where, VM *vm);
+Value math_log(LocationRef where, VM *vm);
+Value math_exp(LocationRef where, VM *vm);
 
 // ===== ANSI
-Value ansi_color(LocationRef where, Stack *stack, VMHeap *heap);
-Value ansi_reset(LocationRef where, Stack *stack, VMHeap *heap);
-Value ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *heap);
-Value ansi_move_cursor(LocationRef where, Stack *stack, VMHeap *heap);
-Value ansi_clear_line(LocationRef where, Stack *stack, VMHeap *heap);
-Value ansi_clear_screen(LocationRef where, Stack *stack, VMHeap *heap);
-Value ansi_clear(LocationRef where, Stack *stack, VMHeap *heap);
+Value ansi_color(LocationRef where, VM *vm);
+Value ansi_reset(LocationRef where, VM *vm);
+Value ansi_set_cursor(LocationRef where, VM *vm);
+Value ansi_move_cursor(LocationRef where, VM *vm);
+Value ansi_clear_line(LocationRef where, VM *vm);
+Value ansi_clear_screen(LocationRef where, VM *vm);
+Value ansi_clear(LocationRef where, VM *vm);
 
 // ===== REGEX
-Value regex_has_match(LocationRef where, Stack *stack, VMHeap *heap);
-Value regex_match(LocationRef where, Stack *stack, VMHeap *heap);
-Value regex_replace(LocationRef where, Stack *stack, VMHeap *heap);
+Value regex_has_match(LocationRef where, VM *vm);
+Value regex_match(LocationRef where, VM *vm);
+Value regex_replace(LocationRef where, VM *vm);
 
 // ===== BASE64
-Value base64_encode(LocationRef where, Stack *stack, VMHeap *heap);
-Value base64_decode(LocationRef where, Stack *stack, VMHeap *heap);
+Value base64_encode(LocationRef where, VM *vm);
+Value base64_decode(LocationRef where, VM *vm);
 
 // ===== NUMBER FORMATS
-Value hex_encode(LocationRef where, Stack *stack, VMHeap *heap);
-Value hex_decode(LocationRef where, Stack *stack, VMHeap *heap);
-Value binary_encode(LocationRef where, Stack *stack, VMHeap *heap);
-Value binary_decode(LocationRef where, Stack *stack, VMHeap *heap);
+Value hex_encode(LocationRef where, VM *vm);
+Value hex_decode(LocationRef where, VM *vm);
+Value binary_encode(LocationRef where, VM *vm);
+Value binary_decode(LocationRef where, VM *vm);
 
 // ===== HTTP
-Value http_get(LocationRef where, Stack *stack, VMHeap *heap);
-Value http_post(LocationRef where, Stack *stack, VMHeap *heap);
-Value http_put(LocationRef where, Stack *stack, VMHeap *heap);
-Value http_patch(LocationRef where, Stack *stack, VMHeap *heap);
-Value http_delete(LocationRef where, Stack *stack, VMHeap *heap);
-Value http_on(LocationRef where, Stack *stack, VMHeap *heap);
-Value http_listen(LocationRef where, Stack *stack, VMHeap *heap);
+Value http_get(LocationRef where, VM *vm);
+Value http_post(LocationRef where, VM *vm);
+Value http_put(LocationRef where, VM *vm);
+Value http_patch(LocationRef where, VM *vm);
+Value http_delete(LocationRef where, VM *vm);
+Value http_on(LocationRef where, VM *vm);
+Value http_listen(LocationRef where, VM *vm);
 
 // ===== BOX
-Value box_create(LocationRef where, Stack *stack, VMHeap *heap);
-Value box_unpack(LocationRef where, Stack *stack, VMHeap *heap);
-Value box_pack(LocationRef where, Stack *stack, VMHeap *heap);
+Value box_create(LocationRef where, VM *vm);
+Value box_unpack(LocationRef where, VM *vm);
+Value box_pack(LocationRef where, VM *vm);
 
 void set_args(const std::vector<std::string> &args);
 
@@ -298,7 +299,7 @@ static std::unordered_map<uint64_t, ArgsCount> fns_args = {
     {Constants::CORE_FN_BOX_UNPACK.index, ArgsCount(1, ArgsT::ARGS)},
 };
 static std::unordered_map<
-    uint64_t, std::function<Value(LocationRef where, Stack *, VMHeap *)>>
+    uint64_t, std::function<Value(LocationRef where, VM *)>>
     fns = {
         {Constants::CORE_FN_PRINT.index, print},
         {Constants::CORE_FN_PANIC.index, vmpanic},

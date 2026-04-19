@@ -5,6 +5,7 @@
 #include "../vendor/picojson/picojson.h"
 #include "core_utils.hpp"
 #include "stack.hpp"
+#include "vm.hpp"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -34,38 +35,38 @@ namespace {
 namespace chrono = std::chrono;
 std::vector<std::string> msl_args;
 
-Value response_to_table(VMHeap *heap, const httplib::Result &res) {
-  VMHIDX response_table = heap->new_table();
-  core_utils::table_add_entry(heap, response_table,
+Value response_to_table(VM *vm, const httplib::Result &res) {
+  VMHIDX response_table = vm->heap.new_table();
+  core_utils::table_add_entry(&vm->heap, response_table,
                               Value::FromSymbol(create_symbol("#status")),
                               Value::Int(static_cast<int64_t>(res->status)));
-  core_utils::table_add_entry(heap, response_table,
+  core_utils::table_add_entry(&vm->heap, response_table,
                               Value::FromSymbol(Constants::SYM_BODY),
-                              heap->add_string(res->body));
+                              vm->heap.add_string(res->body));
 
   // Headers
-  VMHIDX headers_table = heap->new_table();
+  VMHIDX headers_table = vm->heap.new_table();
   for (const auto &header : res->headers) {
-    core_utils::table_add_entry(heap, headers_table,
-                                heap->add_string(header.first),
-                                heap->add_string(header.second));
+    core_utils::table_add_entry(&vm->heap, headers_table,
+                                vm->heap.add_string(header.first),
+                                vm->heap.add_string(header.second));
   }
-  core_utils::table_add_entry(heap, response_table,
+  core_utils::table_add_entry(&vm->heap, response_table,
                               Value::FromSymbol(Constants::SYM_HEADERS),
-                              heap->at(headers_table));
+                              vm->heap.at(headers_table));
 
   // Optional redirect field
   if (res->status >= 300 && res->status < 400 && res->has_header("Location")) {
     core_utils::table_add_entry(
-        heap, response_table, Value::FromSymbol(create_symbol("#redirect")),
-        heap->add_string(res->get_header_value("Location")));
+        &vm->heap, response_table,
+        Value::FromSymbol(create_symbol("#redirect")),
+        vm->heap.add_string(res->get_header_value("Location")));
   }
 
-  return heap->at(response_table);
+  return vm->heap.at(response_table);
 }
 
-void map_msl_to_response(Stack *stack, VMHeap *heap, Value msl_res,
-                         httplib::Response &res) {
+void map_msl_to_response(VM *vm, Value msl_res, httplib::Response &res) {
   if (msl_res.tag != ValueTag::TABLE) {
     res.status = 500;
     res.set_content("Internal Server Error: Handler did not return a table",
@@ -73,12 +74,17 @@ void map_msl_to_response(Stack *stack, VMHeap *heap, Value msl_res,
     return;
   }
 
-  VMHIDX table_idx = msl_res.as.TABLE;
+//////////////////  VMHIDX table_idx = msl_res.as.TABLE;
 
+  // TODO this is wrong. why is there stuff pushed to the stack in this
+  // function? this function should only map the value to the response and not
+  // write to the stack...
+  // The request handler should return the value but the request handler is only called by the http_on logic and thus the response it returns is 'captured' by it and used up.
+  
   // Status
-  stack->push(msl_res);
-  stack->push(Value::FromSymbol(create_symbol("#status")));
-  Value status_val = core::container_at(LocationRef{0}, stack, heap);
+  vm->stack.push(msl_res);
+  vm->stack.push(Value::FromSymbol(create_symbol("#status")));
+  Value status_val = core::container_at(LocationRef{0}, vm);
   if (status_val.tag == ValueTag::INT) {
     res.status = static_cast<int>(status_val.as.INT);
   } else {
@@ -86,26 +92,28 @@ void map_msl_to_response(Stack *stack, VMHeap *heap, Value msl_res,
   }
 
   // Body
-  stack->push(msl_res);
-  stack->push(Value::FromSymbol(Constants::SYM_BODY));
-  Value body_val = core::container_at(LocationRef{0}, stack, heap);
+  vm->stack.push(msl_res);
+  vm->stack.push(Value::FromSymbol(Constants::SYM_BODY));
+  Value body_val = core::container_at(LocationRef{0}, vm);
   if (body_val.tag == ValueTag::STRING) {
-    res.set_content(heap->get_string(body_val.as.STRING), "text/plain");
+    res.set_content(vm->heap.get_string(body_val.as.STRING), "text/plain");
   }
 
   // Headers
-  stack->push(msl_res);
-  stack->push(Value::FromSymbol(Constants::SYM_HEADERS));
-  Value headers_val = core::container_at(LocationRef{0}, stack, heap);
+  vm->stack.push(msl_res);
+  vm->stack.push(Value::FromSymbol(Constants::SYM_HEADERS));
+  Value headers_val = core::container_at(LocationRef{0}, vm);
   if (headers_val.tag == ValueTag::TABLE) {
     VMHIDX headers_idx = headers_val.as.TABLE;
-    VMHIDX curr = heap->node_at(headers_idx)->first_child;
+    VMHIDX curr = vm->heap.node_at(headers_idx)->first_child;
     while (curr != INVALID) {
-      Value key_val = heap->nth_child(curr, 0);
-      Value val_val = heap->nth_child(curr, 1);
+      Value key_val = vm->heap.nth_child(curr, 0);
+      Value val_val = vm->heap.nth_child(curr, 1);
 
-      std::string key = core_utils::value_to_string(stack, heap, key_val);
-      std::string val = core_utils::value_to_string(stack, heap, val_val);
+      std::string key =
+          core_utils::value_to_string(&vm->stack, &vm->heap, key_val);
+      std::string val =
+          core_utils::value_to_string(&vm->stack, &vm->heap, val_val);
 
       if (key == "Content-Type") {
         // httplib handles Content-Type specially in set_content
@@ -114,7 +122,7 @@ void map_msl_to_response(Stack *stack, VMHeap *heap, Value msl_res,
       } else {
         res.set_header(key, val);
       }
-      curr = heap->node_at(curr)->next_child;
+      curr = vm->heap.node_at(curr)->next_child;
     }
   }
 }
@@ -173,40 +181,39 @@ bool core::values_equal(VMHeap *heap, Value left, Value right) {
   return false;
 }
 
-Value core::print(LocationRef, Stack *stack, VMHeap *heap) {
-  println(core_utils::value_to_string(stack, heap, stack->pop()));
+Value core::print(LocationRef, VM *vm) {
+  println(core_utils::value_to_string(&vm->stack, &vm->heap, vm->stack.pop()));
   return Value::None();
 }
-Value core::make_error(LocationRef, Stack *stack, VMHeap *heap) {
-  Value inner = stack->pop();
-  return Value::Error(heap->add(inner));
+Value core::make_error(LocationRef, VM *vm) {
+  Value inner = vm->stack.pop();
+  return Value::Error(vm->heap.add(inner));
 }
-[[noreturn]] Value core::vmpanic(LocationRef where, Stack *stack,
-                                 VMHeap *heap) {
-  throw msl_runtime_error(
-      where, core_utils::value_to_string(stack, heap, stack->pop()));
+[[noreturn]] Value core::vmpanic(LocationRef where, VM *vm) {
+  throw msl_runtime_error(where, core_utils::value_to_string(
+                                     &vm->stack, &vm->heap, vm->stack.pop()));
 }
 // =====================
 // ===== CONTAINER =====
 // =====================
 
-Value core::container_at(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value key_value = stack->pop();
-  Value container_value = stack->pop();
+Value core::container_at(LocationRef where, VM *vm) {
+  Value key_value = vm->stack.pop();
+  Value container_value = vm->stack.pop();
   switch (container_value.tag) {
   case ValueTag::LIST:
     core_utils::assert_int(where, key_value);
-    return heap->nth_child(container_value.as.LIST, key_value.as.INT);
+    return vm->heap.nth_child(container_value.as.LIST, key_value.as.INT);
   case ValueTag::TABLE: {
-    VMHIDX idx = heap->nth_child_idx(container_value.as.TABLE, 0);
+    VMHIDX idx = vm->heap.nth_child_idx(container_value.as.TABLE, 0);
     while (idx != INVALID) {
       // that element is a list and the key is the first element in that list
-      Value value = heap->nth_child(idx, 0);
-      if (values_equal(heap, key_value, value)) {
+      Value value = vm->heap.nth_child(idx, 0);
+      if (values_equal(&vm->heap, key_value, value)) {
         // the second element is the value
-        return heap->nth_child(idx, 1);
+        return vm->heap.nth_child(idx, 1);
       }
-      idx = heap->next_child(idx);
+      idx = vm->heap.next_child(idx);
     }
     return Value::None();
   } break;
@@ -217,26 +224,27 @@ Value core::container_at(LocationRef where, Stack *stack, VMHeap *heap) {
   }
 }
 
-Value core::container_put(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value new_value = stack->pop();
-  Value key_value = stack->pop();
-  Value container_value = stack->pop();
+Value core::container_put(LocationRef where, VM *vm) {
+  Value new_value = vm->stack.pop();
+  Value key_value = vm->stack.pop();
+  Value container_value = vm->stack.pop();
   switch (container_value.tag) {
   case ValueTag::LIST: {
     core_utils::assert_int(where, key_value);
-    heap->set_nth_child(container_value.as.LIST, key_value.as.INT, new_value);
+    vm->heap.set_nth_child(container_value.as.LIST, key_value.as.INT,
+                           new_value);
   } break;
   case ValueTag::TABLE: {
-    VMHIDX idx = heap->nth_child_idx(container_value.as.TABLE, 0);
+    VMHIDX idx = vm->heap.nth_child_idx(container_value.as.TABLE, 0);
     while (idx != INVALID) {
-      Value value = heap->nth_child(idx, 0);
-      if (values_equal(heap, key_value, value)) {
-        heap->replace(heap->nth_child_idx(idx, 1), new_value);
+      Value value = vm->heap.nth_child(idx, 0);
+      if (values_equal(&vm->heap, key_value, value)) {
+        vm->heap.replace(vm->heap.nth_child_idx(idx, 1), new_value);
         return Value::None();
       }
-      idx = heap->next_child(idx);
+      idx = vm->heap.next_child(idx);
     }
-    core_utils::table_add_entry(heap, container_value.as.TABLE, key_value,
+    core_utils::table_add_entry(&vm->heap, container_value.as.TABLE, key_value,
                                 new_value);
     return Value::None();
   } break;
@@ -247,18 +255,19 @@ Value core::container_put(LocationRef where, Stack *stack, VMHeap *heap) {
   }
   return Value::None();
 }
-Value core::len(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::len(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag == ValueTag::STRING) {
-    return Value::Int(heap->get_string(val.as.STRING).length());
+    return Value::Int(vm->heap.get_string(val.as.STRING).length());
   } else if (val.tag == ValueTag::LIST || val.tag == ValueTag::TABLE) {
     uint64_t count = 0;
     VMHIDX curr =
-        heap->node_at(val.tag == ValueTag::LIST ? val.as.LIST : val.as.TABLE)
+        vm->heap
+            .node_at(val.tag == ValueTag::LIST ? val.as.LIST : val.as.TABLE)
             ->first_child;
     while (curr != INVALID) {
       count++;
-      curr = heap->node_at(curr)->next_child;
+      curr = vm->heap.node_at(curr)->next_child;
     }
     return Value::Int(count);
   } else {
@@ -270,12 +279,12 @@ Value core::len(LocationRef where, Stack *stack, VMHeap *heap) {
 // ===== TABLE =====
 // =================
 
-Value core::table(LocationRef where, Stack *stack, VMHeap *heap) {
-  int64_t args_count = stack->pop().as.INT;
+Value core::table(LocationRef where, VM *vm) {
+  int64_t args_count = vm->stack.pop().as.INT;
   if (args_count % 2 != 0) {
     throw msl_runtime_error(where, "table: expected key-value pairs");
   }
-  VMHIDX table_head = heap->new_table();
+  VMHIDX table_head = vm->heap.new_table();
   // table(k1, v1, k2, v2)
   // stack: [k1, v1, k2, v2, 4]
   // after popping count: [k1, v1, k2, v2]
@@ -283,48 +292,48 @@ Value core::table(LocationRef where, Stack *stack, VMHeap *heap) {
   // since it is a stack, it pops from right to left: v2, then k2, then v1, then
   // k1.
   for (int64_t i = 0; i < args_count / 2; ++i) {
-    Value value = stack->pop();
-    Value key = stack->pop();
-    core_utils::table_add_entry_front(heap, table_head, key, value);
+    Value value = vm->stack.pop();
+    Value key = vm->stack.pop();
+    core_utils::table_add_entry_front(&vm->heap, table_head, key, value);
   }
-  return heap->at(table_head);
+  return vm->heap.at(table_head);
 }
 
-Value core::table_keys(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value tab_val = stack->pop();
+Value core::table_keys(LocationRef where, VM *vm) {
+  Value tab_val = vm->stack.pop();
   core_utils::assert_table(where, tab_val);
-  VMHNode *table_head = heap->node_at(tab_val.as.TABLE);
-  VMHIDX keys_list = heap->new_list();
+  VMHNode *table_head = vm->heap.node_at(tab_val.as.TABLE);
+  VMHIDX keys_list = vm->heap.new_list();
   VMHIDX tab_curr = table_head->first_child;
   while (tab_curr != INVALID) {
-    heap->add_child(keys_list, heap->nth_child(tab_curr, 0));
-    tab_curr = heap->node_at(tab_curr)->next_child;
+    vm->heap.add_child(keys_list, vm->heap.nth_child(tab_curr, 0));
+    tab_curr = vm->heap.node_at(tab_curr)->next_child;
   }
-  return heap->at(keys_list);
+  return vm->heap.at(keys_list);
 }
 
-Value core::table_values(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value tab_val = stack->pop();
+Value core::table_values(LocationRef where, VM *vm) {
+  Value tab_val = vm->stack.pop();
   core_utils::assert_table(where, tab_val);
-  VMHNode *table_head = heap->node_at(tab_val.as.TABLE);
-  VMHIDX values_list = heap->new_list();
+  VMHNode *table_head = vm->heap.node_at(tab_val.as.TABLE);
+  VMHIDX values_list = vm->heap.new_list();
   VMHIDX tab_curr = table_head->first_child;
   while (tab_curr != INVALID) {
-    heap->add_child(values_list, heap->nth_child(tab_curr, 1));
-    tab_curr = heap->node_at(tab_curr)->next_child;
+    vm->heap.add_child(values_list, vm->heap.nth_child(tab_curr, 1));
+    tab_curr = vm->heap.node_at(tab_curr)->next_child;
   }
-  return heap->at(values_list);
+  return vm->heap.at(values_list);
 }
 
 namespace {
-picojson::value msl_to_picojson(Stack *stack, VMHeap *heap, Value val) {
+picojson::value msl_to_picojson(VM *vm, Value val) {
   switch (val.tag) {
   case ValueTag::INT:
     return picojson::value((double)val.as.INT);
   case ValueTag::FLOAT:
     return picojson::value(val.as.FLOAT);
   case ValueTag::STRING:
-    return picojson::value(heap->get_string(val.as.STRING));
+    return picojson::value(vm->heap.get_string(val.as.STRING));
   case ValueTag::SYMBOL: {
     std::string s = resolve_symbol(val.as.SYMBOL);
     if (s == "#true")
@@ -337,29 +346,29 @@ picojson::value msl_to_picojson(Stack *stack, VMHeap *heap, Value val) {
     return picojson::value();
   case ValueTag::LIST: {
     picojson::array arr;
-    VMHIDX curr = heap->node_at(val.as.LIST)->first_child;
+    VMHIDX curr = vm->heap.node_at(val.as.LIST)->first_child;
     while (curr != INVALID) {
-      arr.push_back(msl_to_picojson(stack, heap, heap->at(curr)));
-      curr = heap->node_at(curr)->next_child;
+      arr.push_back(msl_to_picojson(vm, vm->heap.at(curr)));
+      curr = vm->heap.node_at(curr)->next_child;
     }
     return picojson::value(arr);
   }
   case ValueTag::TABLE: {
     picojson::object obj;
-    VMHIDX curr = heap->node_at(val.as.TABLE)->first_child;
+    VMHIDX curr = vm->heap.node_at(val.as.TABLE)->first_child;
     while (curr != INVALID) {
-      Value key_val = heap->nth_child(curr, 0);
-      Value value_val = heap->nth_child(curr, 1);
+      Value key_val = vm->heap.nth_child(curr, 0);
+      Value value_val = vm->heap.nth_child(curr, 1);
       std::string key;
       if (key_val.tag == ValueTag::SYMBOL) {
         key = resolve_symbol(key_val.as.SYMBOL);
         if (key.size() > 0 && key[0] == '#')
           key = key.substr(1);
       } else {
-        key = core_utils::value_to_string(stack, heap, key_val);
+        key = core_utils::value_to_string(&vm->stack, &vm->heap, key_val);
       }
-      obj[key] = msl_to_picojson(stack, heap, value_val);
-      curr = heap->node_at(curr)->next_child;
+      obj[key] = msl_to_picojson(vm, value_val);
+      curr = vm->heap.node_at(curr)->next_child;
     }
     return picojson::value(obj);
   }
@@ -368,7 +377,7 @@ picojson::value msl_to_picojson(Stack *stack, VMHeap *heap, Value val) {
   }
 }
 
-Value picojson_to_msl(VMHeap *heap, const picojson::value &val) {
+Value picojson_to_msl(VM *vm, const picojson::value &val) {
   if (val.is<picojson::null>())
     return Value::None();
   if (val.is<bool>())
@@ -380,76 +389,77 @@ Value picojson_to_msl(VMHeap *heap, const picojson::value &val) {
     return Value::Float(d);
   }
   if (val.is<std::string>())
-    return heap->add_string(val.get<std::string>());
+    return vm->heap.add_string(val.get<std::string>());
   if (val.is<picojson::array>()) {
     const picojson::array &arr = val.get<picojson::array>();
-    VMHIDX list_head = heap->new_list();
+    VMHIDX list_head = vm->heap.new_list();
     for (const auto &item : arr) {
-      heap->add_child(list_head, picojson_to_msl(heap, item));
+      vm->heap.add_child(list_head, picojson_to_msl(vm, item));
     }
-    return heap->at(list_head);
+    return vm->heap.at(list_head);
   }
   if (val.is<picojson::object>()) {
     const picojson::object &obj = val.get<picojson::object>();
-    VMHIDX table_head = heap->new_table();
+    VMHIDX table_head = vm->heap.new_table();
     for (const auto &kv : obj) {
-      core_utils::table_add_entry(heap, table_head, heap->add_string(kv.first),
-                                  picojson_to_msl(heap, kv.second));
+      core_utils::table_add_entry(&vm->heap, table_head,
+                                  vm->heap.add_string(kv.first),
+                                  picojson_to_msl(vm, kv.second));
     }
-    return heap->at(table_head);
+    return vm->heap.at(table_head);
   }
   return Value::None();
 }
 } // namespace
 
-Value core::table_to_json(LocationRef, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
-  picojson::value jval = msl_to_picojson(stack, heap, val);
-  return heap->add_string(jval.serialize());
+Value core::table_to_json(LocationRef, VM *vm) {
+  Value val = vm->stack.pop();
+  picojson::value jval = msl_to_picojson(vm, val);
+  return vm->heap.add_string(jval.serialize());
 }
 
-Value core::table_from_json(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::table_from_json(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "table_from_json: expected a string");
   }
-  std::string json_str = heap->get_string(val.as.STRING);
+  std::string json_str = vm->heap.get_string(val.as.STRING);
   picojson::value jval;
   std::string err = picojson::parse(jval, json_str);
   if (!err.empty()) {
-    return core_utils::create_error(heap, "json parse error: " + err);
+    return core_utils::create_error(&vm->heap, "json parse error: " + err);
   }
-  return picojson_to_msl(heap, jval);
+  return picojson_to_msl(vm, jval);
 }
 
-Value core::table_remove(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value key = stack->pop();
-  Value table_val = stack->pop();
+Value core::table_remove(LocationRef where, VM *vm) {
+  Value key = vm->stack.pop();
+  Value table_val = vm->stack.pop();
   core_utils::assert_table(where, table_val);
 
   VMHIDX prev = INVALID;
-  VMHIDX curr = heap->node_at(table_val.as.TABLE)->first_child;
+  VMHIDX curr = vm->heap.node_at(table_val.as.TABLE)->first_child;
 
   while (curr != INVALID) {
-    Value current_key = heap->nth_child(curr, 0);
-    if (core::values_equal(heap, current_key, key)) {
-      VMHIDX next = heap->node_at(curr)->next_child;
+    Value current_key = vm->heap.nth_child(curr, 0);
+    if (core::values_equal(&vm->heap, current_key, key)) {
+      VMHIDX next = vm->heap.node_at(curr)->next_child;
 
       if (prev == INVALID) {
-        heap->node_at(table_val.as.TABLE)->first_child = next;
+        vm->heap.node_at(table_val.as.TABLE)->first_child = next;
       } else {
-        heap->node_at(prev)->next_child = next;
+        vm->heap.node_at(prev)->next_child = next;
       }
 
       if (next == INVALID) {
-        heap->node_at(table_val.as.TABLE)->last_child = prev;
+        vm->heap.node_at(table_val.as.TABLE)->last_child = prev;
       }
 
       return table_val;
     }
 
     prev = curr;
-    curr = heap->node_at(curr)->next_child;
+    curr = vm->heap.node_at(curr)->next_child;
   }
 
   return Value::None();
@@ -459,32 +469,32 @@ Value core::table_remove(LocationRef where, Stack *stack, VMHeap *heap) {
 // ===== LIST =====
 // ================
 
-Value core::list(LocationRef, Stack *stack, VMHeap *heap) {
-  int64_t args_count = stack->pop().as.INT;
-  VMHIDX list_head = heap->new_list();
+Value core::list(LocationRef, VM *vm) {
+  int64_t args_count = vm->stack.pop().as.INT;
+  VMHIDX list_head = vm->heap.new_list();
   for (int64_t i = 0; i < args_count; ++i) {
-    heap->add_child_front(list_head, stack->pop());
+    vm->heap.add_child_front(list_head, vm->stack.pop());
   }
-  return heap->at(list_head);
+  return vm->heap.at(list_head);
 }
-Value core::list_append(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value value = stack->pop();
-  Value list = stack->pop();
+Value core::list_append(LocationRef where, VM *vm) {
+  Value value = vm->stack.pop();
+  Value list = vm->stack.pop();
   core_utils::assert_list(where, list);
-  heap->add_child(list.as.LIST, value);
+  vm->heap.add_child(list.as.LIST, value);
   return list;
 }
-Value core::list_prepend(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value value = stack->pop();
-  Value list = stack->pop();
+Value core::list_prepend(LocationRef where, VM *vm) {
+  Value value = vm->stack.pop();
+  Value list = vm->stack.pop();
   core_utils::assert_list(where, list);
-  heap->add_child_front(list.as.LIST, value);
+  vm->heap.add_child_front(list.as.LIST, value);
   return list;
 }
-Value core::list_link(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value right_list = stack->pop();
+Value core::list_link(LocationRef where, VM *vm) {
+  Value right_list = vm->stack.pop();
   core_utils::assert_list(where, right_list);
-  Value left_list = stack->pop();
+  Value left_list = vm->stack.pop();
   core_utils::assert_list(where, left_list);
   if (left_list.as.LIST == right_list.as.LIST) {
     throw msl_runtime_error(
@@ -492,14 +502,14 @@ Value core::list_link(LocationRef where, Stack *stack, VMHeap *heap) {
         "linking a list to itself is undefined behaviour. in this specific "
         "case i caught it, but i cannot save you from every mistake.");
   }
-  heap->link_lists(left_list.as.LIST, right_list.as.LIST);
+  vm->heap.link_lists(left_list.as.LIST, right_list.as.LIST);
   return left_list;
 }
 
-Value core::list_slice(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value end_val = stack->pop();
-  Value start_val = stack->pop();
-  Value list_val = stack->pop();
+Value core::list_slice(LocationRef where, VM *vm) {
+  Value end_val = vm->stack.pop();
+  Value start_val = vm->stack.pop();
+  Value list_val = vm->stack.pop();
 
   core_utils::assert_list(where, list_val);
   core_utils::assert_int(where, start_val);
@@ -512,22 +522,22 @@ Value core::list_slice(LocationRef where, Stack *stack, VMHeap *heap) {
     throw msl_runtime_error(where, "invalid slice indices");
   }
 
-  VMHIDX new_list = heap->new_list();
-  VMHIDX curr = heap->node_at(list_val.as.LIST)->first_child;
+  VMHIDX new_list = vm->heap.new_list();
+  VMHIDX curr = vm->heap.node_at(list_val.as.LIST)->first_child;
   int64_t i = 0;
   while (curr != INVALID && i < end) {
     if (i >= start) {
-      heap->add_child(new_list, heap->at(curr));
+      vm->heap.add_child(new_list, vm->heap.at(curr));
     }
-    curr = heap->node_at(curr)->next_child;
+    curr = vm->heap.node_at(curr)->next_child;
     i++;
   }
-  return heap->at(new_list);
+  return vm->heap.at(new_list);
 }
 
-Value core::list_remove(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value index_val = stack->pop();
-  Value list_val = stack->pop();
+Value core::list_remove(LocationRef where, VM *vm) {
+  Value index_val = vm->stack.pop();
+  Value list_val = vm->stack.pop();
 
   core_utils::assert_list(where, list_val);
   core_utils::assert_int(where, index_val);
@@ -538,14 +548,14 @@ Value core::list_remove(LocationRef where, Stack *stack, VMHeap *heap) {
   }
 
   VMHIDX list_ref = list_val.as.LIST;
-  VMHNode *list_node = heap->node_at(list_ref);
+  VMHNode *list_node = vm->heap.node_at(list_ref);
   VMHIDX curr = list_node->first_child;
   VMHIDX prev = INVALID;
   int64_t i = 0;
 
   while (curr != INVALID && i < index) {
     prev = curr;
-    curr = heap->node_at(curr)->next_child;
+    curr = vm->heap.node_at(curr)->next_child;
     i++;
   }
 
@@ -555,13 +565,13 @@ Value core::list_remove(LocationRef where, Stack *stack, VMHeap *heap) {
 
   if (prev == INVALID) {
     // removing first child
-    list_node->first_child = heap->node_at(curr)->next_child;
+    list_node->first_child = vm->heap.node_at(curr)->next_child;
     if (list_node->first_child == INVALID) {
       list_node->last_child = INVALID;
     }
   } else {
-    heap->node_at(prev)->next_child = heap->node_at(curr)->next_child;
-    if (heap->node_at(prev)->next_child == INVALID) {
+    vm->heap.node_at(prev)->next_child = vm->heap.node_at(curr)->next_child;
+    if (vm->heap.node_at(prev)->next_child == INVALID) {
       list_node->last_child = prev;
     }
   }
@@ -569,25 +579,25 @@ Value core::list_remove(LocationRef where, Stack *stack, VMHeap *heap) {
   return list_val;
 }
 
-Value core::list_contains(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
-  Value list_val = stack->pop();
+Value core::list_contains(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
+  Value list_val = vm->stack.pop();
 
   core_utils::assert_list(where, list_val);
 
-  VMHIDX curr = heap->node_at(list_val.as.LIST)->first_child;
+  VMHIDX curr = vm->heap.node_at(list_val.as.LIST)->first_child;
   while (curr != INVALID) {
-    if (values_equal(heap, heap->at(curr), val)) {
+    if (values_equal(&vm->heap, vm->heap.at(curr), val)) {
       return Value::FromSymbol(Constants::SYM_TRUE);
     }
-    curr = heap->node_at(curr)->next_child;
+    curr = vm->heap.node_at(curr)->next_child;
   }
   return Value::FromSymbol(Constants::SYM_FALSE);
 }
 
-Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value end_val = stack->pop();
-  Value start_val = stack->pop();
+Value core::range(LocationRef where, VM *vm) {
+  Value end_val = vm->stack.pop();
+  Value start_val = vm->stack.pop();
 
   core_utils::assert_int(where, start_val);
   core_utils::assert_int(where, end_val);
@@ -595,78 +605,83 @@ Value core::range(LocationRef where, Stack *stack, VMHeap *heap) {
   int64_t start = start_val.as.INT;
   int64_t end = end_val.as.INT;
 
-  VMHIDX list_head = heap->new_list();
+  VMHIDX list_head = vm->heap.new_list();
   for (int64_t i = start; i < end; ++i) {
-    heap->add_child(list_head, Value::Int(i));
+    vm->heap.add_child(list_head, Value::Int(i));
   }
-  return heap->at(list_head);
+  return vm->heap.at(list_head);
 }
 
 // =================
 // ===== OTHER =====
 // =================
 //
-Value core::http_get(LocationRef where, Stack *stack, VMHeap *heap) {
-  std::string path = core_utils::as_string(where, stack->pop(), heap);
-  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+Value core::http_get(LocationRef where, VM *vm) {
+  std::string path = core_utils::as_string(where, vm->stack.pop(), &vm->heap);
+  std::string host_address =
+      core_utils::as_string(where, vm->stack.pop(), &vm->heap);
   httplib::Client cli(host_address);
   httplib::Result res = cli.Get(path);
   if (!res) {
-    return core_utils::create_error(heap, "request to " + host_address + path +
-                                              " failed");
+    return core_utils::create_error(&vm->heap, "request to " + host_address +
+                                                   path + " failed");
   }
-  return response_to_table(heap, res);
+  return response_to_table(vm, res);
 }
 
-Value core::http_post(LocationRef where, Stack *stack, VMHeap *heap) {
-  std::string body = core_utils::as_string(where, stack->pop(), heap);
-  std::string path = core_utils::as_string(where, stack->pop(), heap);
-  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+Value core::http_post(LocationRef where, VM *vm) {
+  std::string body = core_utils::as_string(where, vm->stack.pop(), &vm->heap);
+  std::string path = core_utils::as_string(where, vm->stack.pop(), &vm->heap);
+  std::string host_address =
+      core_utils::as_string(where, vm->stack.pop(), &vm->heap);
   httplib::Client cli(host_address);
   httplib::Result res = cli.Post(path, body, "text/plain");
   if (!res) {
-    return core_utils::create_error(heap, "request to " + host_address + path +
-                                              " failed");
+    return core_utils::create_error(&vm->heap, "request to " + host_address +
+                                                   path + " failed");
   }
-  return response_to_table(heap, res);
+  return response_to_table(vm, res);
 }
 
-Value core::http_put(LocationRef where, Stack *stack, VMHeap *heap) {
-  std::string body = core_utils::as_string(where, stack->pop(), heap);
-  std::string path = core_utils::as_string(where, stack->pop(), heap);
-  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+Value core::http_put(LocationRef where, VM *vm) {
+  std::string body = core_utils::as_string(where, vm->stack.pop(), &vm->heap);
+  std::string path = core_utils::as_string(where, vm->stack.pop(), &vm->heap);
+  std::string host_address =
+      core_utils::as_string(where, vm->stack.pop(), &vm->heap);
   httplib::Client cli(host_address);
   httplib::Result res = cli.Put(path, body, "text/plain");
   if (!res) {
-    return core_utils::create_error(heap, "request to " + host_address + path +
-                                              " failed");
+    return core_utils::create_error(&vm->heap, "request to " + host_address +
+                                                   path + " failed");
   }
-  return response_to_table(heap, res);
+  return response_to_table(vm, res);
 }
 
-Value core::http_patch(LocationRef where, Stack *stack, VMHeap *heap) {
-  std::string body = core_utils::as_string(where, stack->pop(), heap);
-  std::string path = core_utils::as_string(where, stack->pop(), heap);
-  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+Value core::http_patch(LocationRef where, VM *vm) {
+  std::string body = core_utils::as_string(where, vm->stack.pop(), &vm->heap);
+  std::string path = core_utils::as_string(where, vm->stack.pop(), &vm->heap);
+  std::string host_address =
+      core_utils::as_string(where, vm->stack.pop(), &vm->heap);
   httplib::Client cli(host_address);
   httplib::Result res = cli.Patch(path, body, "text/plain");
   if (!res) {
-    return core_utils::create_error(heap, "request to " + host_address + path +
-                                              " failed");
+    return core_utils::create_error(&vm->heap, "request to " + host_address +
+                                                   path + " failed");
   }
-  return response_to_table(heap, res);
+  return response_to_table(vm, res);
 }
 
-Value core::http_delete(LocationRef where, Stack *stack, VMHeap *heap) {
-  std::string path = core_utils::as_string(where, stack->pop(), heap);
-  std::string host_address = core_utils::as_string(where, stack->pop(), heap);
+Value core::http_delete(LocationRef where, VM *vm) {
+  std::string path = core_utils::as_string(where, vm->stack.pop(), &vm->heap);
+  std::string host_address =
+      core_utils::as_string(where, vm->stack.pop(), &vm->heap);
   httplib::Client cli(host_address);
   httplib::Result res = cli.Delete(path);
   if (!res) {
-    return core_utils::create_error(heap, "request to " + host_address + path +
-                                              " failed");
+    return core_utils::create_error(&vm->heap, "request to " + host_address +
+                                                   path + " failed");
   }
-  return response_to_table(heap, res);
+  return response_to_table(vm, res);
 }
 namespace Global {
 class SingleThreadedTaskQueue : public httplib::TaskQueue {
@@ -688,10 +703,10 @@ static GlobalState state;
 
 }; // namespace Global
 
-Value core::http_on(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value handler_ref = stack->pop();
-  Value path_str = stack->pop();
-  Value method_sym = stack->pop();
+Value core::http_on(LocationRef where, VM *vm) {
+  Value handler_ref = vm->stack.pop();
+  Value path_str = vm->stack.pop();
+  Value method_sym = vm->stack.pop();
   core_utils::assert_sym(where, method_sym);
   core_utils::assert_str(where, path_str);
   core_utils::assert_fn_ref(where, handler_ref);
@@ -703,46 +718,36 @@ Value core::http_on(LocationRef where, Stack *stack, VMHeap *heap) {
   }
   if (method_sym.as.SYMBOL.index == Constants::SYM_GET.index) {
     Global::state.server->Get(
-        heap->get_string(path_str.as.STRING),
-        [heap, stack, handler_ref](const httplib::Request &req,
-                                   httplib::Response &res) {
-          VMHIDX req_table_idx = heap->new_table();
-          core_utils::table_add_entry(heap, req_table_idx,
+        vm->heap.get_string(path_str.as.STRING),
+        [vm, handler_ref](const httplib::Request &req, httplib::Response &res) {
+          VMHIDX req_table_idx = vm->heap.new_table();
+          core_utils::table_add_entry(&vm->heap, req_table_idx,
                                       Value::FromSymbol(Constants::SYM_METHOD),
-                                      heap->add_string(req.method));
-          core_utils::table_add_entry(heap, req_table_idx,
+                                      vm->heap.add_string(req.method));
+          core_utils::table_add_entry(&vm->heap, req_table_idx,
                                       Value::FromSymbol(Constants::SYM_BODY),
-                                      heap->add_string(req.body));
-          VMHIDX params_table = heap->new_table();
+                                      vm->heap.add_string(req.body));
+          VMHIDX params_table = vm->heap.new_table();
           for (auto [key, values] : req.params) {
-            core_utils::table_add_entry(heap, params_table,
+            core_utils::table_add_entry(&vm->heap, params_table,
                                         Value::FromSymbol(create_symbol(key)),
-                                        heap->add_string(values));
+                                        vm->heap.add_string(values));
           }
-          core_utils::table_add_entry(heap, req_table_idx,
+          core_utils::table_add_entry(&vm->heap, req_table_idx,
                                       Value::FromSymbol(Constants::SYM_PARAMS),
-                                      heap->at(params_table));
+                                      vm->heap.at(params_table));
 
-          // TODO: We need a way to call handler_ref with req_table as argument.
-          // Since the VM is currently a single loop in vm.cpp:run, we cannot
-          // easily call back into it.
-          // For now, we return a 501 Not Implemented.
-          res.status = 501;
-          res.set_content("HTTP Server handlers not yet fully implemented",
-                          "text/plain");
-
-          /*
-          Value handler_result = call_msl_function(handler_ref,
-          {heap->at(req_table_idx)}); map_msl_to_response(stack, heap,
-          handler_result, res);
-          */
+          Value handler_result =
+              vm->call_reference(handler_ref, {vm->heap.at(req_table_idx)});
+          map_msl_to_response(vm, handler_result, res);
         });
   }
+
   return Value::None();
 }
 
-Value core::http_listen(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value port = stack->pop();
+Value core::http_listen(LocationRef where, VM *vm) {
+  Value port = vm->stack.pop();
   core_utils::assert_int(where, port);
   if (!Global::state.server.has_value()) {
     Global::state.server.emplace();
@@ -754,30 +759,30 @@ Value core::http_listen(LocationRef where, Stack *stack, VMHeap *heap) {
   return Value::Int(0);
 }
 
-Value core::value_copy(LocationRef, Stack *stack, VMHeap *heap) {
-  Value value = stack->pop();
-  return core_utils::copy_value(stack, heap, value);
+Value core::value_copy(LocationRef, VM *vm) {
+  Value value = vm->stack.pop();
+  return core_utils::copy_value(&vm->stack, &vm->heap, value);
 }
-Value core::vmtypeof(LocationRef, Stack *stack, VMHeap *) {
-  Value value = stack->pop();
+Value core::vmtypeof(LocationRef, VM *vm) {
+  Value value = vm->stack.pop();
   return core_utils::type_to_symbol(value);
 }
-Value core::string_concat(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value right = stack->pop();
-  Value left = stack->pop();
+Value core::string_concat(LocationRef where, VM *vm) {
+  Value right = vm->stack.pop();
+  Value left = vm->stack.pop();
   if (left.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected string as left argument");
   }
   if (right.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings as right argument");
   }
-  std::string s1 = heap->get_string(left.as.STRING);
-  std::string s2 = heap->get_string(right.as.STRING);
-  return heap->add_string(s1 + s2);
+  std::string s1 = vm->heap.get_string(left.as.STRING);
+  std::string s2 = vm->heap.get_string(right.as.STRING);
+  return vm->heap.add_string(s1 + s2);
 }
 
-Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::value_to_int(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   switch (val.tag) {
   case ValueTag::INT:
     return val;
@@ -785,10 +790,10 @@ Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {
     return Value::Int(static_cast<int64_t>(val.as.FLOAT));
   case ValueTag::STRING: {
     try {
-      return Value::Int(std::stoll(heap->get_string(val.as.STRING)));
+      return Value::Int(std::stoll(vm->heap.get_string(val.as.STRING)));
     } catch (...) {
       return Value::Error(
-          heap->add(heap->add_string("could not convert string to int")));
+          vm->heap.add(vm->heap.add_string("could not convert string to int")));
     }
   }
   default:
@@ -798,8 +803,8 @@ Value core::value_to_int(LocationRef where, Stack *stack, VMHeap *heap) {
   }
 }
 
-Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::value_to_float(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   switch (val.tag) {
   case ValueTag::INT:
     return Value::Float(static_cast<double>(val.as.INT));
@@ -807,11 +812,11 @@ Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
     return val;
   case ValueTag::STRING: {
     try {
-      return Value::Float(std::stod(heap->get_string(val.as.STRING)));
+      return Value::Float(std::stod(vm->heap.get_string(val.as.STRING)));
     } catch (...) {
       return core_utils::create_error(
-          heap, "could not convert '" + heap->get_string(val.as.STRING) +
-                    "' to float");
+          &vm->heap, "could not convert '" +
+                         vm->heap.get_string(val.as.STRING) + "' to float");
     }
   }
   default:
@@ -821,74 +826,75 @@ Value core::value_to_float(LocationRef where, Stack *stack, VMHeap *heap) {
   }
 }
 
-Value core::value_to_string_fn(LocationRef, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
-  return heap->add_string(core_utils::value_to_string(stack, heap, val));
+Value core::value_to_string_fn(LocationRef, VM *vm) {
+  Value val = vm->stack.pop();
+  return vm->heap.add_string(
+      core_utils::value_to_string(&vm->stack, &vm->heap, val));
 }
 
-Value core::fs_read(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value path_val = stack->pop();
+Value core::fs_read(LocationRef where, VM *vm) {
+  Value path_val = vm->stack.pop();
   if (path_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected a string for file path");
   }
-  std::string path = heap->get_string(path_val.as.STRING);
+  std::string path = vm->heap.get_string(path_val.as.STRING);
   std::ifstream f(path);
   if (!f.is_open()) {
     return Value::Error(
-        heap->add(heap->add_string("could not open file: " + path)));
+        vm->heap.add(vm->heap.add_string("could not open file: " + path)));
   }
   std::stringstream buffer;
   buffer << f.rdbuf();
-  return heap->add_string(buffer.str());
+  return vm->heap.add_string(buffer.str());
 }
 
-Value core::fs_write(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value content_val = stack->pop();
-  Value path_val = stack->pop();
+Value core::fs_write(LocationRef where, VM *vm) {
+  Value content_val = vm->stack.pop();
+  Value path_val = vm->stack.pop();
   if (path_val.tag != ValueTag::STRING || content_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for path and content");
   }
-  std::string path = heap->get_string(path_val.as.STRING);
-  std::string content = heap->get_string(content_val.as.STRING);
+  std::string path = vm->heap.get_string(path_val.as.STRING);
+  std::string content = vm->heap.get_string(content_val.as.STRING);
   std::ofstream f(path);
   if (!f.is_open()) {
     return Value::Error(
-        heap->add(heap->add_string("could not open file: " + path)));
+        vm->heap.add(vm->heap.add_string("could not open file: " + path)));
   }
   f << content;
   return Value::None();
 }
 
-Value core::fs_append(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value content_val = stack->pop();
-  Value path_val = stack->pop();
+Value core::fs_append(LocationRef where, VM *vm) {
+  Value content_val = vm->stack.pop();
+  Value path_val = vm->stack.pop();
   if (path_val.tag != ValueTag::STRING || content_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for path and content");
   }
-  std::string path = heap->get_string(path_val.as.STRING);
-  std::string content = heap->get_string(content_val.as.STRING);
+  std::string path = vm->heap.get_string(path_val.as.STRING);
+  std::string content = vm->heap.get_string(content_val.as.STRING);
   std::ofstream f(path, std::ios::app);
   if (!f.is_open()) {
     return Value::Error(
-        heap->add(heap->add_string("could not open file: " + path)));
+        vm->heap.add(vm->heap.add_string("could not open file: " + path)));
   }
   f << content;
   return Value::None();
 }
 
-Value core::fs_stat(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value path_val = stack->pop();
+Value core::fs_stat(LocationRef where, VM *vm) {
+  Value path_val = vm->stack.pop();
   if (path_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected a string for path");
   }
-  std::string path_str = heap->get_string(path_val.as.STRING);
+  std::string path_str = vm->heap.get_string(path_val.as.STRING);
   std::filesystem::path path(path_str);
 
-  VMHIDX table_idx = heap->new_table();
+  VMHIDX table_idx = vm->heap.new_table();
 
   try {
     if (!std::filesystem::exists(path)) {
-      return core_utils::create_error(heap, "no such file or directory");
+      return core_utils::create_error(&vm->heap, "no such file or directory");
     }
 
     Value type_sym = Value::FromSymbol(Constants::SYM_FS_OTHER);
@@ -899,14 +905,15 @@ Value core::fs_stat(LocationRef where, Stack *stack, VMHeap *heap) {
     } else if (std::filesystem::is_symlink(path)) {
       type_sym = Value::FromSymbol(Constants::SYM_FS_SYMLINK);
     }
-    core_utils::table_add_entry(
-        heap, table_idx, Value::FromSymbol(create_symbol("#type")), type_sym);
+    core_utils::table_add_entry(&vm->heap, table_idx,
+                                Value::FromSymbol(create_symbol("#type")),
+                                type_sym);
 
     uint64_t size = 0;
     if (std::filesystem::is_regular_file(path)) {
       size = std::filesystem::file_size(path);
     }
-    core_utils::table_add_entry(heap, table_idx,
+    core_utils::table_add_entry(&vm->heap, table_idx,
                                 Value::FromSymbol(create_symbol("#size")),
                                 Value::Int(size));
 
@@ -920,73 +927,75 @@ Value core::fs_stat(LocationRef where, Stack *stack, VMHeap *heap) {
     auto stime = ftime.time_since_epoch() + diff;
     auto seconds =
         std::chrono::duration_cast<std::chrono::seconds>(stime).count();
-    core_utils::table_add_entry(heap, table_idx,
+    core_utils::table_add_entry(&vm->heap, table_idx,
                                 Value::FromSymbol(create_symbol("#last_write")),
                                 Value::Int(seconds));
 
   } catch (const std::filesystem::filesystem_error &e) {
-    return core_utils::create_error(heap,
+    return core_utils::create_error(&vm->heap,
                                     "fs_stat failed: " + std::string(e.what()));
   }
 
-  return heap->at(table_idx);
+  return vm->heap.at(table_idx);
 }
 
-Value core::sys_env_get(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value name_val = stack->pop();
+Value core::sys_env_get(LocationRef where, VM *vm) {
+  Value name_val = vm->stack.pop();
   if (name_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where,
                             "expected a string for environment variable name");
   }
-  const char *val = std::getenv(heap->get_string(name_val.as.STRING).c_str());
+  const char *val =
+      std::getenv(vm->heap.get_string(name_val.as.STRING).c_str());
   if (val == nullptr) {
-    return Value::Error(
-        heap->add(heap->add_string("environment variable not found: " +
-                                   heap->get_string(name_val.as.STRING))));
+    return Value::Error(vm->heap.add(
+        vm->heap.add_string("environment variable not found: " +
+                            vm->heap.get_string(name_val.as.STRING))));
   }
-  return heap->add_string(std::string(val));
+  return vm->heap.add_string(std::string(val));
 }
 
-Value core::sys_sleep(LocationRef where, Stack *stack, VMHeap *) {
-  Value ms_val = stack->pop();
+Value core::sys_sleep(LocationRef where, VM *vm) {
+  Value ms_val = vm->stack.pop();
   std::this_thread::sleep_for(
       chrono::milliseconds(core_utils::as_int(where, ms_val)));
   return Value::None();
 }
 
-Value core::process_args(LocationRef, Stack *, VMHeap *heap) {
-  VMHIDX list_head = heap->new_list();
+Value core::process_args(LocationRef, VM *vm) {
+  VMHIDX list_head = vm->heap.new_list();
   for (const auto &arg : ::msl_args) {
-    heap->add_child(list_head, heap->add_string(arg));
+    vm->heap.add_child(list_head, vm->heap.add_string(arg));
   }
-  return heap->at(list_head);
+  return vm->heap.at(list_head);
 }
 
 void core::set_args(const std::vector<std::string> &args) { ::msl_args = args; }
 
-Value core::sys_exit(LocationRef where, Stack *stack, VMHeap *) {
-  Value code_val = stack->pop();
+Value core::sys_exit(LocationRef where, VM *vm) {
+  Value code_val = vm->stack.pop();
   if (code_val.tag != ValueTag::INT) {
     throw msl_runtime_error(where, "expected an integer for exit code");
   }
   std::exit(static_cast<int>(code_val.as.INT));
 }
 
-Value core::sys_exec(LocationRef, Stack *stack, VMHeap *heap) {
-  int64_t args_count = stack->pop().as.INT;
+Value core::sys_exec(LocationRef, VM *vm) {
+  int64_t args_count = vm->stack.pop().as.INT;
   std::string command = "";
   for (int64_t i = 0; i < args_count; ++i) {
-    command = core_utils::value_to_string(stack, heap, stack->pop())
-                  .append(" ")
-                  .append(command);
+    command =
+        core_utils::value_to_string(&vm->stack, &vm->heap, vm->stack.pop())
+            .append(" ")
+            .append(command);
   }
   int result = std::system(command.c_str());
   return Value::Int(result);
 }
 
-Value core::random_int(LocationRef where, Stack *stack, VMHeap *) {
-  Value max_val = stack->pop();
-  Value min_val = stack->pop();
+Value core::random_int(LocationRef where, VM *vm) {
+  Value max_val = vm->stack.pop();
+  Value min_val = vm->stack.pop();
   if (min_val.tag != ValueTag::INT || max_val.tag != ValueTag::INT) {
     throw msl_runtime_error(where, "expected integers for random range");
   }
@@ -1002,21 +1011,21 @@ Value core::random_int(LocationRef where, Stack *stack, VMHeap *) {
   return Value::Int(distrib(gen));
 }
 
-Value core::time_epoch_ms(LocationRef, Stack *, VMHeap *) {
+Value core::time_epoch_ms(LocationRef, VM *) {
   auto now = chrono::system_clock::now();
   auto ms = chrono::duration_cast<chrono::milliseconds>(now.time_since_epoch())
                 .count();
   return Value::Int(ms);
 }
 
-Value core::time_epoch_sec(LocationRef, Stack *, VMHeap *) {
+Value core::time_epoch_sec(LocationRef, VM *) {
   auto now = chrono::system_clock::now();
   auto sec =
       chrono::duration_cast<chrono::seconds>(now.time_since_epoch()).count();
   return Value::Int(sec);
 }
 
-Value core::time_iso8601(LocationRef, Stack *, VMHeap *heap) {
+Value core::time_iso8601(LocationRef, VM *vm) {
   auto now = chrono::system_clock::now();
   std::time_t now_c = chrono::system_clock::to_time_t(now);
   std::tm now_tm;
@@ -1027,47 +1036,47 @@ Value core::time_iso8601(LocationRef, Stack *, VMHeap *heap) {
 #endif
   std::stringstream ss;
   ss << std::put_time(&now_tm, "%Y-%m-%dT%H:%M:%SZ");
-  return heap->add_string(ss.str());
+  return vm->heap.add_string(ss.str());
 }
 
-Value core::str_split(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value delim_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::str_split(LocationRef where, VM *vm) {
+  Value delim_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING || delim_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for str_split");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
-  std::string delim = heap->get_string(delim_val.as.STRING);
-  VMHIDX list_head = heap->new_list();
+  std::string s = vm->heap.get_string(str_val.as.STRING);
+  std::string delim = vm->heap.get_string(delim_val.as.STRING);
+  VMHIDX list_head = vm->heap.new_list();
   if (delim.empty()) {
     for (char c : s) {
-      heap->add_child(list_head, heap->add_string(std::string(1, c)));
+      vm->heap.add_child(list_head, vm->heap.add_string(std::string(1, c)));
     }
   } else {
     size_t start = 0;
     size_t end = s.find(delim);
     while (end != std::string::npos) {
-      heap->add_child(list_head,
-                      heap->add_string(s.substr(start, end - start)));
+      vm->heap.add_child(list_head,
+                         vm->heap.add_string(s.substr(start, end - start)));
       start = end + delim.length();
       end = s.find(delim, start);
     }
-    heap->add_child(list_head, heap->add_string(s.substr(start)));
+    vm->heap.add_child(list_head, vm->heap.add_string(s.substr(start)));
   }
-  return heap->at(list_head);
+  return vm->heap.at(list_head);
 }
 
-Value core::str_replace(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value replacement_val = stack->pop();
-  Value search_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::str_replace(LocationRef where, VM *vm) {
+  Value replacement_val = vm->stack.pop();
+  Value search_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING || search_val.tag != ValueTag::STRING ||
       replacement_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for str_replace");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
-  std::string search = heap->get_string(search_val.as.STRING);
-  std::string replacement = heap->get_string(replacement_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
+  std::string search = vm->heap.get_string(search_val.as.STRING);
+  std::string replacement = vm->heap.get_string(replacement_val.as.STRING);
   if (search.empty())
     return str_val;
   size_t pos = 0;
@@ -1075,41 +1084,41 @@ Value core::str_replace(LocationRef where, Stack *stack, VMHeap *heap) {
     s.replace(pos, search.length(), replacement);
     pos += replacement.length();
   }
-  return heap->add_string(s);
+  return vm->heap.add_string(s);
 }
 
-Value core::str_contains(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value sub_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::str_contains(LocationRef where, VM *vm) {
+  Value sub_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING || sub_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for str_contains");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
-  std::string sub = heap->get_string(sub_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
+  std::string sub = vm->heap.get_string(sub_val.as.STRING);
   bool found = s.find(sub) != std::string::npos;
   return core_utils::to_bool(found);
 }
 
-Value core::str_has_prefix(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value prefix_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::str_has_prefix(LocationRef where, VM *vm) {
+  Value prefix_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING || prefix_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for str_has_prefix");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
-  std::string prefix = heap->get_string(prefix_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
+  std::string prefix = vm->heap.get_string(prefix_val.as.STRING);
   bool res = s.compare(0, prefix.length(), prefix) == 0;
   return core_utils::to_bool(res);
 }
 
-Value core::str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value suffix_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::str_has_suffix(LocationRef where, VM *vm) {
+  Value suffix_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING || suffix_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for str_has_suffix");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
-  std::string suffix = heap->get_string(suffix_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
+  std::string suffix = vm->heap.get_string(suffix_val.as.STRING);
   bool res = false;
   if (s.length() >= suffix.length()) {
     res = s.compare(s.length() - suffix.length(), suffix.length(), suffix) == 0;
@@ -1117,34 +1126,34 @@ Value core::str_has_suffix(LocationRef where, Stack *stack, VMHeap *heap) {
   return core_utils::to_bool(res);
 }
 
-Value core::str_lower(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value str_val = stack->pop();
+Value core::str_lower(LocationRef where, VM *vm) {
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected string for str_lower");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
   std::transform(s.begin(), s.end(), s.begin(),
                  [](unsigned char c) { return std::tolower(c); });
-  return heap->add_string(s);
+  return vm->heap.add_string(s);
 }
 
-Value core::str_upper(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value str_val = stack->pop();
+Value core::str_upper(LocationRef where, VM *vm) {
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected string for str_upper");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
   std::transform(s.begin(), s.end(), s.begin(),
                  [](unsigned char c) { return std::toupper(c); });
-  return heap->add_string(s);
+  return vm->heap.add_string(s);
 }
 
-Value core::str_trim(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value str_val = stack->pop();
+Value core::str_trim(LocationRef where, VM *vm) {
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected string for str_trim");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
   s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
             return !std::isspace(ch);
           }));
@@ -1152,42 +1161,42 @@ Value core::str_trim(LocationRef where, Stack *stack, VMHeap *heap) {
                        [](unsigned char ch) { return !std::isspace(ch); })
               .base(),
           s.end());
-  return heap->add_string(s);
+  return vm->heap.add_string(s);
 }
-Value core::str_trim_left(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value str_val = stack->pop();
+Value core::str_trim_left(LocationRef where, VM *vm) {
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected string for str_trim_left");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
   s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
             return !std::isspace(ch);
           }));
-  return heap->add_string(s);
+  return vm->heap.add_string(s);
 }
-Value core::str_trim_right(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value str_val = stack->pop();
+Value core::str_trim_right(LocationRef where, VM *vm) {
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected string for str_trim_right");
   }
-  std::string s = heap->get_string(str_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
   s.erase(std::find_if(s.rbegin(), s.rend(),
                        [](unsigned char ch) { return !std::isspace(ch); })
               .base(),
           s.end());
-  return heap->add_string(s);
+  return vm->heap.add_string(s);
 }
 
-Value core::vmassert(LocationRef where, Stack *stack, VMHeap *) {
-  Value value = stack->pop();
+Value core::vmassert(LocationRef where, VM *vm) {
+  Value value = vm->stack.pop();
   if (!core_utils::as_bool(where, value)) {
     throw msl_runtime_error(where, "assertion failed");
   }
   return Value::None();
 }
-Value core::vmassert_type(LocationRef where, Stack *stack, VMHeap *) {
-  Value typeval = stack->pop();
-  Value val = stack->pop();
+Value core::vmassert_type(LocationRef where, VM *vm) {
+  Value typeval = vm->stack.pop();
+  Value val = vm->stack.pop();
   if (typeval.tag != ValueTag::SYMBOL) {
     throw msl_runtime_error(
         where, "expected a symbol as second argument but got a(n) " +
@@ -1202,8 +1211,8 @@ Value core::vmassert_type(LocationRef where, Stack *stack, VMHeap *) {
   return Value::None();
 }
 
-Value core::math_abs(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_abs(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   switch (val.tag) {
   case ValueTag::INT:
     return Value::Int(std::abs(val.as.INT));
@@ -1214,8 +1223,8 @@ Value core::math_abs(LocationRef where, Stack *stack, VMHeap *) {
   }
 }
 
-Value core::math_floor(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_floor(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   switch (val.tag) {
   case ValueTag::INT:
     return val;
@@ -1226,8 +1235,8 @@ Value core::math_floor(LocationRef where, Stack *stack, VMHeap *) {
   }
 }
 
-Value core::math_ceil(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_ceil(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   switch (val.tag) {
   case ValueTag::INT:
     return val;
@@ -1238,8 +1247,8 @@ Value core::math_ceil(LocationRef where, Stack *stack, VMHeap *) {
   }
 }
 
-Value core::math_round(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_round(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   switch (val.tag) {
   case ValueTag::INT:
     return val;
@@ -1250,8 +1259,8 @@ Value core::math_round(LocationRef where, Stack *stack, VMHeap *) {
   }
 }
 
-Value core::math_sqrt(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_sqrt(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   double d;
   switch (val.tag) {
   case ValueTag::INT:
@@ -1266,9 +1275,9 @@ Value core::math_sqrt(LocationRef where, Stack *stack, VMHeap *) {
   return Value::Float(std::sqrt(d));
 }
 
-Value core::math_pow(LocationRef where, Stack *stack, VMHeap *) {
-  Value y_val = stack->pop();
-  Value x_val = stack->pop();
+Value core::math_pow(LocationRef where, VM *vm) {
+  Value y_val = vm->stack.pop();
+  Value x_val = vm->stack.pop();
   double x, y;
 
   switch (x_val.tag) {
@@ -1296,8 +1305,8 @@ Value core::math_pow(LocationRef where, Stack *stack, VMHeap *) {
   return Value::Float(std::pow(x, y));
 }
 
-Value core::math_sin(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_sin(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   double d;
   switch (val.tag) {
   case ValueTag::INT:
@@ -1312,8 +1321,8 @@ Value core::math_sin(LocationRef where, Stack *stack, VMHeap *) {
   return Value::Float(std::sin(d));
 }
 
-Value core::math_cos(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_cos(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   double d;
   switch (val.tag) {
   case ValueTag::INT:
@@ -1328,8 +1337,8 @@ Value core::math_cos(LocationRef where, Stack *stack, VMHeap *) {
   return Value::Float(std::cos(d));
 }
 
-Value core::math_tan(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_tan(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   double d;
   switch (val.tag) {
   case ValueTag::INT:
@@ -1344,8 +1353,8 @@ Value core::math_tan(LocationRef where, Stack *stack, VMHeap *) {
   return Value::Float(std::tan(d));
 }
 
-Value core::math_log(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_log(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   double d;
   switch (val.tag) {
   case ValueTag::INT:
@@ -1360,8 +1369,8 @@ Value core::math_log(LocationRef where, Stack *stack, VMHeap *) {
   return Value::Float(std::log(d));
 }
 
-Value core::math_exp(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::math_exp(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   double d;
   switch (val.tag) {
   case ValueTag::INT:
@@ -1376,10 +1385,10 @@ Value core::math_exp(LocationRef where, Stack *stack, VMHeap *) {
   return Value::Float(std::exp(d));
 }
 
-Value core::str_slice(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value end_val = stack->pop();
-  Value start_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::str_slice(LocationRef where, VM *vm) {
+  Value end_val = vm->stack.pop();
+  Value start_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
 
   if (str_val.tag != ValueTag::STRING || start_val.tag != ValueTag::INT ||
       end_val.tag != ValueTag::INT) {
@@ -1395,20 +1404,20 @@ Value core::str_slice(LocationRef where, Stack *stack, VMHeap *heap) {
   if (start < 0 || end < 0) {
     throw msl_runtime_error(where, "start and end must be larger than 0");
   }
-  return heap->add_string(
-      heap->get_string(str_val.as.STRING).substr(start, end - start));
+  return vm->heap.add_string(
+      vm->heap.get_string(str_val.as.STRING).substr(start, end - start));
 }
 
-Value core::str_find(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value sub_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::str_find(LocationRef where, VM *vm) {
+  Value sub_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
 
   if (str_val.tag != ValueTag::STRING || sub_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected str_find(string, string)");
   }
 
-  std::string s = heap->get_string(str_val.as.STRING);
-  std::string sub = heap->get_string(sub_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
+  std::string sub = vm->heap.get_string(sub_val.as.STRING);
   size_t pos = s.find(sub);
 
   if (pos == std::string::npos) {
@@ -1417,15 +1426,15 @@ Value core::str_find(LocationRef where, Stack *stack, VMHeap *heap) {
   return Value::Int(pos);
 }
 
-Value core::str_index(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value index_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::str_index(LocationRef where, VM *vm) {
+  Value index_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
 
   if (str_val.tag != ValueTag::STRING || index_val.tag != ValueTag::INT) {
     throw msl_runtime_error(where, "expected str_index(string, int)");
   }
 
-  std::string s = heap->get_string(str_val.as.STRING);
+  std::string s = vm->heap.get_string(str_val.as.STRING);
   int64_t i = index_val.as.INT;
   int64_t len = s.length();
 
@@ -1437,11 +1446,11 @@ Value core::str_index(LocationRef where, Stack *stack, VMHeap *heap) {
     throw msl_runtime_error(where, "string index out of bounds");
   }
 
-  return heap->add_string(std::string(1, s[i]));
+  return vm->heap.add_string(std::string(1, s[i]));
 }
 
-Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
-  int64_t args_count = stack->pop().as.INT;
+Value core::str_fmt(LocationRef where, VM *vm) {
+  int64_t args_count = vm->stack.pop().as.INT;
   if (args_count == 0) {
     throw msl_runtime_error(where, "str_fmt expects at least a format string");
   }
@@ -1449,7 +1458,7 @@ Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
   std::vector<Value> args;
   args.reserve(args_count);
   for (int64_t i = 0; i < args_count; ++i) {
-    args.push_back(stack->pop());
+    args.push_back(vm->stack.pop());
   }
   std::reverse(args.begin(), args.end());
 
@@ -1458,7 +1467,7 @@ Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
     throw msl_runtime_error(
         where, "str_fmt expects the first argument to be a format string");
   }
-  std::string fmt_str = heap->get_string(fmt_str_val.as.STRING);
+  std::string fmt_str = vm->heap.get_string(fmt_str_val.as.STRING);
 
   std::string result = "";
   size_t arg_idx = 1;
@@ -1469,7 +1478,8 @@ Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
         throw msl_runtime_error(where,
                                 "not enough arguments for format string");
       }
-      result += core_utils::value_to_string(stack, heap, args[arg_idx]);
+      result +=
+          core_utils::value_to_string(&vm->stack, &vm->heap, args[arg_idx]);
       ++arg_idx;
       ++i; // Skip the '}'
     } else {
@@ -1481,15 +1491,15 @@ Value core::str_fmt(LocationRef where, Stack *stack, VMHeap *heap) {
     throw msl_runtime_error(where, "too many arguments for format string");
   }
 
-  return heap->add_string(result);
+  return vm->heap.add_string(result);
 }
 
-Value core::str_url_encode(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::str_url_encode(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "str_url_encode: expected a string");
   }
-  std::string str = heap->get_string(val.as.STRING);
+  std::string str = vm->heap.get_string(val.as.STRING);
   std::string res = "";
   for (unsigned char c : str) {
     if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
@@ -1500,15 +1510,15 @@ Value core::str_url_encode(LocationRef where, Stack *stack, VMHeap *heap) {
       res += buf;
     }
   }
-  return heap->add_string(res);
+  return vm->heap.add_string(res);
 }
 
-Value core::str_url_decode(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::str_url_decode(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "str_url_decode: expected a string");
   }
-  std::string str = heap->get_string(val.as.STRING);
+  std::string str = vm->heap.get_string(val.as.STRING);
   std::string res = "";
   for (size_t i = 0; i < str.length(); ++i) {
     if (str[i] == '%' && i + 2 < str.length()) {
@@ -1525,106 +1535,107 @@ Value core::str_url_decode(LocationRef where, Stack *stack, VMHeap *heap) {
       res += str[i];
     }
   }
-  return heap->add_string(res);
+  return vm->heap.add_string(res);
 }
 
-Value core::fs_exists(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value path_val = stack->pop();
+Value core::fs_exists(LocationRef where, VM *vm) {
+  Value path_val = vm->stack.pop();
   if (path_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected a string for file path");
   }
-  std::string path = heap->get_string(path_val.as.STRING);
+  std::string path = vm->heap.get_string(path_val.as.STRING);
   bool exists = std::filesystem::exists(path);
   return core_utils::to_bool(exists);
 }
 
-Value core::fs_mkdir(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value path_val = stack->pop();
+Value core::fs_mkdir(LocationRef where, VM *vm) {
+  Value path_val = vm->stack.pop();
   if (path_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected a string for directory path");
   }
-  std::string path = heap->get_string(path_val.as.STRING);
+  std::string path = vm->heap.get_string(path_val.as.STRING);
   try {
     if (!std::filesystem::create_directory(path)) {
-      return core_utils::create_error(heap, "failed to create directory");
+      return core_utils::create_error(&vm->heap, "failed to create directory");
     }
   } catch (const std::filesystem::filesystem_error &e) {
-    return core_utils::create_error(heap, "failed to create directory: " +
-                                              std::string(e.what()));
+    return core_utils::create_error(&vm->heap, "failed to create directory: " +
+                                                   std::string(e.what()));
   }
   return Value::None();
 }
 
-Value core::fs_rm(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value path_val = stack->pop();
+Value core::fs_rm(LocationRef where, VM *vm) {
+  Value path_val = vm->stack.pop();
   if (path_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected a string for path");
   }
-  std::string path = heap->get_string(path_val.as.STRING);
+  std::string path = vm->heap.get_string(path_val.as.STRING);
   try {
     if (!std::filesystem::remove(path)) {
-      return core_utils::create_error(heap, "file or directory not found");
+      return core_utils::create_error(&vm->heap, "file or directory not found");
     }
   } catch (const std::filesystem::filesystem_error &e) {
-    return core_utils::create_error(heap, "failed to remove: " +
-                                              std::string(e.what()));
+    return core_utils::create_error(&vm->heap, "failed to remove: " +
+                                                   std::string(e.what()));
   }
   return Value::None();
 }
 
-Value core::fs_ls(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value path_val = stack->pop();
+Value core::fs_ls(LocationRef where, VM *vm) {
+  Value path_val = vm->stack.pop();
   if (path_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected a string for path");
   }
-  std::string path = heap->get_string(path_val.as.STRING);
-  VMHIDX list_head = heap->new_list();
+  std::string path = vm->heap.get_string(path_val.as.STRING);
+  VMHIDX list_head = vm->heap.new_list();
   try {
     for (const auto &entry : std::filesystem::directory_iterator(path)) {
-      heap->add_child(list_head, heap->add_string(entry.path().string()));
+      vm->heap.add_child(list_head, vm->heap.add_string(entry.path().string()));
     }
   } catch (const std::filesystem::filesystem_error &e) {
-    return core_utils::create_error(
-        heap, "failed to list directory contents: " + std::string(e.what()));
+    return core_utils::create_error(&vm->heap,
+                                    "failed to list directory contents: " +
+                                        std::string(e.what()));
   }
-  return heap->at(list_head);
+  return vm->heap.at(list_head);
 }
 
-Value core::fs_copy(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value dst_val = stack->pop();
-  Value src_val = stack->pop();
+Value core::fs_copy(LocationRef where, VM *vm) {
+  Value dst_val = vm->stack.pop();
+  Value src_val = vm->stack.pop();
   if (src_val.tag != ValueTag::STRING || dst_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for src and dst paths");
   }
-  std::string src = heap->get_string(src_val.as.STRING);
-  std::string dst = heap->get_string(dst_val.as.STRING);
+  std::string src = vm->heap.get_string(src_val.as.STRING);
+  std::string dst = vm->heap.get_string(dst_val.as.STRING);
   try {
     std::filesystem::copy(src, dst, std::filesystem::copy_options::recursive);
   } catch (const std::filesystem::filesystem_error &e) {
-    return core_utils::create_error(heap,
+    return core_utils::create_error(&vm->heap,
                                     "failed to copy: " + std::string(e.what()));
   }
   return Value::None();
 }
 
-Value core::fs_move(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value dst_val = stack->pop();
-  Value src_val = stack->pop();
+Value core::fs_move(LocationRef where, VM *vm) {
+  Value dst_val = vm->stack.pop();
+  Value src_val = vm->stack.pop();
   if (src_val.tag != ValueTag::STRING || dst_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "expected strings for src and dst paths");
   }
-  std::string src = heap->get_string(src_val.as.STRING);
-  std::string dst = heap->get_string(dst_val.as.STRING);
+  std::string src = vm->heap.get_string(src_val.as.STRING);
+  std::string dst = vm->heap.get_string(dst_val.as.STRING);
   try {
     std::filesystem::rename(src, dst);
   } catch (const std::filesystem::filesystem_error &e) {
-    return core_utils::create_error(heap,
+    return core_utils::create_error(&vm->heap,
                                     "failed to move: " + std::string(e.what()));
   }
   return Value::None();
 }
 
-Value core::sys_now(LocationRef, Stack *, VMHeap *) {
+Value core::sys_now(LocationRef, VM *) {
   auto now = chrono::high_resolution_clock::now();
   auto nanos =
       chrono::duration_cast<chrono::nanoseconds>(now.time_since_epoch())
@@ -1632,49 +1643,49 @@ Value core::sys_now(LocationRef, Stack *, VMHeap *) {
   return Value::Int(nanos);
 }
 
-Value core::bit_shift_left(LocationRef where, Stack *stack, VMHeap *) {
-  Value n = stack->pop(); // right
-  Value i = stack->pop(); // left
+Value core::bit_shift_left(LocationRef where, VM *vm) {
+  Value n = vm->stack.pop(); // right
+  Value i = vm->stack.pop(); // left
   core_utils::assert_int(where, i);
   core_utils::assert_int(where, n);
   return Value::Int(i.as.INT << n.as.INT);
 }
 
-Value core::bit_shift_right(LocationRef where, Stack *stack, VMHeap *) {
-  Value n = stack->pop(); // right
-  Value i = stack->pop(); // left
+Value core::bit_shift_right(LocationRef where, VM *vm) {
+  Value n = vm->stack.pop(); // right
+  Value i = vm->stack.pop(); // left
   core_utils::assert_int(where, i);
   core_utils::assert_int(where, n);
   return Value::Int(i.as.INT >> n.as.INT);
 }
 
-Value core::bit_or(LocationRef where, Stack *stack, VMHeap *) {
-  Value j = stack->pop(); // right
-  Value i = stack->pop(); // left
+Value core::bit_or(LocationRef where, VM *vm) {
+  Value j = vm->stack.pop(); // right
+  Value i = vm->stack.pop(); // left
   core_utils::assert_int(where, i);
   core_utils::assert_int(where, j);
   return Value::Int(i.as.INT | j.as.INT);
 }
 
-Value core::bit_and(LocationRef where, Stack *stack, VMHeap *) {
-  Value j = stack->pop(); // right
-  Value i = stack->pop(); // left
+Value core::bit_and(LocationRef where, VM *vm) {
+  Value j = vm->stack.pop(); // right
+  Value i = vm->stack.pop(); // left
   core_utils::assert_int(where, i);
   core_utils::assert_int(where, j);
   return Value::Int(i.as.INT & j.as.INT);
 }
 
-Value core::bit_xor(LocationRef where, Stack *stack, VMHeap *) {
-  Value j = stack->pop(); // right
-  Value i = stack->pop(); // left
+Value core::bit_xor(LocationRef where, VM *vm) {
+  Value j = vm->stack.pop(); // right
+  Value i = vm->stack.pop(); // left
   core_utils::assert_int(where, i);
   core_utils::assert_int(where, j);
   return Value::Int(i.as.INT ^ j.as.INT);
 }
 
-Value core::ansi_color(LocationRef where, Stack *stack, VMHeap *) {
-  Value color_val = stack->pop();
-  Value type_val = stack->pop();
+Value core::ansi_color(LocationRef where, VM *vm) {
+  Value color_val = vm->stack.pop();
+  Value type_val = vm->stack.pop();
 
   if (type_val.tag != ValueTag::SYMBOL || color_val.tag != ValueTag::SYMBOL) {
     throw msl_runtime_error(where, "ansi_color expects two symbols");
@@ -1735,17 +1746,17 @@ Value core::ansi_color(LocationRef where, Stack *stack, VMHeap *) {
   return Value::None();
 }
 
-Value core::ansi_reset(LocationRef, Stack *, VMHeap *) {
+Value core::ansi_reset(LocationRef, VM *) {
   std::cout << "\033[0m";
   return Value::None();
 }
 
-Value core::sys_is_tty(LocationRef, Stack *, VMHeap *) {
+Value core::sys_is_tty(LocationRef, VM *) {
   bool tty = ISATTY(STDOUT_FILENO);
   return core_utils::to_bool(tty);
 }
 
-Value core::sys_has_color(LocationRef, Stack *, VMHeap *) {
+Value core::sys_has_color(LocationRef, VM *) {
   if (!ISATTY(STDOUT_FILENO)) {
     return Value::FromSymbol(Constants::SYM_FALSE);
   }
@@ -1767,26 +1778,28 @@ Value core::sys_has_color(LocationRef, Stack *, VMHeap *) {
   return Value::FromSymbol(Constants::SYM_FALSE);
 }
 
-Value core::sys_term_width(LocationRef, Stack *, VMHeap *heap) {
+Value core::sys_term_width(LocationRef, VM *vm) {
   core_utils::TerminalSize size = core_utils::get_terminal_size();
   if (size.success) {
     return Value::Int(size.width);
   } else {
-    return core_utils::create_error(heap, "failed to get terminal dimensions");
+    return core_utils::create_error(&vm->heap,
+                                    "failed to get terminal dimensions");
   }
 }
-Value core::sys_term_height(LocationRef, Stack *, VMHeap *heap) {
+Value core::sys_term_height(LocationRef, VM *vm) {
   core_utils::TerminalSize size = core_utils::get_terminal_size();
   if (size.success) {
     return Value::Int(size.height);
   } else {
-    return core_utils::create_error(heap, "failed to get terminal dimensions");
+    return core_utils::create_error(&vm->heap,
+                                    "failed to get terminal dimensions");
   }
 }
 
-Value core::ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *) {
-  Value col_val = stack->pop();
-  Value row_val = stack->pop();
+Value core::ansi_set_cursor(LocationRef where, VM *vm) {
+  Value col_val = vm->stack.pop();
+  Value row_val = vm->stack.pop();
 
   if (row_val.tag == ValueTag::INT && col_val.tag == ValueTag::INT) {
     std::cout << "\033[" << (row_val.as.INT + 1) << ";" << (col_val.as.INT + 1)
@@ -1803,9 +1816,9 @@ Value core::ansi_set_cursor(LocationRef where, Stack *stack, VMHeap *) {
   return Value::None();
 }
 
-Value core::ansi_move_cursor(LocationRef where, Stack *stack, VMHeap *) {
-  Value dc_val = stack->pop();
-  Value dr_val = stack->pop();
+Value core::ansi_move_cursor(LocationRef where, VM *vm) {
+  Value dc_val = vm->stack.pop();
+  Value dr_val = vm->stack.pop();
 
   if (dr_val.tag == ValueTag::INT) {
     int64_t dr = dr_val.as.INT;
@@ -1833,22 +1846,22 @@ Value core::ansi_move_cursor(LocationRef where, Stack *stack, VMHeap *) {
   return Value::None();
 }
 
-Value core::ansi_clear_line(LocationRef, Stack *, VMHeap *) {
+Value core::ansi_clear_line(LocationRef, VM *) {
   std::cout << "\033[2K"; // Clear entire line
   std::cout << "\033[G";  // Move to beginning of line
   std::cout.flush();
   return Value::None();
 }
 
-Value core::ansi_clear_screen(LocationRef, Stack *, VMHeap *) {
+Value core::ansi_clear_screen(LocationRef, VM *) {
   std::cout << "\033[2J"; // Clear entire screen
   std::cout << "\033[H";  // Move to home (1,1)
   std::cout.flush();
   return Value::None();
 }
 
-Value core::ansi_clear(LocationRef where, Stack *stack, VMHeap *) {
-  Value val = stack->pop();
+Value core::ansi_clear(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::SYMBOL) {
     throw msl_runtime_error(where, "ansi_clear expects a symbol");
   }
@@ -1876,50 +1889,50 @@ Value core::ansi_clear(LocationRef where, Stack *stack, VMHeap *) {
   return Value::None();
 }
 
-Value core::regex_has_match(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value regexp_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::regex_has_match(LocationRef where, VM *vm) {
+  Value regexp_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING || regexp_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "regex_has_match: expected two strings");
   }
   bool has_match =
-      std::regex_search(heap->get_string(str_val.as.STRING),
-                        std::regex(heap->get_string(regexp_val.as.STRING)));
+      std::regex_search(vm->heap.get_string(str_val.as.STRING),
+                        std::regex(vm->heap.get_string(regexp_val.as.STRING)));
   return core_utils::to_bool(has_match);
 }
 
-Value core::regex_match(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value regexp_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::regex_match(LocationRef where, VM *vm) {
+  Value regexp_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
   if (str_val.tag != ValueTag::STRING || regexp_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "regex_has_match: expected two strings");
   }
   std::smatch result;
-  std::string string_to_search = heap->get_string(str_val.as.STRING);
-  std::regex regex = std::regex(heap->get_string(regexp_val.as.STRING));
+  std::string string_to_search = vm->heap.get_string(str_val.as.STRING);
+  std::regex regex = std::regex(vm->heap.get_string(regexp_val.as.STRING));
   std::regex_search(string_to_search, result, regex);
 
-  VMHIDX list_head = heap->new_list();
+  VMHIDX list_head = vm->heap.new_list();
   for (size_t i = 0; i < result.size(); ++i) {
-    heap->add_child(list_head, heap->add_string(result[i]));
+    vm->heap.add_child(list_head, vm->heap.add_string(result[i]));
   }
   return Value::List(list_head);
 }
 
-Value core::regex_replace(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value replacement_val = stack->pop();
-  Value regexp_val = stack->pop();
-  Value str_val = stack->pop();
+Value core::regex_replace(LocationRef where, VM *vm) {
+  Value replacement_val = vm->stack.pop();
+  Value regexp_val = vm->stack.pop();
+  Value str_val = vm->stack.pop();
   if (replacement_val.tag != ValueTag::STRING ||
       str_val.tag != ValueTag::STRING || regexp_val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where,
                             "regex_replace: expected three string arguments");
   }
-  std::string str = heap->get_string(str_val.as.STRING);
-  std::string replacement = heap->get_string(replacement_val.as.STRING);
-  std::regex regex = std::regex(heap->get_string(regexp_val.as.STRING));
+  std::string str = vm->heap.get_string(str_val.as.STRING);
+  std::string replacement = vm->heap.get_string(replacement_val.as.STRING);
+  std::regex regex = std::regex(vm->heap.get_string(regexp_val.as.STRING));
   std::string result = std::regex_replace(str, regex, replacement);
-  return Value::String(heap->ref_add_string(result));
+  return Value::String(vm->heap.ref_add_string(result));
 }
 
 namespace _base64 {
@@ -1968,26 +1981,26 @@ std::string base64_decode_str(const std::string &in) {
 }
 } // namespace _base64
 
-Value core::base64_encode(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::base64_encode(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "base64_encode: expected a string");
   }
-  std::string str = heap->get_string(val.as.STRING);
-  return heap->add_string(_base64::base64_encode_str(str));
+  std::string str = vm->heap.get_string(val.as.STRING);
+  return vm->heap.add_string(_base64::base64_encode_str(str));
 }
 
-Value core::base64_decode(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::base64_decode(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "base64_decode: expected a string");
   }
-  std::string str = heap->get_string(val.as.STRING);
-  return heap->add_string(_base64::base64_decode_str(str));
+  std::string str = vm->heap.get_string(val.as.STRING);
+  return vm->heap.add_string(_base64::base64_decode_str(str));
 }
 
-Value core::hex_encode(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::hex_encode(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::INT) {
     throw msl_runtime_error(where, "hex_encode: expected an integer");
   }
@@ -1996,15 +2009,15 @@ Value core::hex_encode(LocationRef where, Stack *stack, VMHeap *heap) {
   }
   std::stringstream ss;
   ss << std::hex << val.as.INT;
-  return heap->add_string(ss.str());
+  return vm->heap.add_string(ss.str());
 }
 
-Value core::hex_decode(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::hex_decode(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "hex_decode: expected a string");
   }
-  std::string str = heap->get_string(val.as.STRING);
+  std::string str = vm->heap.get_string(val.as.STRING);
   try {
     return Value::Int(std::stoll(str, nullptr, 16));
   } catch (...) {
@@ -2012,8 +2025,8 @@ Value core::hex_decode(LocationRef where, Stack *stack, VMHeap *heap) {
   }
 }
 
-Value core::binary_encode(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::binary_encode(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::INT) {
     throw msl_runtime_error(where, "binary_encode: expected an integer");
   }
@@ -2022,7 +2035,7 @@ Value core::binary_encode(LocationRef where, Stack *stack, VMHeap *heap) {
                             "binary_encode: expected a positive integer");
   }
   if (val.as.INT == 0) {
-    return heap->add_string("0");
+    return vm->heap.add_string("0");
   }
   std::string res = "";
   uint64_t n = static_cast<uint64_t>(val.as.INT);
@@ -2030,15 +2043,15 @@ Value core::binary_encode(LocationRef where, Stack *stack, VMHeap *heap) {
     res = ((n % 2 == 0) ? "0" : "1") + res;
     n /= 2;
   }
-  return heap->add_string(res);
+  return vm->heap.add_string(res);
 }
 
-Value core::binary_decode(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
+Value core::binary_decode(LocationRef where, VM *vm) {
+  Value val = vm->stack.pop();
   if (val.tag != ValueTag::STRING) {
     throw msl_runtime_error(where, "binary_decode: expected a string");
   }
-  std::string str = heap->get_string(val.as.STRING);
+  std::string str = vm->heap.get_string(val.as.STRING);
   try {
     return Value::Int(std::stoll(str, nullptr, 2));
   } catch (...) {
@@ -2047,24 +2060,24 @@ Value core::binary_decode(LocationRef where, Stack *stack, VMHeap *heap) {
   }
 }
 
-Value core::box_create(LocationRef, Stack *stack, VMHeap *heap) {
-  Value val = stack->pop();
-  return heap->new_box(val);
+Value core::box_create(LocationRef, VM *vm) {
+  Value val = vm->stack.pop();
+  return vm->heap.new_box(val);
 }
-Value core::box_pack(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value value = stack->pop();
-  Value box = stack->pop();
+Value core::box_pack(LocationRef where, VM *vm) {
+  Value value = vm->stack.pop();
+  Value box = vm->stack.pop();
   if (box.tag != ValueTag::BOX) {
     throw msl_runtime_error(where,
                             "box_pack: expected a box as first argument");
   }
-  return heap->box_pack(box.as.BOX, value);
+  return vm->heap.box_pack(box.as.BOX, value);
 }
-Value core::box_unpack(LocationRef where, Stack *stack, VMHeap *heap) {
-  Value box = stack->pop();
+Value core::box_unpack(LocationRef where, VM *vm) {
+  Value box = vm->stack.pop();
   if (box.tag != ValueTag::BOX) {
     throw msl_runtime_error(where,
                             "box_pack: expected a box as first argument");
   }
-  return heap->box_unpack(box.as.BOX);
+  return vm->heap.box_unpack(box.as.BOX);
 }
